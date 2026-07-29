@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSession } from "@/lib/session";
 import { tenants } from "@/lib/mock-data";
 
-export const Route = createFileRoute("/tenants")({
+export const Route = createFileRoute("/tenants/")({
   head: () => ({
     meta: [
       { title: "Organizações — ChatRAG Master" },
