@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
+import { Route as ConversasRouteImport } from './routes/conversas'
+import { Route as IntegracoesRouteImport } from './routes/integracoes'
+import { Route as LacunasRouteImport } from './routes/lacunas'
+import { Route as PlataformaRouteImport } from './routes/plataforma'
+import { Route as PlaygroundRouteImport } from './routes/playground'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
+import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
+import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
+import { Route as TenantsTenantIdRouteImport } from './routes/tenants.$tenantId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditoriaRoute = AuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConhecimentoRoute = ConhecimentoRouteImport.update({
+  id: '/conhecimento',
+  path: '/conhecimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversasRoute = ConversasRouteImport.update({
+  id: '/conversas',
+  path: '/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegracoesRoute = IntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LacunasRoute = LacunasRouteImport.update({
+  id: '/lacunas',
+  path: '/lacunas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlataformaRoute = PlataformaRouteImport.update({
+  id: '/plataforma',
+  path: '/plataforma',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistentesIndexRoute = AssistentesIndexRouteImport.update({
+  id: '/assistentes/',
+  path: '/assistentes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistentesAssistantIdRoute = AssistentesAssistantIdRouteImport.update({
+  id: '/assistentes/$assistantId',
+  path: '/assistentes/$assistantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantsIndexRoute = TenantsIndexRouteImport.update({
+  id: '/tenants/',
+  path: '/tenants/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
+  id: '/tenants/$tenantId',
+  path: '/tenants/$tenantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/lacunas': typeof LacunasRoute
+  '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
+  '/usuarios': typeof UsuariosRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes/': typeof AssistentesIndexRoute
+  '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/lacunas': typeof LacunasRoute
+  '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
+  '/usuarios': typeof UsuariosRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes': typeof AssistentesIndexRoute
+  '/tenants': typeof TenantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/lacunas': typeof LacunasRoute
+  '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
+  '/usuarios': typeof UsuariosRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes/': typeof AssistentesIndexRoute
+  '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/conhecimento'
+    | '/conversas'
+    | '/integracoes'
+    | '/lacunas'
+    | '/plataforma'
+    | '/playground'
+    | '/usuarios'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes/'
+    | '/tenants/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/conhecimento'
+    | '/conversas'
+    | '/integracoes'
+    | '/lacunas'
+    | '/plataforma'
+    | '/playground'
+    | '/usuarios'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes'
+    | '/tenants'
+  id:
+    | '__root__'
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/conhecimento'
+    | '/conversas'
+    | '/integracoes'
+    | '/lacunas'
+    | '/plataforma'
+    | '/playground'
+    | '/usuarios'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes/'
+    | '/tenants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditoriaRoute: typeof AuditoriaRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ConhecimentoRoute: typeof ConhecimentoRoute
+  ConversasRoute: typeof ConversasRoute
+  IntegracoesRoute: typeof IntegracoesRoute
+  LacunasRoute: typeof LacunasRoute
+  PlataformaRoute: typeof PlataformaRoute
+  PlaygroundRoute: typeof PlaygroundRoute
+  UsuariosRoute: typeof UsuariosRoute
+  AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
+  TenantsTenantIdRoute: typeof TenantsTenantIdRoute
+  AssistentesIndexRoute: typeof AssistentesIndexRoute
+  TenantsIndexRoute: typeof TenantsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +221,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auditoria': {
+      id: '/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conhecimento': {
+      id: '/conhecimento'
+      path: '/conhecimento'
+      fullPath: '/conhecimento'
+      preLoaderRoute: typeof ConhecimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversas': {
+      id: '/conversas'
+      path: '/conversas'
+      fullPath: '/conversas'
+      preLoaderRoute: typeof ConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integracoes': {
+      id: '/integracoes'
+      path: '/integracoes'
+      fullPath: '/integracoes'
+      preLoaderRoute: typeof IntegracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lacunas': {
+      id: '/lacunas'
+      path: '/lacunas'
+      fullPath: '/lacunas'
+      preLoaderRoute: typeof LacunasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plataforma': {
+      id: '/plataforma'
+      path: '/plataforma'
+      fullPath: '/plataforma'
+      preLoaderRoute: typeof PlataformaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistentes/': {
+      id: '/assistentes/'
+      path: '/assistentes'
+      fullPath: '/assistentes/'
+      preLoaderRoute: typeof AssistentesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistentes/$assistantId': {
+      id: '/assistentes/$assistantId'
+      path: '/assistentes/$assistantId'
+      fullPath: '/assistentes/$assistantId'
+      preLoaderRoute: typeof AssistentesAssistantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tenants/': {
+      id: '/tenants/'
+      path: '/tenants'
+      fullPath: '/tenants/'
+      preLoaderRoute: typeof TenantsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tenants/$tenantId': {
+      id: '/tenants/$tenantId'
+      path: '/tenants/$tenantId'
+      fullPath: '/tenants/$tenantId'
+      preLoaderRoute: typeof TenantsTenantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditoriaRoute: AuditoriaRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  ConhecimentoRoute: ConhecimentoRoute,
+  ConversasRoute: ConversasRoute,
+  IntegracoesRoute: IntegracoesRoute,
+  LacunasRoute: LacunasRoute,
+  PlataformaRoute: PlataformaRoute,
+  PlaygroundRoute: PlaygroundRoute,
+  UsuariosRoute: UsuariosRoute,
+  AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
+  TenantsTenantIdRoute: TenantsTenantIdRoute,
+  AssistentesIndexRoute: AssistentesIndexRoute,
+  TenantsIndexRoute: TenantsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
