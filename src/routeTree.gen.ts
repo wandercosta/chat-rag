@@ -10,7 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
+import { Route as ConversasRouteImport } from './routes/conversas'
+import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
@@ -21,9 +25,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConhecimentoRoute = ConhecimentoRouteImport.update({
+  id: '/conhecimento',
+  path: '/conhecimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversasRoute = ConversasRouteImport.update({
+  id: '/conversas',
+  path: '/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LacunasRoute = LacunasRouteImport.update({
+  id: '/lacunas',
+  path: '/lacunas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlataformaRoute = PlataformaRouteImport.update({
   id: '/plataforma',
   path: '/plataforma',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssistentesIndexRoute = AssistentesIndexRouteImport.update({
@@ -49,7 +73,11 @@ const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
@@ -57,7 +85,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes': typeof AssistentesIndexRoute
@@ -66,7 +98,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/conhecimento': typeof ConhecimentoRoute
+  '/conversas': typeof ConversasRoute
+  '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
+  '/playground': typeof PlaygroundRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
@@ -76,7 +112,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/conhecimento'
+    | '/conversas'
+    | '/lacunas'
     | '/plataforma'
+    | '/playground'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
     | '/assistentes/'
@@ -84,7 +124,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/conhecimento'
+    | '/conversas'
+    | '/lacunas'
     | '/plataforma'
+    | '/playground'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
     | '/assistentes'
@@ -92,7 +136,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/conhecimento'
+    | '/conversas'
+    | '/lacunas'
     | '/plataforma'
+    | '/playground'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
     | '/assistentes/'
@@ -101,7 +149,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConhecimentoRoute: typeof ConhecimentoRoute
+  ConversasRoute: typeof ConversasRoute
+  LacunasRoute: typeof LacunasRoute
   PlataformaRoute: typeof PlataformaRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
   AssistentesIndexRoute: typeof AssistentesIndexRoute
@@ -117,11 +169,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conhecimento': {
+      id: '/conhecimento'
+      path: '/conhecimento'
+      fullPath: '/conhecimento'
+      preLoaderRoute: typeof ConhecimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversas': {
+      id: '/conversas'
+      path: '/conversas'
+      fullPath: '/conversas'
+      preLoaderRoute: typeof ConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lacunas': {
+      id: '/lacunas'
+      path: '/lacunas'
+      fullPath: '/lacunas'
+      preLoaderRoute: typeof LacunasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/plataforma': {
       id: '/plataforma'
       path: '/plataforma'
       fullPath: '/plataforma'
       preLoaderRoute: typeof PlataformaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assistentes/': {
@@ -157,7 +237,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConhecimentoRoute: ConhecimentoRoute,
+  ConversasRoute: ConversasRoute,
+  LacunasRoute: LacunasRoute,
   PlataformaRoute: PlataformaRoute,
+  PlaygroundRoute: PlaygroundRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,
