@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
+import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
+import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
 import { Route as TenantsTenantIdRouteImport } from './routes/tenants.$tenantId'
 
@@ -22,6 +24,16 @@ const IndexRoute = IndexRouteImport.update({
 const PlataformaRoute = PlataformaRouteImport.update({
   id: '/plataforma',
   path: '/plataforma',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistentesIndexRoute = AssistentesIndexRouteImport.update({
+  id: '/assistentes/',
+  path: '/assistentes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistentesAssistantIdRoute = AssistentesAssistantIdRouteImport.update({
+  id: '/assistentes/$assistantId',
+  path: '/assistentes/$assistantId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TenantsIndexRoute = TenantsIndexRouteImport.update({
@@ -38,34 +50,61 @@ const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/plataforma': typeof PlataformaRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes/': typeof AssistentesIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/plataforma': typeof PlataformaRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes': typeof AssistentesIndexRoute
   '/tenants': typeof TenantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/plataforma': typeof PlataformaRoute
+  '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
+  '/assistentes/': typeof AssistentesIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/plataforma' | '/tenants/$tenantId' | '/tenants/'
+  fullPaths:
+    | '/'
+    | '/plataforma'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes/'
+    | '/tenants/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/plataforma' | '/tenants/$tenantId' | '/tenants'
-  id: '__root__' | '/' | '/plataforma' | '/tenants/$tenantId' | '/tenants/'
+  to:
+    | '/'
+    | '/plataforma'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes'
+    | '/tenants'
+  id:
+    | '__root__'
+    | '/'
+    | '/plataforma'
+    | '/assistentes/$assistantId'
+    | '/tenants/$tenantId'
+    | '/assistentes/'
+    | '/tenants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PlataformaRoute: typeof PlataformaRoute
+  AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
+  AssistentesIndexRoute: typeof AssistentesIndexRoute
   TenantsIndexRoute: typeof TenantsIndexRoute
 }
 
@@ -83,6 +122,20 @@ declare module '@tanstack/react-router' {
       path: '/plataforma'
       fullPath: '/plataforma'
       preLoaderRoute: typeof PlataformaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistentes/': {
+      id: '/assistentes/'
+      path: '/assistentes'
+      fullPath: '/assistentes/'
+      preLoaderRoute: typeof AssistentesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistentes/$assistantId': {
+      id: '/assistentes/$assistantId'
+      path: '/assistentes/$assistantId'
+      fullPath: '/assistentes/$assistantId'
+      preLoaderRoute: typeof AssistentesAssistantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tenants/': {
@@ -105,7 +158,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PlataformaRoute: PlataformaRoute,
+  AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
+  AssistentesIndexRoute: AssistentesIndexRoute,
   TenantsIndexRoute: TenantsIndexRoute,
 }
 export const routeTree = rootRouteImport
