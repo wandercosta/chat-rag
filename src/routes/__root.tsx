@@ -11,6 +11,12 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Topbar } from "@/components/topbar";
+import { SupportModeBanner } from "@/components/support-mode-banner";
+import { SessionProvider } from "@/lib/session";
 
 function NotFoundComponent() {
   return (
