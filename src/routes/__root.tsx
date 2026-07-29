@@ -77,19 +77,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ChatRAG — Painel administrativo" },
+      {
+        name: "description",
+        content:
+          "Painel administrativo do ChatRAG: assistentes de IA com base de conhecimento privada para múltiplas organizações.",
+      },
+      { property: "og:title", content: "ChatRAG — Painel administrativo" },
+      {
+        property: "og:description",
+        content: "Gerencie assistentes, base de conhecimento, widget e usuários por organização.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
@@ -102,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
@@ -119,8 +127,23 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <SessionProvider>
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full bg-surface">
+            <AppSidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Topbar />
+              <SupportModeBanner />
+              <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 p-4 md:p-6">
+                {/* Required: nested routes render here. */}
+                <Outlet />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
+        <Toaster position="top-right" />
+      </SessionProvider>
     </QueryClientProvider>
   );
 }
+
