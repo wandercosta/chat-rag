@@ -1,0 +1,29 @@
+import { db } from "../../db/client.js";
+
+export const topicsRepository = {
+  listForOrganization(organizationId: string) {
+    return db
+      .selectFrom("topics")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .orderBy("name")
+      .execute();
+  },
+
+  findById(organizationId: string, id: string) {
+    return db
+      .selectFrom("topics")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
+  insert(organizationId: string, name: string, description: string | null, collectionId: string | null) {
+    return db
+      .insertInto("topics")
+      .values({ organization_id: organizationId, name, description, collection_id: collectionId })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+};

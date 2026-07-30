@@ -1,0 +1,44 @@
+{
+  "name": "chatrag-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "worker": "tsx watch src/worker.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "migrate:up": "node-pg-migrate up -j ts --migrations-dir migrations -d DATABASE_URL",
+    "migrate:down": "node-pg-migrate down -j ts --migrations-dir migrations -d DATABASE_URL",
+    "migrate:create": "node-pg-migrate create -j ts --migrations-dir migrations",
+    "deps:check": "depcruise src --config .dependency-cruiser.cjs",
+    "test": "vitest run",
+    "test:integration": "cross-env RUN_INTEGRATION_TESTS=1 vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.699.0",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/multipart": "^9.0.1",
+    "argon2": "^0.41.1",
+    "bullmq": "^5.34.5",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.1.0",
+    "ioredis": "^5.4.1",
+    "kysely": "^0.27.4",
+    "mammoth": "^1.8.0",
+    "openai": "^4.104.0",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/pg": "^8.11.10",
+    "cross-env": "^7.0.3",
+    "dependency-cruiser": "^16.7.0",
+    "node-pg-migrate": "^7.9.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

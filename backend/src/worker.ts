@@ -1,0 +1,60 @@
+import { DelayedError, Worker } from "bullmq";
+import { env } from "./config/env.js";
+import { redis } from "./db/redis.js";
+import { extractionService, sourcesService } from "./modules/knowledge/index.js";
+import { indexingService } from "./modules/rag/index.js";
+import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
+
+// Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
+// massa de uma organizacao monopolize a fila de indexacao das demais.
+const MAX_CONCURRENT_PER_TENANT = 2;
+const RETRY_DELAY_MS = 5000;
+
+function inflightKey(organizationId: string) {
+  return `indexing:inflight:${organizationId}`;
+}
+
+async function tryAcquireTenantSlot(organizationId: string): Promise<boolean> {
+  const current = await redis.incr(inflightKey(organizationId));
+  if (current > MAX_CONCURRENT_PER_TENANT) {
+    await redis.decr(inflightKey(organizationId));
+    return false;
+  }
+  return true;
+}
+
+async function releaseTenantSlot(organizationId: string): Promise<void> {
+  await redis.decr(inflightKey(organizationId));
+}
+
+const worker = new Worker<SourceIndexingJob>(
+  SOURCE_INDEXING_QUEUE,
+  async (job, token) => {
+    const { organizationId, sourceId } = job.data;
+
+    if (!(await tryAcquireTenantSlot(organizationId))) {
+      await job.moveToDelayed(Date.now() + RETRY_DELAY_MS, token);
+      throw new DelayedError();
+    }
+
+    try {
+      await sourcesService.markProcessing(organizationId, sourceId);
+      const { topicId, chunks } = await extractionService.extractAndChunk(organizationId, sourceId);
+      const chunkCount = await indexingService.embedAndStoreChunks(organizationId, sourceId, topicId, chunks);
+      await sourcesService.markReady(organizationId, sourceId, chunkCount);
+    } catch (err) {
+      if (err instanceof DelayedError) throw err;
+      const message = err instanceof Error ? err.message : "erro desconhecido na indexacao";
+      await sourcesService.markError(organizationId, sourceId, message);
+    } finally {
+      await releaseTenantSlot(organizationId);
+    }
+  },
+  { connection: { url: env.REDIS_URL }, concurrency: 5 },
+);
+
+worker.on("failed", (job, err) => {
+  console.error(`job de indexacao falhou (source ${job?.data.sourceId}):`, err.message);
+});
+
+console.log("worker de indexacao iniciado");

@@ -1,0 +1,81 @@
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { requireOrgRole, requireSession } from "../identity/index.js";
+import { ModelNotAllowedError, assistantsService } from "./assistants.service.js";
+
+const roles = ["Administrador", "Editor de base"] as const;
+
+const createSchema = z.object({
+  name: z.string().min(2),
+  modelId: z.string().min(1),
+  instructions: z.string().nullable().optional(),
+});
+
+const updateSchema = z.object({
+  name: z.string().min(2).optional(),
+  status: z.enum(["publicado", "rascunho", "pausado"]).optional(),
+  modelId: z.string().min(1).optional(),
+  instructions: z.string().nullable().optional(),
+});
+
+export async function assistantsRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireSession);
+
+  app.get<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/assistants",
+    { preHandler: requireOrgRole([...roles, "Analista"]) },
+    async (request) => {
+      return assistantsService.list(request.params.organizationId);
+    },
+  );
+
+  app.get<{ Params: { organizationId: string; assistantId: string } }>(
+    "/organizations/:organizationId/assistants/:assistantId",
+    { preHandler: requireOrgRole([...roles, "Analista"]) },
+    async (request, reply) => {
+      const assistant = await assistantsService.get(request.params.organizationId, request.params.assistantId);
+      if (!assistant) return reply.code(404).send({ error: "assistente nao encontrado" });
+      return assistant;
+    },
+  );
+
+  app.post<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/assistants",
+    { preHandler: requireOrgRole(roles) },
+    async (request, reply) => {
+      const body = createSchema.parse(request.body);
+      try {
+        const assistant = await assistantsService.create(request.auth!.userId, request.params.organizationId, body);
+        return reply.code(201).send(assistant);
+      } catch (err) {
+        if (err instanceof ModelNotAllowedError) {
+          return reply.code(422).send({ error: "modelo nao esta na lista liberada para esta organizacao" });
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.patch<{ Params: { organizationId: string; assistantId: string } }>(
+    "/organizations/:organizationId/assistants/:assistantId",
+    { preHandler: requireOrgRole(roles) },
+    async (request, reply) => {
+      const body = updateSchema.parse(request.body);
+      try {
+        const assistant = await assistantsService.update(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.assistantId,
+          body,
+        );
+        if (!assistant) return reply.code(404).send({ error: "assistente nao encontrado" });
+        return assistant;
+      } catch (err) {
+        if (err instanceof ModelNotAllowedError) {
+          return reply.code(422).send({ error: "modelo nao esta na lista liberada para esta organizacao" });
+        }
+        throw err;
+      }
+    },
+  );
+}

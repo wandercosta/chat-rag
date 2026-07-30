@@ -20,6 +20,10 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Segredos locais (ver ADR-002 - nunca commitar valores reais)
+.env
+backend/.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
