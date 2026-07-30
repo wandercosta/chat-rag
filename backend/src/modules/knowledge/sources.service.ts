@@ -124,9 +124,14 @@ export const sourcesService = {
     return updated;
   },
 
+  /** `aguardando_ativacao` entra aqui de proposito: uma fonte criada antes de
+   * existir chave de IA nao teria nenhuma outra saida desse estado (era um
+   * beco sem saida — ver `activatePending`, que faz isso em lote). */
   async reindex(actorUserId: string, organizationId: string, id: string) {
     const source = await sourcesRepository.findById(organizationId, id);
-    if (!source || !["pronta", "erro"].includes(source.status)) throw new InvalidTransitionError();
+    if (!source || !["pronta", "erro", "aguardando_ativacao"].includes(source.status)) {
+      throw new InvalidTransitionError();
+    }
 
     const nextStatus = await nextStatusAfterReviewGate(organizationId);
     const updated = await sourcesRepository.setStatus(organizationId, id, nextStatus);
@@ -141,6 +146,23 @@ export const sourcesService = {
 
     await enqueueIfQueued(organizationId, id, nextStatus);
     return updated;
+  },
+
+  /**
+   * Destrava em lote as fontes que ficaram em `aguardando_ativacao` por nao
+   * haver chave de IA quando foram criadas (etapa 3 de
+   * docs/backend/especificacao-backend.md). Chamado pelo painel logo apos uma
+   * chave ser validada; sem chave valida agora, nao faz nada.
+   */
+  async activatePending(organizationId: string) {
+    if (!(await aiCredentialsService.hasAnyActiveKey(organizationId))) return { activated: 0 };
+
+    const pending = await sourcesRepository.listByStatus(organizationId, "aguardando_ativacao");
+    for (const source of pending) {
+      await sourcesRepository.setStatus(organizationId, source.id, "fila");
+      await enqueueSourceIndexing({ organizationId, sourceId: source.id });
+    }
+    return { activated: pending.length };
   },
 
   async archive(actorUserId: string, organizationId: string, id: string) {

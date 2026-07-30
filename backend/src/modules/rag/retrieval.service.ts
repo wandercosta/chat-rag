@@ -20,7 +20,7 @@ export const retrievalService = {
     query: string,
     environment: "teste" | "producao",
   ): Promise<RetrievalResult> {
-    const topicIds = await knowledgeAccessService.listAccessibleTopicIds(assistantId);
+    const topicIds = await knowledgeAccessService.listAccessibleTopicIds(organizationId, assistantId);
     if (topicIds.length === 0) return { chunks: [], sufficientContext: false };
 
     const provider = await resolveProviderForTenant(organizationId, environment);

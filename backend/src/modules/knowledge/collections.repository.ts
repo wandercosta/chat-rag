@@ -62,16 +62,37 @@ export const collectionsRepository = {
       .execute();
   },
 
-  /** Topicos que o assistente pode enxergar, atraves das colecoes vinculadas
-   * a ele. Usado pelo modulo rag para escopar a recuperacao (nunca a base
-   * inteira da organizacao). */
-  async listAccessibleTopicIds(assistantId: string): Promise<string[]> {
-    const rows = await db
+  /**
+   * Topicos que o assistente pode enxergar (ADR-003): colecao e um filtro
+   * opcional de restricao, nao um pre-requisito. Sem nenhuma colecao
+   * vinculada, o assistente consulta toda a base da propria organizacao;
+   * com colecoes vinculadas, so os topicos delas. O `organization_id`
+   * continua sendo a fronteira real e nunca e atravessado.
+   */
+  async listAccessibleTopicIds(organizationId: string, assistantId: string): Promise<string[]> {
+    const linked = await db
       .selectFrom("assistant_collections as ac")
       .innerJoin("topics as t", "t.collection_id", "ac.collection_id")
       .select("t.id")
       .where("ac.assistant_id", "=", assistantId)
       .execute();
-    return rows.map((r) => r.id);
+
+    if (linked.length > 0) return linked.map((r) => r.id);
+
+    const hasRestriction = await db
+      .selectFrom("assistant_collections")
+      .select("collection_id")
+      .where("assistant_id", "=", assistantId)
+      .executeTakeFirst();
+    // Colecoes vinculadas mas todas vazias continuam significando restricao
+    // explicita — devolver a base inteira aqui iria contra a intencao do tenant.
+    if (hasRestriction) return [];
+
+    const all = await db
+      .selectFrom("topics")
+      .select("id")
+      .where("organization_id", "=", organizationId)
+      .execute();
+    return all.map((r) => r.id);
   },
 };

@@ -88,6 +88,16 @@ export async function sourcesRoutes(app: FastifyInstance) {
     },
   );
 
+  // Precisa vir antes de /sources/:sourceId/* para o roteador nao tratar
+  // "activate-pending" como um sourceId.
+  app.post<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/sources/activate-pending",
+    { preHandler: requireOrgRole(roles) },
+    async (request) => {
+      return sourcesService.activatePending(request.params.organizationId);
+    },
+  );
+
   app.post<{ Params: { organizationId: string; sourceId: string } }>(
     "/organizations/:organizationId/sources/:sourceId/approve",
     { preHandler: requireOrgRole(roles) },

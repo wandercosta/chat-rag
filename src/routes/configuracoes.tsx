@@ -17,6 +17,7 @@ import {
   aiCredentialsApi,
   modelsApi,
   organizationsApi,
+  sourcesApi,
   type CredentialEnvironment,
   type CredentialStatus,
 } from "@/lib/api-client";
@@ -95,15 +96,26 @@ function AiCredentialsCard({ tenantId }: { tenantId: string | null }) {
   };
 
   const configure = useMutation({
-    mutationFn: () => aiCredentialsApi.configure(tenantId!, environment, apiKey),
+    mutationFn: async () => {
+      const result = await aiCredentialsApi.configure(tenantId!, environment, apiKey);
+      // Fontes cadastradas antes da chave ficam em "aguardando ativação" e nao
+      // sairiam de la sozinhas; a chave valida e justamente o gatilho.
+      const activation =
+        result.status === "valida" ? await sourcesApi.activatePending(tenantId!) : { activated: 0 };
+      return { ...result, activated: activation.activated };
+    },
     onSuccess: (result) => {
       setApiKey("");
       invalidate();
-      if (result.status === "valida") {
-        toast.success(`Chave validada e salva (${result.masked})`);
-      } else {
+      if (result.status !== "valida") {
         toast.error("A chave foi salva, mas a OpenAI recusou a validação. Confira o valor.");
+        return;
       }
+      toast.success(
+        result.activated > 0
+          ? `Chave validada (${result.masked}). ${result.activated} fonte(s) enviada(s) para indexação.`
+          : `Chave validada e salva (${result.masked})`,
+      );
     },
     onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a chave"),
   });

@@ -6,6 +6,8 @@
 
 Uma fonte pode pertencer a colecoes reutilizaveis. O acesso efetivo e sempre a intersecao das permissoes da organizacao, do assistente, da colecao/fonte e do usuario administrativo.
 
+Colecao e um filtro **opcional** de restricao, nao um pre-requisito (ADR-003): um assistente sem nenhuma colecao vinculada consulta toda a base da propria organizacao; com colecoes vinculadas, consulta apenas os topicos delas. `organization_id` continua sendo a unica fronteira de seguranca.
+
 ## Fontes do MVP
 
 - Texto manual.

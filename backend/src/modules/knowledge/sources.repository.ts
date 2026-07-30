@@ -32,6 +32,15 @@ export const sourcesRepository = {
       .executeTakeFirst();
   },
 
+  listByStatus(organizationId: string, status: SourceStatus) {
+    return db
+      .selectFrom("sources")
+      .select(["id", "title"])
+      .where("organization_id", "=", organizationId)
+      .where("status", "=", status)
+      .execute();
+  },
+
   insert(input: NewSourceInput) {
     return db
       .insertInto("sources")

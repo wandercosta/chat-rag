@@ -244,6 +244,10 @@ export const sourcesApi = {
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/reindex`),
   archive: (organizationId: string, sourceId: string) =>
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/archive`),
+  /** Destrava fontes presas em "aguardando ativação" depois que uma chave de
+   * IA válida passa a existir. */
+  activatePending: (organizationId: string) =>
+    post<{ activated: number }>(`/organizations/${organizationId}/sources/activate-pending`),
 };
 
 // --- organizations: AI credentials ------------------------------------------------

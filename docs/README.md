@@ -20,6 +20,7 @@ Antes de qualquer implementacao, leia os documentos relevantes desta pasta. Alte
 - `apis/contratos-planejados.md` - limites iniciais da API, sem congelar payloads.
 - `decisions/ADR-001-fundacoes-do-produto.md` - decisoes ja aprovadas.
 - `decisions/ADR-002-seguranca-estrutura-e-limites.md` - seguranca de segredos, fronteiras de modulo, limites de escala e operacao.
+- `decisions/ADR-003-colecao-como-filtro-opcional.md` - colecao restringe o que o assistente enxerga da base, mas nao e pre-requisito para responder.
 - `checklists/antes-de-implementar.md` - validacoes obrigatorias.
 
 ## Estado atual
