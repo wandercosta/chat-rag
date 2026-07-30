@@ -6,6 +6,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "dev"],
       "port": 8080
+    },
+    {
+      "name": "widget-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4174", "--directory", "widget"],
+      "port": 4174
     }
   ]
 }

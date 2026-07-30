@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChatRAG widget - teste manual</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 40px; background: #f5f5f7; }
+      h1 { font-size: 18px; }
+      #embed-target { width: 380px; height: 480px; margin-top: 24px; border: 1px dashed #999; }
+      #log { margin-top: 24px; font: 12px/1.5 monospace; white-space: pre-wrap; background: #111; color: #0f0; padding: 12px; max-height: 200px; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Pagina hospedeira fake — testando o widget flutuante (fetch mockado, sem backend real)</h1>
+    <p>Clique na bolha no canto inferior direito.</p>
+
+    <h2>Modo embutido</h2>
+    <div id="embed-target"></div>
+
+    <div id="log"></div>
+
+    <script>
+      const log = document.getElementById("log");
+      function record(...args) {
+        log.textContent += args.join(" ") + "\n";
+      }
+
+      // Mock do backend: intercepta so as rotas publicas do widget
+      // (backend/src/modules/embed/public.routes.ts) com respostas plausiveis.
+      const realFetch = window.fetch;
+      let sectorsOffered = false;
+      window.fetch = async (url, init) => {
+        const body = init?.body ? JSON.parse(init.body) : {};
+        record("fetch", url, JSON.stringify(body));
+
+        const json = (data, status = 200) =>
+          new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+
+        if (url.endsWith("/widget/config")) {
+          return json({ assistantId: "assistant-fake", environment: "producao" });
+        }
+        if (url.endsWith("/widget/conversations")) {
+          return json({ conversationId: "conv-fake-123" }, 201);
+        }
+        if (url.includes("/messages")) {
+          return json({ answer: `Resposta de teste para: "${body.message}"` });
+        }
+        if (url.includes("/feedback")) {
+          return json({ ok: true });
+        }
+        if (url.includes("/handoff")) {
+          if (!body.sectorId && !sectorsOffered) {
+            sectorsOffered = true;
+            return json({ needsSectorSelection: true, sectors: [{ id: "s1", name: "Vendas" }, { id: "s2", name: "Suporte" }] });
+          }
+          return json({ needsSectorSelection: false, whatsappUrl: "https://wa.me/5511999999999?text=teste", sectorName: "Vendas" });
+        }
+        return realFetch(url, init);
+      };
+
+      window.open = (url) => {
+        record("window.open ->", url);
+        return null;
+      };
+    </script>
+
+    <script
+      src="../dist/chat-widget.js"
+      data-key="pk_test_fake"
+      data-mode="floating"
+      data-title="Atendimento ChatRAG"
+      data-greeting="Ola! Sou o assistente de teste."
+      async
+    ></script>
+
+    <script
+      src="../dist/chat-widget.js"
+      data-key="pk_test_fake_embed"
+      data-mode="embedded"
+      data-mount="#embed-target"
+      data-title="Widget embutido"
+      data-theme="dark"
+      async
+    ></script>
+  </body>
+</html>

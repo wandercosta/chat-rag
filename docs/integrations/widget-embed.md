@@ -32,3 +32,7 @@ O widget sozinho nao deve aceitar como confiaveis `id`, nome ou permissao enviad
 ## Encaminhamento
 
 O WhatsApp e configurado pela organizacao. O assistente pode fornecer contexto para selecionar setor; caso a confianca seja insuficiente ou haja mais de uma opcao aplicavel, o widget mostra botoes com os setores para o visitante escolher. A primeira versao abre WhatsApp com a ultima pergunta e identificacao permitida, sem enviar automaticamente o historico completo.
+
+## Estado da implementacao
+
+Bundle publico em `widget/` (~12kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff e Shadow DOM. Diferencas do desenhado acima: titulo/saudacao/tema/posicao vem hoje de atributos `data-*` no `<script>`, nao de configuracao do assistente buscada da API (a hierarquia "assistente > organizacao" ainda nao existe); sem customizacao de logo; sem token de identidade autenticada (campo existe na leitura de opcoes, mas nada e enviado/aceito ainda); resposta e request/response simples, sem streaming.
