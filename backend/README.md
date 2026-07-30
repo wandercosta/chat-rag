@@ -45,7 +45,16 @@ typecheck/lint/testes) — ver "Validado ponta a ponta" em `docs/README.md`.
    npm run dev
    npm run worker
    ```
-8. Faca login e crie o primeiro tenant:
+8. Crie um tenant, assistente, topico e chave de widget de teste de uma vez com o seed (idempotente — roda de novo sem duplicar organizacao/assistente):
+   ```bash
+   npm run seed:demo -- --master-email admin@chatrag.local --master-password "uma-senha-forte"
+   ```
+   Aceita mais parametros para customizar (slug/nome da organizacao, admin,
+   nome do assistente, modelo, dominio liberado) — ver o cabecalho de
+   `scripts/seed-demo.ts` para a lista completa. Por padrao tambem regrava
+   `widget/test/real-backend-test.html` com a chave gerada, entao a pagina de
+   teste ja abre mirando o assistente criado/reaproveitado (ver "Testar o
+   widget manualmente" abaixo). Para criar um tenant na mao em vez do seed:
    ```bash
    curl -c cookies.txt -X POST http://localhost:3333/auth/login \
      -H "Content-Type: application/json" \
@@ -64,6 +73,19 @@ typecheck/lint/testes) — ver "Validado ponta a ponta" em `docs/README.md`.
 
 Rotas implementadas: ver `docs/apis/contratos-planejados.md` ("Rotas implementadas").
 
+## Testar o widget manualmente
+
+```bash
+cd ../widget && npm run build && cd ../backend
+npm run seed:demo -- --master-email admin@chatrag.local --master-password "uma-senha-forte"
+python -m http.server 4174   # a partir da raiz do repo
+# abrir http://localhost:4174/widget/test/real-backend-test.html
+```
+
+A pagina ja abre com o assistente do seed (chave gravada automaticamente).
+Repita so o `seed:demo` (sem rebuildar o widget) para trocar de assistente —
+ele atualiza a chave no HTML a cada execucao.
+
 ## Testes
 
 ```bash
@@ -75,6 +97,22 @@ Os testes de integracao rodam sequencialmente (`fileParallelism: false` no
 `vitest.config.ts`): varios arquivos compartilham o mesmo Postgres e cada um
 limpa o banco no `beforeEach`, o que em paralelo e uma corrida real entre
 arquivos, nao so uma preocupacao teorica.
+
+**Banco isolado para os testes de integracao.** `resetDatabase()` apaga
+`organizations`/`users`/etc. de verdade a cada `beforeEach` — ja rodou uma vez
+contra o Postgres de dev e apagou um tenant de demo inteiro. Por isso
+`vitest.config.ts` aponta `DATABASE_URL` para um banco `chatrag_test`
+separado (mesmo Postgres do docker compose, banco diferente), e
+`resetDatabase()` se recusa a rodar se o nome do banco nao contiver "test".
+Crie o banco de teste uma unica vez, com o mesmo Postgres do
+`docker-compose.yml` ja de pe:
+
+```bash
+docker exec -e PGPASSWORD=chatrag chatrag-db-1 psql -U chatrag -d postgres -c "CREATE DATABASE chatrag_test OWNER chatrag;"
+DATABASE_URL="postgres://chatrag:chatrag@localhost:5433/chatrag_test" npx node-pg-migrate up -j ts --migrations-dir migrations -d DATABASE_URL
+```
+
+Repita a segunda linha (so o `migrate up`) sempre que adicionar uma migracao nova.
 
 ## Estrutura
 

@@ -12,6 +12,7 @@
     "migrate:create": "node-pg-migrate create -j ts --migrations-dir migrations",
     "deps:check": "depcruise src --config .dependency-cruiser.cjs",
     "bucket:create": "tsx scripts/create-bucket.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
     "test": "vitest run",
     "test:integration": "cross-env RUN_INTEGRATION_TESTS=1 vitest run"
   },
