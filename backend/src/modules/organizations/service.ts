@@ -40,6 +40,12 @@ export const organizationsService = {
     return organizationsRepository.list();
   },
 
+  /** Auto-atendimento do tenant (nao so Master): visao geral usa isso para
+   * mostrar nome/status da propria organizacao. */
+  getById(organizationId: string) {
+    return organizationsRepository.findById(organizationId);
+  },
+
   /** null = usa o padrao de plataforma (90 dias). Usado pelo modulo assistants
    * para resolver a politica efetiva de retencao (docs/security). */
   getRetentionDays(organizationId: string) {

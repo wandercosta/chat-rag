@@ -1,6 +1,7 @@
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerCors } from "./cors.js";
 import { identityPlugin } from "./modules/identity/index.js";
 import { organizationsRoutes, aiCredentialsRoutes, supportSessionsRoutes } from "./modules/organizations/index.js";
 import { auditRoutes } from "./modules/audit/index.js";
@@ -18,6 +19,7 @@ import { analyticsRoutes } from "./modules/analytics/index.js";
 export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true });
 
+  registerCors(app);
   await app.register(cookie);
   await app.register(multipart);
   await app.register(identityPlugin);

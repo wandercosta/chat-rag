@@ -33,13 +33,16 @@ export const identityService = {
     const userId = await sessions.resolve(token);
     if (!userId) return null;
 
-    const [isPlatform, memberships] = await Promise.all([
+    const [user, isPlatform, memberships] = await Promise.all([
+      identityRepository.findUserById(userId),
       identityRepository.isPlatformRole(userId),
       identityRepository.membershipsForUser(userId),
     ]);
+    if (!user) return null;
 
     return {
       userId,
+      email: user.email,
       isPlatform,
       memberships: memberships.map((m) => ({
         organizationId: m.organization_id,

@@ -1,15 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { TenantRole } from "./mock-data";
-import { tenants } from "./mock-data";
-
-/**
- * Estado de "sessão atual" APENAS para navegar o protótipo.
- * TODO(API): no produto final o escopo (master/tenant), o tenant ativo e o perfil
- * vêm exclusivamente do login/servidor. Nada aqui autoriza acesso — é só visibilidade visual.
- */
+import { authApi, organizationsApi, type AuthContext as ApiAuthContext } from "./api-client";
 
 export type Scope = "master" | "tenant";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista";
 export type Profile = "Master" | TenantRole;
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 interface SupportSession {
   tenantId: string;
@@ -18,15 +13,22 @@ interface SupportSession {
 }
 
 interface SessionValue {
-  scope: Scope;
-  profile: Profile;
-  tenantId: string;
+  status: AuthStatus;
+  scope: Scope | null;
+  profile: Profile | null;
+  userEmail: string | null;
+  tenantId: string | null;
   tenantName: string;
-  setProfile: (p: Profile) => void;
-  setTenantId: (id: string) => void;
-  /** Estado simulado da chave de IA do tenant. Define disponibilidade de indexação/playground/widget. */
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  /** Estado da chave de IA do tenant — ainda nao ligado a API real nesta
+   * fase (ver docs/README.md). Telas que precisam disso de verdade devem
+   * consultar GET /organizations/:id/ai-credentials diretamente. */
   aiKeyReady: boolean;
   setAiKeyReady: (v: boolean) => void;
+  /** Sessao de suporte do Master — o backend real existe e funciona
+   * (backend/src/modules/organizations/support-sessions.routes.ts), mas
+   * ainda nao foi ligado nesta tela; fica inerte de proposito. */
   support: SupportSession | null;
   startSupport: (tenantId: string, justification: string, minutes: number) => void;
   endSupport: () => void;
@@ -76,15 +78,48 @@ const matrix: Record<Profile, Permission[]> = {
   Analista: ["conversations", "gaps"],
 };
 
+function deriveProfile(auth: ApiAuthContext): Profile {
+  if (auth.isPlatform) return "Master";
+  return auth.memberships[0]?.role ?? "Analista";
+}
+
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile>("Administrador");
-  const [tenantId, setTenantId] = useState<string>(tenants[0].id);
+  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [auth, setAuth] = useState<ApiAuthContext | null>(null);
+  const [tenantName, setTenantName] = useState("—");
   const [aiKeyReady, setAiKeyReady] = useState(false);
   const [support, setSupport] = useState<SupportSession | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  async function refresh() {
+    try {
+      const { auth: current } = await authApi.me();
+      setAuth(current);
+      setStatus("authenticated");
+    } catch {
+      setAuth(null);
+      setStatus("unauthenticated");
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  useEffect(() => {
+    const orgId = auth?.memberships[0]?.organizationId;
+    if (!orgId) {
+      setTenantName("—");
+      return;
+    }
+    organizationsApi
+      .getMine(orgId)
+      .then((org) => setTenantName(org.name))
+      .catch(() => setTenantName("—"));
+  }, [auth]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -100,29 +135,40 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [support, now]);
 
   const value = useMemo<SessionValue>(() => {
-    const scope: Scope = profile === "Master" ? "master" : "tenant";
+    const profile = auth ? deriveProfile(auth) : null;
+    const scope: Scope | null = auth ? (auth.isPlatform ? "master" : "tenant") : null;
     const remainingMs = support ? Math.max(0, support.expiresAt - now) : 0;
     const mm = String(Math.floor(remainingMs / 60000)).padStart(2, "0");
     const ss = String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0");
+
     return {
+      status,
       scope,
       profile,
-      tenantId,
-      tenantName: tenants.find((t) => t.id === tenantId)?.name ?? "—",
-      setProfile,
-      setTenantId,
+      userEmail: auth?.email ?? null,
+      tenantId: auth?.memberships[0]?.organizationId ?? null,
+      tenantName,
+      login: async (email, password) => {
+        await authApi.login(email, password);
+        await refresh();
+      },
+      logout: async () => {
+        await authApi.logout();
+        setAuth(null);
+        setStatus("unauthenticated");
+      },
       aiKeyReady,
       setAiKeyReady,
       support,
-      startSupport: (tid, justification, minutes) =>
-        setSupport({ tenantId: tid, justification, expiresAt: Date.now() + minutes * 60000 }),
+      startSupport: (tenantId, justification, minutes) =>
+        setSupport({ tenantId, justification, expiresAt: Date.now() + minutes * 60000 }),
       endSupport: () => setSupport(null),
       supportRemaining: `${mm}:${ss}`,
       theme,
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      can: (perm) => matrix[profile].includes(perm),
+      can: (perm) => (profile ? matrix[profile].includes(perm) : false),
     };
-  }, [profile, tenantId, aiKeyReady, support, now, theme]);
+  }, [status, auth, tenantName, aiKeyReady, support, now, theme]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

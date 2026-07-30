@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -17,16 +18,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useSession } from "@/lib/session";
-import { tenants } from "@/lib/mock-data";
+import { masterApi, ApiError, type CreateTenantInput } from "@/lib/api-client";
 
 export const Route = createFileRoute("/tenants/")({
   head: () => ({
     meta: [
       { title: "Organizações — ChatRAG Master" },
-      { name: "description", content: "Lista de organizações/tenants da plataforma ChatRAG com status, limites e criação." },
+      {
+        name: "description",
+        content: "Lista de organizações/tenants da plataforma ChatRAG com status e criação.",
+      },
       { property: "og:title", content: "Organizações — ChatRAG Master" },
       { property: "og:description", content: "Gestão de tenants da plataforma ChatRAG." },
     ],
@@ -34,15 +44,37 @@ export const Route = createFileRoute("/tenants/")({
   component: TenantsList,
 });
 
-// TODO(API): GET /api/master/tenants · POST /api/master/tenants
+const emptyForm: CreateTenantInput = { name: "", slug: "", adminEmail: "", adminPassword: "" };
+
 function TenantsList() {
   const { scope } = useSession();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<CreateTenantInput>(emptyForm);
+
+  const tenantsQuery = useQuery({
+    queryKey: ["master", "tenants"],
+    queryFn: masterApi.listTenants,
+    enabled: scope === "master",
+  });
+
+  const createTenant = useMutation({
+    mutationFn: () => masterApi.createTenant(form),
+    onSuccess: () => {
+      toast.success("Tenant criado");
+      setOpen(false);
+      setForm(emptyForm);
+      queryClient.invalidateQueries({ queryKey: ["master", "tenants"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o tenant");
+    },
+  });
 
   if (scope !== "master") {
     return (
       <Card className="p-8 text-center text-sm text-muted-foreground">
-        Esta área é exclusiva do escopo Master. Alterne o perfil simulado na barra superior.
+        Esta área é exclusiva do escopo Master.
       </Card>
     );
   }
@@ -63,68 +95,72 @@ function TenantsList() {
               <DialogHeader>
                 <DialogTitle>Criar organização</DialogTitle>
                 <DialogDescription>
-                  O usuário administrador inicial é criado pelo Master — não existe cadastro público.
+                  O usuário administrador inicial é criado pelo Master — não existe cadastro
+                  público.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4">
+              <form
+                className="grid gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  createTenant.mutate();
+                }}
+              >
                 <div className="grid gap-2">
                   <Label htmlFor="t-name">Nome da organização</Label>
-                  <Input id="t-name" placeholder="Acme Serviços Financeiros" />
+                  <Input
+                    id="t-name"
+                    placeholder="Acme Serviços Financeiros"
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="t-slug">Identificação</Label>
-                  <Input id="t-slug" placeholder="acme" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="t-status">Status inicial</Label>
-                  <Select defaultValue="ativo">
-                    <SelectTrigger id="t-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ativo">Ativo</SelectItem>
-                      <SelectItem value="suspenso">Suspenso</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <div className="grid gap-2">
-                    <Label htmlFor="t-lim-a">Limite de assistentes</Label>
-                    <Input id="t-lim-a" type="number" defaultValue={5} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="t-lim-s">Limite de fontes</Label>
-                    <Input id="t-lim-s" type="number" defaultValue={200} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="t-lim-m">Mensagens/mês</Label>
-                    <Input id="t-lim-m" type="number" defaultValue={15000} />
-                  </div>
+                  <Label htmlFor="t-slug">Identificação (slug)</Label>
+                  <Input
+                    id="t-slug"
+                    placeholder="acme"
+                    pattern="[a-z0-9-]+"
+                    title="letras minúsculas, números e hífen"
+                    required
+                    value={form.slug}
+                    onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                  />
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="t-admin">Administrador inicial</Label>
-                    <Input id="t-admin" placeholder="Nome completo" />
+                    <Label htmlFor="t-email">E-mail do administrador</Label>
+                    <Input
+                      id="t-email"
+                      type="email"
+                      placeholder="admin@empresa.com"
+                      required
+                      value={form.adminEmail}
+                      onChange={(e) => setForm((f) => ({ ...f, adminEmail: e.target.value }))}
+                    />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="t-email">E-mail</Label>
-                    <Input id="t-email" type="email" placeholder="admin@empresa.com" />
+                    <Label htmlFor="t-pass">Senha inicial</Label>
+                    <Input
+                      id="t-pass"
+                      type="password"
+                      minLength={8}
+                      required
+                      value={form.adminPassword}
+                      onChange={(e) => setForm((f) => ({ ...f, adminPassword: e.target.value }))}
+                    />
                   </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => {
-                    setOpen(false);
-                    toast.success("Tenant criado (simulado)");
-                  }}
-                >
-                  Criar tenant
-                </Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={createTenant.isPending}>
+                    {createTenant.isPending ? "Criando..." : "Criar tenant"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }
@@ -135,15 +171,18 @@ function TenantsList() {
             <TableRow>
               <TableHead>Organização</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Assistentes</TableHead>
-              <TableHead>Fontes</TableHead>
-              <TableHead>Mensagens/mês</TableHead>
               <TableHead>Criada em</TableHead>
-              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tenants.map((t) => (
+            {tenantsQuery.isLoading && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            )}
+            {tenantsQuery.data?.map((t) => (
               <TableRow key={t.id}>
                 <TableCell>
                   <p className="font-medium">{t.name}</p>
@@ -152,22 +191,8 @@ function TenantsList() {
                 <TableCell>
                   <StatusBadge status={t.status} />
                 </TableCell>
-                <TableCell className="tabular-nums">
-                  {t.usage.assistants}/{t.limits.assistants}
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  {t.usage.sources}/{t.limits.sources}
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  {t.usage.messagesMonth.toLocaleString("pt-BR")}/{t.limits.messagesMonth.toLocaleString("pt-BR")}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{t.createdAt}</TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm">
-                    <Link to="/tenants/$tenantId" params={{ tenantId: t.id }}>
-                      Detalhes
-                    </Link>
-                  </Button>
+                <TableCell className="text-muted-foreground">
+                  {new Date(t.created_at).toLocaleDateString("pt-BR")}
                 </TableCell>
               </TableRow>
             ))}

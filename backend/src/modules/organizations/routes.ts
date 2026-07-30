@@ -23,6 +23,16 @@ export async function organizationsRoutes(app: FastifyInstance) {
     return organizationsService.listTenants();
   });
 
+  app.get<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId",
+    { preHandler: requireOrgRole(["Administrador", "Editor de base", "Analista"]) },
+    async (request, reply) => {
+      const organization = await organizationsService.getById(request.params.organizationId);
+      if (!organization) return reply.code(404).send({ error: "organizacao nao encontrada" });
+      return organization;
+    },
+  );
+
   app.post("/master/tenants", { preHandler: requireMaster }, async (request, reply) => {
     const body = createTenantSchema.parse(request.body);
     const result = await organizationsService.createTenant(request.auth!.userId, body);

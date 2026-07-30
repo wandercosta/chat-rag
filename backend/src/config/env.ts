@@ -8,6 +8,10 @@ const schema = z.object({
   APP_MASTER_KEY: z.string().min(32, "APP_MASTER_KEY precisa ter pelo menos 32 caracteres"),
   SESSION_COOKIE_NAME: z.string().default("chatrag_session"),
   SESSION_TTL_HOURS: z.coerce.number().default(12),
+  // Origem(ns) do painel autorizadas a mandar cookie de sessao entre portas
+  // diferentes em dev (localhost:8080 -> localhost:3333). Lista separada por
+  // virgula; nunca usar "*" aqui porque a rota usa credentials/cookie.
+  CORS_ORIGIN: z.string().default("http://localhost:8080"),
   S3_ENDPOINT: z.string().min(1),
   S3_REGION: z.string().default("us-east-1"),
   S3_ACCESS_KEY_ID: z.string().min(1),

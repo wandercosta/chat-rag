@@ -1,5 +1,9 @@
 # ChatRAG Admin Hub
 
+> Este arquivo e o prompt original que gerou o protótipo no Lovable — mantido como histórico. Para o estado real do projeto (o que já está ligado ao backend, o que ainda é mockado, como rodar tudo), ver `docs/README.md`, `backend/README.md` e `widget/README.md`.
+>
+> Resumo rápido: login/logout/sessão, lista+criação de tenants (Master) e lista+criação de assistentes (tenant) já falam com a API real em `backend/` (precisa de `docker compose up -d` na raiz — ver `backend/README.md`). O resto das telas abaixo ainda usa `src/lib/mock-data.ts`. `.env` na raiz define `VITE_API_BASE_URL` (padrão `http://localhost:3333`).
+
 Crie um painel administrativo web em React + TypeScript para um produto SaaS multi-tenant chamado ChatRAG, que fornece assistentes de IA baseados em base de conhecimento privada, integraveis a sites externos via widget.
 
 Este e apenas o frontend visual. Nao implemente logica de RAG, nao gere nem manipule segredos/chaves administrativas, e nao tome nenhuma decisao de autorizacao no cliente — todo acesso e permissao vem de uma API que ainda sera integrada depois. Use dados mockados/estaticos por enquanto, deixando claro nos comentarios onde cada tela consumira a API real.

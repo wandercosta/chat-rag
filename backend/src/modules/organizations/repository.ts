@@ -21,6 +21,10 @@ export const organizationsRepository = {
     return db.selectFrom("organizations").selectAll().orderBy("created_at", "desc").execute();
   },
 
+  findById(id: string) {
+    return db.selectFrom("organizations").selectAll().where("id", "=", id).executeTakeFirst();
+  },
+
   setStatus(id: string, status: "ativo" | "suspenso") {
     return db.updateTable("organizations").set({ status }).where("id", "=", id).execute();
   },

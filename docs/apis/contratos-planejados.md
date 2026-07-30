@@ -37,6 +37,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
 - `GET|POST /master/tenants`, `POST /master/tenants/:organizationId/status`
 - `GET|POST /master/tenants/:organizationId/support-sessions`, `POST .../support-sessions/:sessionId/end` (justificativa + expiracao, auditado — ADR-001 #14)
+- `GET /organizations/:organizationId` (auto-atendimento do tenant: nome/status da propria organizacao)
 - `PUT /organizations/:organizationId/retention` (politica de retencao da organizacao)
 - `GET|POST /organizations/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment`
 - `GET /master/tenants/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment` (suporte Master, so estado, exige sessao de suporte ativa)

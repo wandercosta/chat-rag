@@ -16,7 +16,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Topbar } from "@/components/topbar";
 import { SupportModeBanner } from "@/components/support-mode-banner";
-import { SessionProvider } from "@/lib/session";
+import { LoginScreen } from "@/components/login-screen";
+import { SessionProvider, useSession } from "@/lib/session";
 
 function NotFoundComponent() {
   return (
@@ -134,22 +135,40 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full bg-surface">
-            <AppSidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Topbar />
-              <SupportModeBanner />
-              <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 p-4 md:p-6">
-                {/* Required: nested routes render here. */}
-                <Outlet />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        <AuthGate />
         <Toaster position="top-right" />
       </SessionProvider>
     </QueryClientProvider>
   );
 }
 
+/** Alterna entre a tela de login e o painel de verdade conforme a sessao
+ * real (GET /auth/me). Sem isso, qualquer rota renderizaria a UI do painel
+ * mesmo sem sessao valida. */
+function AuthGate() {
+  const { status } = useSession();
+
+  if (status === "loading") {
+    return <div className="flex min-h-screen items-center justify-center bg-surface" />;
+  }
+
+  if (status === "unauthenticated") {
+    return <LoginScreen />;
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-surface">
+        <AppSidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar />
+          <SupportModeBanner />
+          <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 p-4 md:p-6">
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
