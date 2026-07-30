@@ -3,6 +3,7 @@ import type { MigrationBuilder } from "node-pg-migrate";
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createExtension("pgcrypto", { ifNotExists: true });
   pgm.createExtension("vector", { ifNotExists: true });
+  pgm.createExtension("citext", { ifNotExists: true });
 
   pgm.createTable("organizations", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
@@ -21,8 +22,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     password_hash: { type: "text", notNull: true },
     created_at: { type: "timestamptz", notNull: true, default: pgm.func("now()") },
   });
-  pgm.createExtension("citext", { ifNotExists: true });
-
   pgm.createTable("memberships", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
     user_id: {

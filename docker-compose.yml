@@ -24,7 +24,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-chatrag}
     ports:
       # <porta na sua maquina>:<porta dentro do container>
-      - "${POSTGRES_PORT:-5432}:5432"
+      # 5433 (nao 5432): ha um Postgres nativo do Windows nesta maquina ja
+      # ocupando a 5432 fora do Docker; usamos outra porta para nao colidir.
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       # Guarda os dados do banco fora do container, para nao perder nada
       # quando o container for recriado.

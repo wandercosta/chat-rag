@@ -11,6 +11,7 @@
     "migrate:down": "node-pg-migrate down -j ts --migrations-dir migrations -d DATABASE_URL",
     "migrate:create": "node-pg-migrate create -j ts --migrations-dir migrations",
     "deps:check": "depcruise src --config .dependency-cruiser.cjs",
+    "bucket:create": "tsx scripts/create-bucket.ts",
     "test": "vitest run",
     "test:integration": "cross-env RUN_INTEGRATION_TESTS=1 vitest run"
   },
@@ -22,6 +23,7 @@
     "bullmq": "^5.34.5",
     "dotenv": "^16.4.5",
     "fastify": "^5.1.0",
+    "fastify-plugin": "^5.0.1",
     "ioredis": "^5.4.1",
     "kysely": "^0.27.4",
     "mammoth": "^1.8.0",
