@@ -1,8 +1,13 @@
 import { auditService } from "../audit/index.js";
+import { organizationsService } from "../organizations/index.js";
 import { assistantsRepository, type AssistantUpdateInput } from "./assistants.repository.js";
 import { modelCatalogRepository } from "./model-catalog.repository.js";
 
 export class ModelNotAllowedError extends Error {}
+
+/** Padrao de plataforma quando nem assistente nem organizacao definem um
+ * valor (docs/security/privacidade-e-acesso.md - Retencao). */
+const PLATFORM_DEFAULT_RETENTION_DAYS = 90;
 
 export const assistantsService = {
   list(organizationId: string) {
@@ -56,5 +61,26 @@ export const assistantsService = {
     });
 
     return assistant;
+  },
+
+  /** Politica efetiva por assistente: assistente > organizacao > padrao de
+   * plataforma. Usado pelo job de retencao (modulo conversations). */
+  async listAllWithEffectiveRetention(): Promise<{ id: string; organizationId: string; retentionDays: number }[]> {
+    const rows = await assistantsRepository.listAll();
+    const orgCache = new Map<string, number | null>();
+
+    const result = [];
+    for (const row of rows) {
+      if (!orgCache.has(row.organization_id)) {
+        orgCache.set(row.organization_id, await organizationsService.getRetentionDays(row.organization_id));
+      }
+      const orgDays = orgCache.get(row.organization_id) ?? null;
+      result.push({
+        id: row.id,
+        organizationId: row.organization_id,
+        retentionDays: row.retention_days ?? orgDays ?? PLATFORM_DEFAULT_RETENTION_DAYS,
+      });
+    }
+    return result;
   },
 };

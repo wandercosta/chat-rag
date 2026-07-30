@@ -1,12 +1,14 @@
 # chatrag-backend
 
-API do ChatRAG (Fastify + TypeScript). Implementa: `identity`, `organizations`
-(tenants + credencial OpenAI/BYOK com envelope encryption), `assistants`
-(+ catalogo de modelos), `knowledge` (topicos/fontes/extracao/chunking),
-`rag` (provedor de IA, recuperacao vetorial, politica de resposta),
-`conversations` (mensagens/feedback/lacunas), `embed` (chaves de widget,
-dominios, rate limit) e `audit` (append-only). `analytics` ainda e um stub.
-Ver `docs/README.md` (Estado atual) para a lista completa do que falta.
+API do ChatRAG (Fastify + TypeScript). Implementa: `identity` (+ sessao de
+suporte do Master, justificada e auditada), `organizations` (tenants +
+credencial OpenAI/BYOK com envelope encryption + politica de retencao),
+`assistants` (+ catalogo de modelos + setores de encaminhamento WhatsApp),
+`knowledge` (topicos/fontes/extracao/chunking), `rag` (provedor de IA,
+recuperacao vetorial, politica de resposta), `conversations`
+(mensagens/feedback/lacunas), `embed` (chaves de widget, dominios, rate
+limit, handoff WhatsApp) e `audit` (append-only). `analytics` ainda e um
+stub. Ver `docs/README.md` (Estado atual) para a lista completa do que falta.
 
 ## Passo a passo (primeira vez)
 
@@ -27,7 +29,7 @@ Ver `docs/README.md` (Estado atual) para a lista completa do que falta.
    ```bash
    npx tsx scripts/create-master.ts admin@chatrag.local "uma-senha-forte"
    ```
-6. Suba a API e, em outro terminal, o worker de indexacao:
+6. Suba a API e, em outro terminal, o worker de indexacao/retencao:
    ```bash
    npm run dev
    npm run worker
@@ -69,7 +71,8 @@ varios modulos sem violar essa regra.
 ## O que falta antes de producao
 
 - KMS real em vez da KEK derivada de `APP_MASTER_KEY` (a interface ja e trocavel, ver `ai-credentials.envelope.ts`).
-- Job de retencao de conversas e particionamento de chunks: ver ADR-002, ainda nao implementados.
-- `analytics` (uso/custo agregado), `handoff_configs` (WhatsApp) e `support_access_sessions` (sessao de suporte do Master com justificativa/expiracao) ainda nao existem.
+- Particionamento fisico de `source_chunks`: ver ADR-002, gatilho documentado mas nao implementado.
+- Retencao hoje so exclui (nao anonimiza) conversas vencidas.
+- `analytics` (uso/custo agregado, `usage_events`) ainda nao existe.
 - Bundle JS publico do widget (hoje so a API existe).
 - Mais testes de isolamento e de contrato conforme o painel Lovable for ligado a esta API (ver `docs/testing/estrategia.md`).

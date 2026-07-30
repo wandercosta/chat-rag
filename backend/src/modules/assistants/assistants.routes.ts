@@ -16,6 +16,7 @@ const updateSchema = z.object({
   status: z.enum(["publicado", "rascunho", "pausado"]).optional(),
   modelId: z.string().min(1).optional(),
   instructions: z.string().nullable().optional(),
+  retentionDays: z.number().int().positive().nullable().optional(),
 });
 
 export async function assistantsRoutes(app: FastifyInstance) {

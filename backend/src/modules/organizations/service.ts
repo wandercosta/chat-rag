@@ -40,6 +40,23 @@ export const organizationsService = {
     return organizationsRepository.list();
   },
 
+  /** null = usa o padrao de plataforma (90 dias). Usado pelo modulo assistants
+   * para resolver a politica efetiva de retencao (docs/security). */
+  getRetentionDays(organizationId: string) {
+    return organizationsRepository.findRetentionDays(organizationId);
+  },
+
+  async setRetentionDays(actorUserId: string, organizationId: string, days: number | null) {
+    await organizationsRepository.setRetentionDays(organizationId, days);
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: "Alterou politica de retencao da organizacao",
+      type: "configuracao",
+      target: days === null ? "padrao de plataforma (90 dias)" : `${days} dias`,
+    });
+  },
+
   async setStatus(masterUserId: string, organizationId: string, status: "ativo" | "suspenso") {
     await organizationsRepository.setStatus(organizationId, status);
     await auditService.record({

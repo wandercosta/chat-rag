@@ -3,7 +3,9 @@ import { env } from "./config/env.js";
 import { redis } from "./db/redis.js";
 import { extractionService, sourcesService } from "./modules/knowledge/index.js";
 import { indexingService } from "./modules/rag/index.js";
+import { retentionService } from "./modules/conversations/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
+import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -57,4 +59,19 @@ worker.on("failed", (job, err) => {
   console.error(`job de indexacao falhou (source ${job?.data.sourceId}):`, err.message);
 });
 
-console.log("worker de indexacao iniciado");
+const retentionWorker = new Worker(
+  RETENTION_QUEUE,
+  async () => {
+    const summary = await retentionService.purgeExpired();
+    console.log("retencao executada:", summary);
+  },
+  { connection: { url: env.REDIS_URL }, concurrency: 1 },
+);
+
+retentionWorker.on("failed", (job, err) => {
+  console.error("job de retencao falhou:", err.message);
+});
+
+await scheduleRetentionSweep();
+
+console.log("worker de indexacao e retencao iniciado");

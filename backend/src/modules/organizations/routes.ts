@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireMaster, requireSession } from "../identity/index.js";
+import { requireMaster, requireOrgRole, requireSession } from "../identity/index.js";
 import { organizationsService } from "./service.js";
 
 const createTenantSchema = z.object({
@@ -14,6 +14,7 @@ const createTenantSchema = z.object({
 });
 
 const statusSchema = z.object({ status: z.enum(["ativo", "suspenso"]) });
+const retentionSchema = z.object({ days: z.number().int().positive().nullable() });
 
 export async function organizationsRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
@@ -34,6 +35,16 @@ export async function organizationsRoutes(app: FastifyInstance) {
     async (request) => {
       const body = statusSchema.parse(request.body);
       await organizationsService.setStatus(request.auth!.userId, request.params.organizationId, body.status);
+      return { ok: true };
+    },
+  );
+
+  app.put<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/retention",
+    { preHandler: requireOrgRole(["Administrador"]) },
+    async (request) => {
+      const body = retentionSchema.parse(request.body);
+      await organizationsService.setRetentionDays(request.auth!.userId, request.params.organizationId, body.days);
       return { ok: true };
     },
   );

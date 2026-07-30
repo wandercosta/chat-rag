@@ -62,4 +62,15 @@ export const conversationsRepository = {
   addFeedback(conversationId: string, rating: "positivo" | "negativo") {
     return db.insertInto("feedbacks").values({ conversation_id: conversationId, rating }).execute();
   },
+
+  /** Expurgo por retencao (ADR-002 #6). Mensagens e feedbacks saem junto via
+   * ON DELETE CASCADE. Retorna quantas conversas foram removidas. */
+  async deleteOlderThan(assistantId: string, cutoff: Date): Promise<number> {
+    const result = await db
+      .deleteFrom("conversations")
+      .where("assistant_id", "=", assistantId)
+      .where("started_at", "<", cutoff)
+      .executeTakeFirst();
+    return Number(result.numDeletedRows);
+  },
 };

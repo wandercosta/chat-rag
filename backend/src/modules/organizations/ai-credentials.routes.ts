@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireMaster, requireOrgRole, requireSession } from "../identity/index.js";
+import { requireMasterSupportSession, requireOrgRole, requireSession } from "../identity/index.js";
 import { aiCredentialsService } from "./ai-credentials.service.js";
 
 const configureSchema = z.object({
@@ -46,11 +46,11 @@ export async function aiCredentialsRoutes(app: FastifyInstance) {
     },
   );
 
-  // Suporte Master: so estado + remocao auditada, nunca o valor da chave
-  // (docs/security/privacidade-e-acesso.md).
+  // Suporte Master: so estado + remocao auditada, nunca o valor da chave, e
+  // so com sessao de suporte ativa para este tenant (docs/security).
   app.get<{ Params: { organizationId: string } }>(
     "/master/tenants/:organizationId/ai-credentials",
-    { preHandler: requireMaster },
+    { preHandler: requireMasterSupportSession },
     async (request) => {
       return aiCredentialsService.getStatus(request.params.organizationId);
     },
@@ -58,7 +58,7 @@ export async function aiCredentialsRoutes(app: FastifyInstance) {
 
   app.delete<{ Params: { organizationId: string; environment: string } }>(
     "/master/tenants/:organizationId/ai-credentials/:environment",
-    { preHandler: requireMaster },
+    { preHandler: requireMasterSupportSession },
     async (request) => {
       const { environment } = environmentParamSchema.parse(request.params);
       await aiCredentialsService.remove(request.auth!.userId, request.params.organizationId, environment);

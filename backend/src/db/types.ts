@@ -28,6 +28,7 @@ export interface OrganizationsTable {
   name: string;
   slug: string;
   status: TenantStatus;
+  retention_days: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -100,6 +101,7 @@ export interface AssistantsTable {
   model_id: string;
   response_mode: ResponseMode;
   instructions: string | null;
+  retention_days: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -218,6 +220,25 @@ export interface AllowedDomainsTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface SupportAccessSessionsTable {
+  id: Generated<string>;
+  master_user_id: string;
+  organization_id: string;
+  justification: string;
+  started_at: ColumnType<Date, string | undefined, never>;
+  expires_at: ColumnType<Date, string, never>;
+  ended_at: ColumnType<Date, string | undefined, string> | null;
+}
+
+export interface HandoffConfigsTable {
+  id: Generated<string>;
+  organization_id: string;
+  assistant_id: string;
+  sector_name: string;
+  phone_number: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface Database {
   organizations: OrganizationsTable;
   users: UsersTable;
@@ -240,4 +261,6 @@ export interface Database {
   source_chunks: SourceChunksTable;
   embed_keys: EmbedKeysTable;
   allowed_domains: AllowedDomainsTable;
+  support_access_sessions: SupportAccessSessionsTable;
+  handoff_configs: HandoffConfigsTable;
 }

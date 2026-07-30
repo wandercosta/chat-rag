@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { env } from "../../config/env.js";
 import { identityRoutes } from "./routes.js";
 import { identityService } from "./service.js";
+import { supportSessionsService } from "./support-sessions.service.js";
 import type { TenantRole } from "../../db/types.js";
 
 export async function identityPlugin(app: FastifyInstance) {
@@ -33,17 +34,42 @@ export async function requireMaster(request: FastifyRequest, reply: FastifyReply
  * Resolve o organization_id efetivo a partir da sessao (nunca de um parametro
  * livre enviado pelo cliente, ver docs/security/privacidade-e-acesso.md) e
  * confere se o papel do usuario naquela organizacao satisfaz o minimo exigido.
+ *
+ * Master NAO tem acesso livre aos dados operacionais de um tenant: precisa de
+ * uma sessao de suporte ativa e auditada para aquela organizacao especifica
+ * (ADR-001 #14) — sem isso, cai no mesmo 403 de quem nao tem membership.
  */
 export function requireOrgRole(minRoles: readonly TenantRole[]) {
   return async function (request: FastifyRequest<{ Params: { organizationId?: string } }>, reply: FastifyReply) {
     const organizationId = request.params?.organizationId;
     const membership = request.auth?.memberships.find((m) => m.organizationId === organizationId);
 
-    if (!membership && !request.auth?.isPlatform) {
-      return reply.code(403).send({ error: "sem acesso a esta organizacao" });
+    if (!membership) {
+      const isSupporting =
+        request.auth?.isPlatform && organizationId
+          ? await supportSessionsService.hasActive(request.auth.userId, organizationId)
+          : false;
+      if (!isSupporting) return reply.code(403).send({ error: "sem acesso a esta organizacao" });
+      return;
     }
-    if (membership && !minRoles.includes(membership.role)) {
+    if (!minRoles.includes(membership.role)) {
       return reply.code(403).send({ error: "papel insuficiente para esta acao" });
     }
   };
+}
+
+/** Para rotas Master que tocam dados/config de um tenant especifico fora do
+ * padrao de papeis (ex.: status da credencial de IA em suporte). */
+export async function requireMasterSupportSession(
+  request: FastifyRequest<{ Params: { organizationId?: string } }>,
+  reply: FastifyReply,
+) {
+  const organizationId = request.params?.organizationId;
+  if (!request.auth?.isPlatform || !organizationId) {
+    return reply.code(403).send({ error: "acesso restrito ao Master" });
+  }
+  const active = await supportSessionsService.hasActive(request.auth.userId, organizationId);
+  if (!active) {
+    return reply.code(403).send({ error: "requer sessao de suporte ativa para esta organizacao" });
+  }
 }

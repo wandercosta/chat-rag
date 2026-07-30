@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { requireMaster, requireOrgRole } from "./plugin.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthContext } from "./types.js";
+
+const hasActive = vi.fn<(masterUserId: string, organizationId: string) => Promise<boolean>>();
+
+vi.mock("./support-sessions.service.js", () => ({
+  supportSessionsService: { hasActive: (...args: [string, string]) => hasActive(...args) },
+}));
+
+const { requireMaster, requireOrgRole, requireMasterSupportSession } = await import("./plugin.js");
 
 function fakeReply() {
   const calls: { code?: number; body?: unknown } = {};
@@ -20,6 +27,11 @@ function fakeReply() {
 function fakeRequest(auth: AuthContext | null, organizationId?: string) {
   return { auth, params: { organizationId } } as any;
 }
+
+beforeEach(() => {
+  hasActive.mockReset();
+  hasActive.mockResolvedValue(false);
+});
 
 describe("requireMaster", () => {
   it("blocks a request without platform role", async () => {
@@ -72,11 +84,44 @@ describe("requireOrgRole", () => {
     expect(calls.code).toBeUndefined();
   });
 
-  it("allows Master to bypass membership entirely", async () => {
+  it("blocks Master without an active support session for that organization", async () => {
+    hasActive.mockResolvedValue(false);
     const guard = requireOrgRole(["Administrador"]);
     const { reply, calls } = fakeReply();
     const auth: AuthContext = { userId: "master-1", isPlatform: true, memberships: [] };
     await guard(fakeRequest(auth, "org-a"), reply);
+    expect(calls.code).toBe(403);
+  });
+
+  it("allows Master with an active support session for that organization", async () => {
+    hasActive.mockResolvedValue(true);
+    const guard = requireOrgRole(["Administrador"]);
+    const { reply, calls } = fakeReply();
+    const auth: AuthContext = { userId: "master-1", isPlatform: true, memberships: [] };
+    await guard(fakeRequest(auth, "org-a"), reply);
+    expect(calls.code).toBeUndefined();
+    expect(hasActive).toHaveBeenCalledWith("master-1", "org-a");
+  });
+});
+
+describe("requireMasterSupportSession", () => {
+  it("blocks a non-Master user", async () => {
+    const { reply, calls } = fakeReply();
+    await requireMasterSupportSession(fakeRequest({ userId: "u1", isPlatform: false, memberships: [] }, "org-a"), reply);
+    expect(calls.code).toBe(403);
+  });
+
+  it("blocks Master without an active session", async () => {
+    hasActive.mockResolvedValue(false);
+    const { reply, calls } = fakeReply();
+    await requireMasterSupportSession(fakeRequest({ userId: "master-1", isPlatform: true, memberships: [] }, "org-a"), reply);
+    expect(calls.code).toBe(403);
+  });
+
+  it("allows Master with an active session", async () => {
+    hasActive.mockResolvedValue(true);
+    const { reply, calls } = fakeReply();
+    await requireMasterSupportSession(fakeRequest({ userId: "master-1", isPlatform: true, memberships: [] }, "org-a"), reply);
     expect(calls.code).toBeUndefined();
   });
 });

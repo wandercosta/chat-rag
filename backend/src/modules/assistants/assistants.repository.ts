@@ -13,6 +13,7 @@ export interface AssistantUpdateInput {
   status?: AssistantStatus;
   modelId?: string;
   instructions?: string | null;
+  retentionDays?: number | null;
 }
 
 export const assistantsRepository = {
@@ -52,10 +53,23 @@ export const assistantsRepository = {
   update(organizationId: string, id: string, input: AssistantUpdateInput) {
     return db
       .updateTable("assistants")
-      .set({ ...input, updated_at: new Date().toISOString() })
+      .set({
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.status !== undefined && { status: input.status }),
+        ...(input.modelId !== undefined && { model_id: input.modelId }),
+        ...(input.instructions !== undefined && { instructions: input.instructions }),
+        ...(input.retentionDays !== undefined && { retention_days: input.retentionDays }),
+        updated_at: new Date().toISOString(),
+      })
       .where("organization_id", "=", organizationId)
       .where("id", "=", id)
       .returningAll()
       .executeTakeFirst();
+  },
+
+  /** Lista global (todos os tenants) para o job de retencao — o unico
+   * consumidor legitimo que precisa varrer alem de uma organizacao por vez. */
+  listAll() {
+    return db.selectFrom("assistants").select(["id", "organization_id", "retention_days"]).execute();
   },
 };

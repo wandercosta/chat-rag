@@ -36,10 +36,13 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 
 - `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
 - `GET|POST /master/tenants`, `POST /master/tenants/:organizationId/status`
+- `GET|POST /master/tenants/:organizationId/support-sessions`, `POST .../support-sessions/:sessionId/end` (justificativa + expiracao, auditado — ADR-001 #14)
+- `PUT /organizations/:organizationId/retention` (politica de retencao da organizacao)
 - `GET|POST /organizations/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment`
-- `GET /master/tenants/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment` (suporte Master, so estado)
+- `GET /master/tenants/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment` (suporte Master, so estado, exige sessao de suporte ativa)
 - `GET|POST|PATCH /organizations/:organizationId/assistants[/:assistantId]`
 - `GET|POST|PATCH /master/model-catalog[/:modelId]`, `GET|PUT /master/tenants/:organizationId/allowed-models`, `GET /organizations/:organizationId/allowed-models`
+- `GET|POST|DELETE /organizations/:organizationId/assistants/:assistantId/handoff-configs[/:configId]` (setores de WhatsApp)
 - `GET|POST /organizations/:organizationId/collections`, `PUT|DELETE .../assistants/:assistantId/collections/:collectionId`
 - `GET|POST /organizations/:organizationId/topics`
 - `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`
@@ -55,5 +58,6 @@ Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 - `POST /widget/conversations`
 - `POST /widget/conversations/:conversationId/messages`
 - `POST /widget/conversations/:conversationId/feedback`
+- `POST /widget/conversations/:conversationId/handoff` (retorna link `wa.me` direto, ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)
 
-Ainda nao implementado: encaminhamento WhatsApp, analytics/uso agregado, endpoints de suporte Master com sessao justificada/expiravel.
+Ainda nao implementado: analytics/uso agregado (`usage_events`).

@@ -24,4 +24,17 @@ export const organizationsRepository = {
   setStatus(id: string, status: "ativo" | "suspenso") {
     return db.updateTable("organizations").set({ status }).where("id", "=", id).execute();
   },
+
+  async findRetentionDays(id: string): Promise<number | null> {
+    const row = await db
+      .selectFrom("organizations")
+      .select("retention_days")
+      .where("id", "=", id)
+      .executeTakeFirst();
+    return row?.retention_days ?? null;
+  },
+
+  setRetentionDays(id: string, days: number | null) {
+    return db.updateTable("organizations").set({ retention_days: days }).where("id", "=", id).execute();
+  },
 };
