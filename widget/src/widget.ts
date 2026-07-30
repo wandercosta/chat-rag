@@ -119,7 +119,12 @@ export class ChatRagWidget {
 
   private async ensureConversation(): Promise<string> {
     if (this.conversationId) return this.conversationId;
-    const { conversationId } = await this.api.startConversation(this.options.key);
+    const { conversationId } = await this.api.startConversation(this.options.key, {
+      externalUserId: this.options.externalUserId,
+      visitorName: this.options.visitorName,
+      visitorEmail: this.options.visitorEmail,
+      context: this.options.context,
+    });
     this.conversationId = conversationId;
     return conversationId;
   }

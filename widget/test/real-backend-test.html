@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChatRAG widget - teste com backend real</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 40px; background: #f5f5f7; }
+      h1 { font-size: 18px; }
+      p { color: #555; }
+    </style>
+  </head>
+  <body>
+    <h1>Pagina hospedeira fake — testando o widget contra o backend real (localhost:3333)</h1>
+    <p>Sem mock: essa pagina chama a API de verdade. Clique na bolha no canto inferior direito.</p>
+
+    <script
+      src="../dist/chat-widget.js"
+      data-key="pk_test_7d65eea38542f5ac95232625662e572141d51e08d6d20110"
+      data-mode="floating"
+      data-title="Assistente Widget Demo"
+      data-greeting="Ola! Sou o assistente de teste. Pergunte algo."
+      data-external-user-id="idrealizador2_idcliente2"
+      data-visitor-name="Maria Souza"
+      data-visitor-email="maria@exemplo.com"
+      data-context='{"pedido":"4821","plano":"Pro"}'
+      async
+    ></script>
+  </body>
+</html>

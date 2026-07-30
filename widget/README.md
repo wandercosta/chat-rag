@@ -27,12 +27,21 @@ opcional `data-api` (util so para teste local).
   data-theme="sync"
   data-title="Fale com a gente"
   data-greeting="Ola! Como posso ajudar?"
+  data-external-user-id="pedido-4821"
+  data-visitor-name="Maria Souza"
+  data-visitor-email="maria@exemplo.com"
+  data-context='{"pedido":"4821","plano":"Pro"}'
   async
 ></script>
 ```
 
 Modo embutido: `data-mode="embedded"` + `data-mount="#seletor-css"` monta
 dentro de um elemento da pagina em vez de flutuar.
+
+`data-external-user-id`/`data-visitor-name`/`data-visitor-email`/`data-context`
+sao opcionais e nao assinados — ver `docs/integrations/widget-embed.md` (secao
+"Identidade e contexto do visitante") para o que cada um faz e a limitacao de
+seguranca de nao serem assinados.
 
 ## Teste manual sem backend
 

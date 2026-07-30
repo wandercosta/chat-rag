@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { conversationsService } from "../conversations/index.js";
+import { conversationsService, visitorsService } from "../conversations/index.js";
 import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
 import { NoHandoffConfiguredError, SectorNotFoundError, handoffService } from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
@@ -8,6 +8,12 @@ import { DomainNotAllowedError, InvalidKeyError, publicAccessService } from "./p
 import { rateLimits } from "./rate-limit.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
+const startConversationSchema = keySchema.extend({
+  externalUserId: z.string().min(1).max(200).optional(),
+  visitorName: z.string().min(1).max(200).optional(),
+  visitorEmail: z.string().email().optional(),
+  context: z.record(z.unknown()).optional(),
+});
 const messageSchema = keySchema.extend({ message: z.string().min(1) });
 const feedbackSchema = keySchema.extend({ rating: z.enum(["positivo", "negativo"]) });
 const handoffSchema = keySchema.extend({ sectorId: z.string().uuid().optional() });
@@ -33,7 +39,7 @@ export async function embedPublicRoutes(app: FastifyInstance) {
   });
 
   app.post("/widget/conversations", async (request, reply) => {
-    const body = keySchema.parse(request.body);
+    const body = startConversationSchema.parse(request.body);
     try {
       const resolved = await publicAccessService.resolveAndAuthorize(body.key, originOf(request));
       const host = new URL(originOf(request) ?? "").hostname;
@@ -45,7 +51,19 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         return reply.code(429).send({ error: "limite de novas conversas excedido" });
       }
 
-      const conversation = await conversationsService.start(resolved.organizationId, resolved.assistantId, "widget");
+      const visitor = await visitorsService.resolve(resolved.organizationId, {
+        externalUserId: body.externalUserId,
+        name: body.visitorName,
+        email: body.visitorEmail,
+        context: body.context,
+      });
+
+      const conversation = await conversationsService.start(
+        resolved.organizationId,
+        resolved.assistantId,
+        "widget",
+        visitor?.id ?? null,
+      );
       return reply.code(201).send({ conversationId: conversation.id });
     } catch (err) {
       return handlePublicError(err, reply);

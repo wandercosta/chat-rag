@@ -12,6 +12,16 @@ export interface WidgetOptions {
   greeting: string;
   mountSelector: string | null;
   identityToken: string | null;
+  /** Id estavel do atendimento/cliente no sistema hospedeiro (ex.:
+   * "pedido-4821"). Mantem o mesmo visitante entre recargas da pagina, para
+   * o painel distinguir esse atendimento dos demais em vez de uma sessao
+   * anonima generica. */
+  externalUserId: string | null;
+  visitorName: string | null;
+  visitorEmail: string | null;
+  /** Dados livres (ex.: {"plano":"Pro","pedido":"4821"}) que o hospedeiro
+   * quer que o assistente considere ao responder, alem da base. */
+  context: Record<string, unknown> | null;
 }
 
 export interface ConfigResponse {

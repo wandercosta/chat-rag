@@ -151,6 +151,7 @@ export interface VisitorsTable {
   external_user_id: string | null;
   name: string | null;
   email: string | null;
+  context: unknown;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 

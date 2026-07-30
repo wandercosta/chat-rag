@@ -9,6 +9,19 @@ function attr(name: string, fallback = ""): string {
   return scriptEl?.getAttribute(name) ?? fallback;
 }
 
+function readContext(): Record<string, unknown> | null {
+  const raw = attr("data-context");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    console.error("[chatrag-widget] data-context precisa ser um objeto JSON, ex.: '{\"plano\":\"Pro\"}'");
+  } catch {
+    console.error("[chatrag-widget] data-context nao e um JSON valido");
+  }
+  return null;
+}
+
 function readOptions(): WidgetOptions | null {
   const key = attr("data-key");
   if (!key) {
@@ -28,6 +41,10 @@ function readOptions(): WidgetOptions | null {
     greeting: attr("data-greeting", "Ola! Como posso ajudar?"),
     mountSelector: attr("data-mount") || null,
     identityToken: attr("data-identity-token") || null,
+    externalUserId: attr("data-external-user-id") || null,
+    visitorName: attr("data-visitor-name") || null,
+    visitorEmail: attr("data-visitor-email") || null,
+    context: readContext(),
   };
 }
 

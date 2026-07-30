@@ -24,7 +24,7 @@ Todas as entidades acima ja existem em `backend/migrations/` (ver `docs/README.m
 
 ## Visitantes e agrupamento
 
-Um visitante pode conter `external_user_id`, `name` e campos de contato permitidos. Para integracao autenticada, a identidade deve ser recebida por token assinado pelo backend do sistema hospedeiro. Para chat externo, e-mail e nome seguem a politica configurada pelo assistente. Conversas mantem historico limitado e retencao configuravel.
+Um visitante pode conter `external_user_id` (unico por `organization_id`, quando presente), `name`, `email` e `context` (jsonb livre). Hoje esses campos chegam sem assinatura, via atributos `data-*` do widget (ver `docs/integrations/widget-embed.md` - Identidade e contexto do visitante); para integracao autenticada, a identidade deveria ser recebida por token assinado pelo backend do sistema hospedeiro — ainda nao implementado. `context` e usado apenas para personalizar o prompt do assistente, nunca como fonte de fatos da base. Cada carregamento do widget cria uma `conversation` nova; quando `external_user_id` se repete, todas apontam para o mesmo `visitor`, permitindo ao painel distinguir e agrupar atendimentos por cliente/id externo em vez de uma massa de sessoes anonimas. Conversas mantem historico limitado e retencao configuravel.
 
 ## Vetores
 

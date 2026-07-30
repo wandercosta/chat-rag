@@ -31,8 +31,22 @@ export function createApiClient(baseUrl: string) {
       return postJson<ConfigResponse>(baseUrl, "/widget/config", { key });
     },
 
-    startConversation(key: string) {
-      return postJson<{ conversationId: string }>(baseUrl, "/widget/conversations", { key });
+    startConversation(
+      key: string,
+      visitor?: {
+        externalUserId?: string | null;
+        visitorName?: string | null;
+        visitorEmail?: string | null;
+        context?: Record<string, unknown> | null;
+      },
+    ) {
+      return postJson<{ conversationId: string }>(baseUrl, "/widget/conversations", {
+        key,
+        ...(visitor?.externalUserId ? { externalUserId: visitor.externalUserId } : {}),
+        ...(visitor?.visitorName ? { visitorName: visitor.visitorName } : {}),
+        ...(visitor?.visitorEmail ? { visitorEmail: visitor.visitorEmail } : {}),
+        ...(visitor?.context ? { context: visitor.context } : {}),
+      });
     },
 
     sendMessage(key: string, conversationId: string, message: string) {

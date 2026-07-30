@@ -57,7 +57,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 
 - `POST /widget/config`
-- `POST /widget/conversations`
+- `POST /widget/conversations` (aceita `externalUserId`, `visitorName`, `visitorEmail`, `context` opcionais — identidade/contexto do visitante nao assinados, ver `docs/integrations/widget-embed.md`)
 - `POST /widget/conversations/:conversationId/messages`
 - `POST /widget/conversations/:conversationId/feedback`
 - `POST /widget/conversations/:conversationId/handoff` (retorna link `wa.me` direto, ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)

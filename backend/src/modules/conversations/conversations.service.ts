@@ -6,6 +6,10 @@ export const conversationsService = {
     return conversationsRepository.listForOrganization(organizationId, filters);
   },
 
+  get(organizationId: string, id: string) {
+    return conversationsRepository.findById(organizationId, id);
+  },
+
   async getWithMessages(organizationId: string, id: string) {
     const conversation = await conversationsRepository.findById(organizationId, id);
     if (!conversation) return null;
