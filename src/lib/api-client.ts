@@ -16,11 +16,13 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  // So manda Content-Type quando ha corpo: Fastify rejeita (400) uma
-  // requisicao com esse header e corpo vazio (ex.: POST /auth/logout).
-  const headers = init.body
-    ? { "Content-Type": "application/json", ...init.headers }
-    : init.headers;
+  // So manda Content-Type quando ha corpo JSON: Fastify rejeita (400) uma
+  // requisicao com esse header e corpo vazio (ex.: POST /auth/logout), e num
+  // upload multipart quem define o header (com boundary) tem que ser o browser.
+  const headers =
+    init.body && !(init.body instanceof FormData)
+      ? { "Content-Type": "application/json", ...init.headers }
+      : init.headers;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -73,6 +75,11 @@ export interface Organization {
 
 export const organizationsApi = {
   getMine: (organizationId: string) => get<Organization>(`/organizations/${organizationId}`),
+  setRetention: (organizationId: string, days: number | null) =>
+    apiFetch<{ ok: true }>(`/organizations/${organizationId}/retention`, {
+      method: "PUT",
+      body: JSON.stringify({ days }),
+    }),
 };
 
 // --- master: tenants ------------------------------------------------------
@@ -149,6 +156,26 @@ export const modelsApi = {
     get<AllowedModel[]>(`/organizations/${organizationId}/allowed-models`),
 };
 
+// --- rag: playground ------------------------------------------------
+
+export interface PlaygroundAnswer {
+  conversationId: string;
+  answer: string;
+  usedContext: boolean;
+}
+
+export const playgroundApi = {
+  send: (
+    organizationId: string,
+    assistantId: string,
+    input: { message: string; conversationId?: string },
+  ) =>
+    post<PlaygroundAnswer>(
+      `/organizations/${organizationId}/assistants/${assistantId}/playground-messages`,
+      { ...input, environment: "teste" },
+    ),
+};
+
 // --- knowledge: topics ------------------------------------------------
 
 export interface Topic {
@@ -160,8 +187,85 @@ export interface Topic {
   created_at: string;
 }
 
+export interface CreateTopicInput {
+  name: string;
+  description?: string | null;
+}
+
 export const topicsApi = {
   list: (organizationId: string) => get<Topic[]>(`/organizations/${organizationId}/topics`),
+  create: (organizationId: string, input: CreateTopicInput) =>
+    post<Topic>(`/organizations/${organizationId}/topics`, input),
+};
+
+// --- knowledge: sources ------------------------------------------------
+
+export interface Source {
+  id: string;
+  organization_id: string;
+  topic_id: string;
+  title: string;
+  kind: "texto" | "URL" | "PDF" | "DOCX";
+  status: "rascunho" | "aguardando_revisao" | "aguardando_ativacao" | "fila" | "processando" | "pronta" | "erro" | "arquivada";
+  origin_url: string | null;
+  error_message: string | null;
+  chunk_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSourceInput {
+  topicId: string;
+  title: string;
+  kind: "texto" | "URL";
+  content: string;
+}
+
+export const sourcesApi = {
+  list: (organizationId: string, topicId: string) =>
+    get<Source[]>(`/organizations/${organizationId}/topics/${topicId}/sources`),
+  createTextOrUrl: (organizationId: string, input: CreateSourceInput) =>
+    post<Source>(`/organizations/${organizationId}/sources`, input),
+  // multipart: o browser precisa definir o boundary sozinho, por isso nao
+  // passa por apiFetch (que forcaria Content-Type: application/json).
+  upload: (organizationId: string, topicId: string, title: string, file: File) => {
+    const form = new FormData();
+    form.append("topicId", topicId);
+    form.append("title", title);
+    form.append("file", file);
+    return apiFetch<Source>(`/organizations/${organizationId}/sources/upload`, {
+      method: "POST",
+      body: form,
+    });
+  },
+  approve: (organizationId: string, sourceId: string) =>
+    post<Source>(`/organizations/${organizationId}/sources/${sourceId}/approve`),
+  reindex: (organizationId: string, sourceId: string) =>
+    post<Source>(`/organizations/${organizationId}/sources/${sourceId}/reindex`),
+  archive: (organizationId: string, sourceId: string) =>
+    post<Source>(`/organizations/${organizationId}/sources/${sourceId}/archive`),
+};
+
+// --- organizations: AI credentials ------------------------------------------------
+
+export type CredentialEnvironment = "teste" | "producao" | "ambos";
+
+export interface CredentialStatus {
+  environment: CredentialEnvironment;
+  status: "ausente" | "valida" | "invalida" | "substituida" | "removida";
+  masked: string | null;
+  updatedAt: string | null;
+}
+
+export const aiCredentialsApi = {
+  getStatus: (organizationId: string) => get<CredentialStatus[]>(`/organizations/${organizationId}/ai-credentials`),
+  configure: (organizationId: string, environment: CredentialEnvironment, apiKey: string) =>
+    apiFetch<{ environment: CredentialEnvironment; status: CredentialStatus["status"]; masked: string }>(
+      `/organizations/${organizationId}/ai-credentials`,
+      { method: "POST", body: JSON.stringify({ environment, apiKey }) },
+    ),
+  remove: (organizationId: string, environment: CredentialEnvironment) =>
+    apiFetch<{ ok: true }>(`/organizations/${organizationId}/ai-credentials/${environment}`, { method: "DELETE" }),
 };
 
 // --- conversations: gaps ------------------------------------------------

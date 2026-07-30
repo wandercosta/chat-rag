@@ -21,11 +21,6 @@ interface SessionValue {
   tenantName: string;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Estado da chave de IA do tenant — ainda nao ligado a API real nesta
-   * fase (ver docs/README.md). Telas que precisam disso de verdade devem
-   * consultar GET /organizations/:id/ai-credentials diretamente. */
-  aiKeyReady: boolean;
-  setAiKeyReady: (v: boolean) => void;
   /** Sessao de suporte do Master — o backend real existe e funciona
    * (backend/src/modules/organizations/support-sessions.routes.ts), mas
    * ainda nao foi ligado nesta tela; fica inerte de proposito. */
@@ -89,7 +84,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [auth, setAuth] = useState<ApiAuthContext | null>(null);
   const [tenantName, setTenantName] = useState("—");
-  const [aiKeyReady, setAiKeyReady] = useState(false);
   const [support, setSupport] = useState<SupportSession | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -157,8 +151,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setAuth(null);
         setStatus("unauthenticated");
       },
-      aiKeyReady,
-      setAiKeyReady,
       support,
       startSupport: (tenantId, justification, minutes) =>
         setSupport({ tenantId, justification, expiresAt: Date.now() + minutes * 60000 }),
@@ -168,7 +160,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
       can: (perm) => (profile ? matrix[profile].includes(perm) : false),
     };
-  }, [status, auth, tenantName, aiKeyReady, support, now, theme]);
+  }, [status, auth, tenantName, support, now, theme]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

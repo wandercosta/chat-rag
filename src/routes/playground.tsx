@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FlaskConical, Send } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
@@ -8,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { assistants } from "@/lib/mock-data";
+import { ApiError, assistantsApi, playgroundApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/playground")({
-  validateSearch: (s: Record<string, unknown>) => ({ assistente: (s.assistente as string) ?? assistants[0].id }),
+  validateSearch: (s: Record<string, unknown>) => ({ assistente: (s.assistente as string) ?? "" }),
   head: () => ({
     meta: [
       { title: "Playground de conversa — ChatRAG" },
@@ -24,25 +25,73 @@ export const Route = createFileRoute("/playground")({
   component: Playground,
 });
 
-// TODO(API): POST /api/assistants/{id}/playground-messages
+interface ChatMessage {
+  role: "visitante" | "assistente";
+  content: string;
+  usedContext?: boolean;
+}
+
+const GREETING: ChatMessage = {
+  role: "assistente",
+  content: "Olá! Faça uma pergunta para testar as respostas da base.",
+};
+
 function Playground() {
   const { assistente } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const { aiKeyReady } = useSession();
-  const [messages, setMessages] = useState<{ role: "visitante" | "assistente"; content: string }[]>([
-    { role: "assistente", content: "Olá! Faça uma pergunta para testar as respostas da base." },
-  ]);
-  const [draft, setDraft] = useState("");
+  const { tenantId } = useSession();
 
-  const send = () => {
-    if (!draft.trim()) return;
-    setMessages((m) => [
-      ...m,
-      { role: "visitante", content: draft.trim() },
-      { role: "assistente", content: "Resposta simulada — a geração real virá da API de RAG." },
-    ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const [draft, setDraft] = useState("");
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const assistantsQuery = useQuery({
+    queryKey: ["assistants", tenantId],
+    queryFn: () => assistantsApi.list(tenantId!),
+    enabled: !!tenantId,
+  });
+
+  const assistants = assistantsQuery.data ?? [];
+  const selected = assistente || assistants[0]?.id || "";
+
+  // Cada assistente tem sua propria conversa de teste; trocar de assistente
+  // no meio reaproveitaria uma conversa de outro e misturaria o historico.
+  useEffect(() => {
+    setMessages([GREETING]);
+    setConversationId(undefined);
+  }, [selected]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [messages]);
+
+  const send = useMutation({
+    mutationFn: (message: string) => playgroundApi.send(tenantId!, selected, { message, conversationId }),
+    onSuccess: (result) => {
+      setConversationId(result.conversationId);
+      setMessages((m) => [...m, { role: "assistente", content: result.answer, usedContext: result.usedContext }]);
+    },
+    onError: (err) => {
+      const message =
+        err instanceof ApiError && err.status === 409
+          ? "Sem chave de IA válida configurada. Vá em Configurações e cadastre uma chave."
+          : err instanceof ApiError
+            ? err.message
+            : "Não foi possível obter a resposta.";
+      setMessages((m) => [...m, { role: "assistente", content: message }]);
+    },
+  });
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text || !selected || send.isPending) return;
+    setMessages((m) => [...m, { role: "visitante", content: text }]);
     setDraft("");
+    send.mutate(text);
   };
+
+  const noAssistants = assistantsQuery.isSuccess && assistants.length === 0;
 
   return (
     <>
@@ -56,50 +105,66 @@ function Playground() {
         }
       />
       <ActivationBanner context="playground" />
-      <div className="max-w-xs">
-        <Select value={assistente} onValueChange={(v) => navigate({ search: { assistente: v } })}>
-          <SelectTrigger aria-label="Assistente">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {assistants.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Card>
-        <CardContent className="flex h-[440px] flex-col gap-3 p-4">
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={
-                  m.role === "visitante"
-                    ? "ml-auto w-fit max-w-[75%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                    : "w-fit max-w-[75%] rounded-lg bg-muted px-3 py-2 text-sm"
-                }
-              >
-                {m.content}
+
+      {noAssistants ? (
+        <Card className="border-dashed p-6 text-sm text-muted-foreground">
+          Nenhum assistente cadastrado ainda. Crie um em Assistentes para testar aqui.
+        </Card>
+      ) : (
+        <>
+          <div className="max-w-xs">
+            <Select value={selected} onValueChange={(v) => navigate({ search: { assistente: v } })}>
+              <SelectTrigger aria-label="Assistente">
+                <SelectValue placeholder="Selecione um assistente" />
+              </SelectTrigger>
+              <SelectContent>
+                {assistants.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Card>
+            <CardContent className="flex h-[440px] flex-col gap-3 p-4">
+              <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pr-1">
+                {messages.map((m, i) => (
+                  <div key={i} className={m.role === "visitante" ? "flex justify-end" : ""}>
+                    <div
+                      className={
+                        m.role === "visitante"
+                          ? "w-fit max-w-[75%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                          : "w-fit max-w-[75%] rounded-lg bg-muted px-3 py-2 text-sm"
+                      }
+                    >
+                      {m.content}
+                      {m.usedContext === false && (
+                        <span className="mt-1 block text-xs text-warning">Sem contexto na base</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {send.isPending && (
+                  <div className="w-fit rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">Pensando…</div>
+                )}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={draft}
-              disabled={!aiKeyReady}
-              placeholder={aiKeyReady ? "Escreva uma pergunta de teste…" : "Indisponível até configurar a chave de IA"}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-            />
-            <Button onClick={send} disabled={!aiKeyReady}>
-              <Send /> Enviar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex gap-2">
+                <Input
+                  value={draft}
+                  disabled={send.isPending || !selected}
+                  placeholder="Escreva uma pergunta de teste…"
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submit()}
+                />
+                <Button onClick={submit} disabled={send.isPending || !draft.trim() || !selected}>
+                  <Send /> Enviar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </>
   );
 }

@@ -12,6 +12,7 @@ import {
   Settings,
   Users,
   SearchX,
+  FlaskConical,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const tenantItems: Item[] = [
   { title: "Visão geral do tenant", url: "/", icon: LayoutDashboard },
   { title: "Assistentes", url: "/assistentes", icon: Bot, perm: "assistants" },
   { title: "Base de conhecimento", url: "/conhecimento", icon: Library, perm: "knowledge" },
+  { title: "Playground", url: "/playground", icon: FlaskConical, perm: "assistants" },
   { title: "Conversas", url: "/conversas", icon: MessageSquare, perm: "conversations" },
   { title: "Lacunas e feedbacks", url: "/lacunas", icon: SearchX, perm: "gaps" },
   { title: "Integrações e widget", url: "/integracoes", icon: KeyRound, perm: "integrations" },
