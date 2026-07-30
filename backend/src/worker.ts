@@ -4,6 +4,7 @@ import { redis } from "./db/redis.js";
 import { extractionService, sourcesService } from "./modules/knowledge/index.js";
 import { indexingService } from "./modules/rag/index.js";
 import { retentionService } from "./modules/conversations/index.js";
+import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
 
@@ -44,10 +45,12 @@ const worker = new Worker<SourceIndexingJob>(
       const { topicId, chunks } = await extractionService.extractAndChunk(organizationId, sourceId);
       const chunkCount = await indexingService.embedAndStoreChunks(organizationId, sourceId, topicId, chunks);
       await sourcesService.markReady(organizationId, sourceId, chunkCount);
+      await usageService.record({ organizationId, type: "indexing_completed", payload: { sourceId, chunkCount } });
     } catch (err) {
       if (err instanceof DelayedError) throw err;
       const message = err instanceof Error ? err.message : "erro desconhecido na indexacao";
       await sourcesService.markError(organizationId, sourceId, message);
+      await usageService.record({ organizationId, type: "indexing_failed", payload: { sourceId, message } });
     } finally {
       await releaseTenantSlot(organizationId);
     }

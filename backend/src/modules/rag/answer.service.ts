@@ -1,5 +1,6 @@
 import { assistantsService } from "../assistants/index.js";
 import { conversationsService, gapsService } from "../conversations/index.js";
+import { usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
 import { resolveProviderForTenant } from "./provider-resolver.js";
 import type { ChatMessage } from "./provider.types.js";
@@ -28,6 +29,7 @@ export const answerService = {
     question: string,
     options: { conversationId?: string; environment?: "teste" | "producao" } = {},
   ) {
+    const startedAt = Date.now();
     const environment = options.environment ?? "producao";
     const assistant = await assistantsService.get(organizationId, assistantId);
     if (!assistant) throw new AssistantNotFoundError();
@@ -42,6 +44,12 @@ export const answerService = {
     if (!retrieval.sufficientContext) {
       await gapsService.recordOccurrence(organizationId, assistantId, question);
       await conversationsService.addAssistantMessage(conversationId, NO_CONTEXT_REPLY);
+      await usageService.record({
+        organizationId,
+        assistantId,
+        type: "no_context",
+        payload: { latencyMs: Date.now() - startedAt },
+      });
       return { conversationId, answer: NO_CONTEXT_REPLY, usedContext: false };
     }
 
@@ -53,6 +61,13 @@ export const answerService = {
 
     const reply = await provider.chat(messages, assistant.model_id);
     await conversationsService.addAssistantMessage(conversationId, reply);
+
+    await usageService.record({
+      organizationId,
+      assistantId,
+      type: "rag_query",
+      payload: { latencyMs: Date.now() - startedAt, model: assistant.model_id, chunksUsed: retrieval.chunks.length },
+    });
 
     return { conversationId, answer: reply, usedContext: true };
   },

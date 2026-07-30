@@ -20,7 +20,7 @@ Todas as tabelas de dominio multi-tenant devem ter `organization_id` e consultas
 | audit_events, usage_events | Seguranca, rastreabilidade e metricas |
 | support_access_sessions | Acesso temporario do Master a tenant, com justificativa e expiracao |
 
-`usage_events` ainda nao foi implementado (ver `docs/README.md` - Estado atual); as demais entidades ja existem em `backend/migrations/`.
+Todas as entidades acima ja existem em `backend/migrations/` (ver `docs/README.md` - Estado atual para o que cada modulo cobre de fato).
 
 ## Visitantes e agrupamento
 

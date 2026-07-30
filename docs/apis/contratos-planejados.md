@@ -51,6 +51,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`
 - `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]`
 - `GET /organizations/:organizationId/audit`
+- `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)
 
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 
@@ -59,5 +60,3 @@ Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 - `POST /widget/conversations/:conversationId/messages`
 - `POST /widget/conversations/:conversationId/feedback`
 - `POST /widget/conversations/:conversationId/handoff` (retorna link `wa.me` direto, ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)
-
-Ainda nao implementado: analytics/uso agregado (`usage_events`).

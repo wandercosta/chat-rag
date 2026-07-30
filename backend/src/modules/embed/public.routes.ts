@@ -3,6 +3,7 @@ import { z } from "zod";
 import { conversationsService } from "../conversations/index.js";
 import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
 import { NoHandoffConfiguredError, SectorNotFoundError, handoffService } from "../assistants/index.js";
+import { usageService } from "../analytics/index.js";
 import { DomainNotAllowedError, InvalidKeyError, publicAccessService } from "./public-access.service.js";
 import { rateLimits } from "./rate-limit.js";
 
@@ -21,8 +22,10 @@ export async function embedPublicRoutes(app: FastifyInstance) {
     try {
       const resolved = await publicAccessService.resolveAndAuthorize(body.key, originOf(request));
       if (!(await rateLimits.perKeyAndIp(resolved.id, request.ip))) {
+        await usageService.record({ organizationId: resolved.organizationId, assistantId: resolved.assistantId, type: "widget_rate_limited" });
         return reply.code(429).send({ error: "limite de requisicoes excedido" });
       }
+      await usageService.record({ organizationId: resolved.organizationId, assistantId: resolved.assistantId, type: "widget_loaded" });
       return { assistantId: resolved.assistantId, environment: resolved.environment };
     } catch (err) {
       return handlePublicError(err, reply);

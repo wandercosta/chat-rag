@@ -7,8 +7,9 @@ credencial OpenAI/BYOK com envelope encryption + politica de retencao),
 `knowledge` (topicos/fontes/extracao/chunking), `rag` (provedor de IA,
 recuperacao vetorial, politica de resposta), `conversations`
 (mensagens/feedback/lacunas), `embed` (chaves de widget, dominios, rate
-limit, handoff WhatsApp) e `audit` (append-only). `analytics` ainda e um
-stub. Ver `docs/README.md` (Estado atual) para a lista completa do que falta.
+limit, handoff WhatsApp), `audit` (append-only) e `analytics` (usage_events +
+resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a
+lista completa do que falta.
 
 ## Passo a passo (primeira vez)
 
@@ -73,6 +74,6 @@ varios modulos sem violar essa regra.
 - KMS real em vez da KEK derivada de `APP_MASTER_KEY` (a interface ja e trocavel, ver `ai-credentials.envelope.ts`).
 - Particionamento fisico de `source_chunks`: ver ADR-002, gatilho documentado mas nao implementado.
 - Retencao hoje so exclui (nao anonimiza) conversas vencidas.
-- `analytics` (uso/custo agregado, `usage_events`) ainda nao existe.
+- Resumo de uso (`analytics`) ainda nao inclui custo estimado por modelo nem conversas/mensagens/fontes-com-erro.
 - Bundle JS publico do widget (hoje so a API existe).
 - Mais testes de isolamento e de contrato conforme o painel Lovable for ligado a esta API (ver `docs/testing/estrategia.md`).

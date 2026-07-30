@@ -239,6 +239,23 @@ export interface HandoffConfigsTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export type UsageEventType =
+  | "rag_query"
+  | "no_context"
+  | "indexing_completed"
+  | "indexing_failed"
+  | "widget_loaded"
+  | "widget_rate_limited";
+
+export interface UsageEventsTable {
+  id: Generated<string>;
+  organization_id: string;
+  assistant_id: string | null;
+  type: UsageEventType;
+  payload: unknown;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface Database {
   organizations: OrganizationsTable;
   users: UsersTable;
@@ -263,4 +280,5 @@ export interface Database {
   allowed_domains: AllowedDomainsTable;
   support_access_sessions: SupportAccessSessionsTable;
   handoff_configs: HandoffConfigsTable;
+  usage_events: UsageEventsTable;
 }
