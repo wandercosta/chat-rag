@@ -49,7 +49,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`
 - `POST /organizations/:organizationId/assistants/:assistantId/playground-messages`
 - `GET /organizations/:organizationId/conversations[/:conversationId]`, `POST .../feedback`
-- `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`
+- `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`, `POST .../gaps/:gapId/answer` (responder a lacuna cria uma fonte de texto no topico indicado — mesmo pipeline de qualquer outra fonte — e marca a lacuna como resolvida; papeis Administrador/Editor de base)
 - `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]`
 - `GET /organizations/:organizationId/audit`
 - `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)

@@ -133,3 +133,43 @@ export const modelsApi = {
   listAllowed: (organizationId: string) =>
     get<AllowedModel[]>(`/organizations/${organizationId}/allowed-models`),
 };
+
+// --- knowledge: topics ------------------------------------------------
+
+export interface Topic {
+  id: string;
+  organization_id: string;
+  collection_id: string | null;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
+export const topicsApi = {
+  list: (organizationId: string) => get<Topic[]>(`/organizations/${organizationId}/topics`),
+};
+
+// --- conversations: gaps ------------------------------------------------
+
+export interface KnowledgeGap {
+  id: string;
+  organization_id: string;
+  assistant_id: string;
+  question_normalized: string;
+  frequency: number;
+  status: "pendente" | "resolvida";
+  last_seen_at: string;
+}
+
+export interface AnswerGapInput {
+  topicId: string;
+  content: string;
+}
+
+export const gapsApi = {
+  list: (organizationId: string) => get<KnowledgeGap[]>(`/organizations/${organizationId}/gaps`),
+  resolve: (organizationId: string, gapId: string) =>
+    post<{ ok: true }>(`/organizations/${organizationId}/gaps/${gapId}/resolve`),
+  answer: (organizationId: string, gapId: string, input: AnswerGapInput) =>
+    post<{ id: string }>(`/organizations/${organizationId}/gaps/${gapId}/answer`, input),
+};

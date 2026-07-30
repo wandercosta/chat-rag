@@ -39,4 +39,13 @@ export const gapsRepository = {
       .where("id", "=", id)
       .execute();
   },
+
+  findById(organizationId: string, id: string) {
+    return db
+      .selectFrom("knowledge_gaps")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
 };
