@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
@@ -172,20 +172,22 @@ function AssistantsList() {
           <p className="text-sm text-muted-foreground">Carregando...</p>
         )}
         {assistantsQuery.data?.map((a) => (
-          <Card key={a.id} className="transition-colors hover:border-primary/40">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle className="text-base">{a.name}</CardTitle>
-                <p className="mt-1 font-mono text-xs text-muted-foreground">{a.model_id}</p>
-              </div>
-              <StatusBadge status={a.status} />
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {a.instructions || "Sem instruções adicionais."}
-              </p>
-            </CardContent>
-          </Card>
+          <Link key={a.id} to="/assistentes/$assistantId" params={{ assistantId: a.id }} className="block">
+            <Card className="h-full transition-colors hover:border-primary/40">
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-base">{a.name}</CardTitle>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{a.model_id}</p>
+                </div>
+                <StatusBadge status={a.status} />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {a.instructions || "Sem instruções adicionais."}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
         {assistantsQuery.isSuccess && assistantsQuery.data.length === 0 && (
           <p className="text-sm text-muted-foreground">Nenhum assistente ainda.</p>

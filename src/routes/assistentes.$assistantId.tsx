@@ -1,5 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -10,40 +11,91 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { assistants, allowedModels, knowledgeTopics } from "@/lib/mock-data";
+import { ApiError, assistantsApi, modelsApi, type Assistant } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/assistentes/$assistantId")({
-  loader: ({ params }) => {
-    // TODO(API): GET /api/tenants/{id}/assistants/{assistantId}
-    const assistant = assistants.find((a) => a.id === params.assistantId);
-    if (!assistant) throw notFound();
-    return { assistant };
-  },
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.assistant.name} — ChatRAG` : "Assistente — ChatRAG" },
-      { name: "description", content: "Configuração de identidade, conhecimento, privacidade e widget do assistente." },
+      { title: "Assistente — ChatRAG" },
+      { name: "description", content: "Identidade, modelo e retenção do assistente." },
       { property: "og:title", content: "Configuração do assistente — ChatRAG" },
-      { property: "og:description", content: "Identidade, coleções, privacidade e aparência do widget." },
+      { property: "og:description", content: "Edite nome, modelo, instruções e retenção do assistente." },
     ],
   }),
   component: AssistantDetail,
 });
 
+const retentionOptions = [
+  { value: "0", label: "Não reter" },
+  { value: "30", label: "30 dias" },
+  { value: "90", label: "90 dias" },
+  { value: "365", label: "12 meses" },
+];
+
 function AssistantDetail() {
-  const { assistant } = Route.useLoaderData();
-  const { can } = useSession();
+  const { assistantId } = Route.useParams();
+  const { can, tenantId } = useSession();
   const readOnly = !can("write");
-  const [collections, setCollections] = useState<string[]>(assistant.collections);
-  const [widgetColor, setWidgetColor] = useState("#1f8a9c");
-  const [mode, setMode] = useState("floating");
+  const queryClient = useQueryClient();
+
+  const assistantQuery = useQuery({
+    queryKey: ["assistant", tenantId, assistantId],
+    queryFn: () => assistantsApi.get(tenantId!, assistantId),
+    enabled: !!tenantId,
+  });
+
+  const modelsQuery = useQuery({
+    queryKey: ["allowed-models", tenantId],
+    queryFn: () => modelsApi.listAllowed(tenantId!),
+    enabled: !!tenantId,
+  });
+
+  const [name, setName] = useState("");
+  const [modelId, setModelId] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [status, setStatus] = useState<Assistant["status"]>("rascunho");
+  const [retentionDays, setRetentionDays] = useState<string>("90");
+
+  useEffect(() => {
+    if (!assistantQuery.data) return;
+    setName(assistantQuery.data.name);
+    setModelId(assistantQuery.data.model_id);
+    setInstructions(assistantQuery.data.instructions ?? "");
+    setStatus(assistantQuery.data.status);
+    setRetentionDays(String(assistantQuery.data.retention_days ?? 90));
+  }, [assistantQuery.data]);
+
+  const updateAssistant = useMutation({
+    mutationFn: () =>
+      assistantsApi.update(tenantId!, assistantId, {
+        name,
+        modelId,
+        instructions: instructions || null,
+        status,
+        retentionDays: retentionDays === "0" ? null : Number(retentionDays),
+      }),
+    onSuccess: (updated) => {
+      toast.success("Configuração salva");
+      queryClient.setQueryData(["assistant", tenantId, assistantId], updated);
+      queryClient.invalidateQueries({ queryKey: ["assistants", tenantId] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar o assistente");
+    },
+  });
+
+  if (assistantQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  }
+
+  if (assistantQuery.isError) {
+    return <p className="text-sm text-destructive">Assistente não encontrado.</p>;
+  }
+
+  const assistant = assistantQuery.data;
+  if (!assistant) return null;
 
   return (
     <>
@@ -54,17 +106,15 @@ function AssistantDetail() {
       </Button>
       <PageHeader
         title={assistant.name}
-        description={`Modelo ${assistant.model} · atualizado em ${assistant.updatedAt}`}
+        description={`Modelo ${assistant.model_id} · atualizado em ${new Date(assistant.updated_at).toLocaleDateString("pt-BR")}`}
         actions={
           <>
             <StatusBadge status={assistant.status} className="h-9 px-3 text-sm" />
-            <Button asChild variant="outline">
-              <Link to="/playground" search={{ assistente: assistant.id }}>
-                Testar no playground
-              </Link>
-            </Button>
-            <Button disabled={readOnly} onClick={() => toast.success("Configuração salva (simulado)")}>
-              <Save /> Salvar
+            <Button
+              disabled={readOnly || updateAssistant.isPending || !name || !modelId}
+              onClick={() => updateAssistant.mutate()}
+            >
+              <Save /> {updateAssistant.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </>
         }
@@ -78,32 +128,35 @@ function AssistantDetail() {
             <CardDescription>Como o assistente se apresenta ao visitante.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="size-14">
-                <AvatarFallback className="bg-primary/12 text-primary">
-                  {assistant.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <Button variant="outline" size="sm" disabled={readOnly}>
-                Enviar avatar
-              </Button>
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="a-name">Nome</Label>
-              <Input id="a-name" defaultValue={assistant.name} disabled={readOnly} />
+              <Input id="a-name" value={name} disabled={readOnly} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="a-model">Modelo</Label>
-              <Select defaultValue={assistant.model} disabled={readOnly}>
+              <Select value={modelId} onValueChange={setModelId} disabled={readOnly}>
                 <SelectTrigger id="a-model">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedModels.map((m) => (
+                  {modelsQuery.data?.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.label} · {m.note}
+                      {m.label} {m.note ? `· ${m.note}` : ""}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="a-status">Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as Assistant["status"])} disabled={readOnly}>
+                <SelectTrigger id="a-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rascunho">Rascunho</SelectItem>
+                  <SelectItem value="publicado">Publicado</SelectItem>
+                  <SelectItem value="pausado">Pausado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -113,6 +166,8 @@ function AssistantDetail() {
                 id="a-instr"
                 rows={5}
                 disabled={readOnly}
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
                 placeholder="Tom de voz, escopo de atendimento, o que evitar…"
               />
             </div>
@@ -121,177 +176,27 @@ function AssistantDetail() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Conhecimento e modo de resposta</CardTitle>
-            <CardDescription>Coleções consultadas para fundamentar as respostas.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-3">
-              {knowledgeTopics.map((t) => (
-                <label key={t.id} className="flex items-start gap-3 rounded-md border p-3">
-                  <Checkbox
-                    checked={collections.includes(t.name)}
-                    disabled={readOnly}
-                    onCheckedChange={(v) =>
-                      setCollections((c) => (v ? [...c, t.name] : c.filter((x) => x !== t.name)))
-                    }
-                  />
-                  <span className="text-sm">
-                    <span className="font-medium">{t.name}</span>
-                    <span className="block text-xs text-muted-foreground">{t.description}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            <Separator />
-            <div className="flex items-start justify-between gap-4 rounded-md border border-dashed p-3">
-              <div>
-                <p className="text-sm font-medium">Permitir conhecimento geral</p>
-                <p className="text-xs text-muted-foreground">
-                  Hoje o assistente responde em modo estrito (apenas a base).
-                </p>
-                <Badge variant="outline" className="mt-2">
-                  Disponível em fase futura
-                </Badge>
-              </div>
-              <Switch disabled aria-label="Permitir conhecimento geral" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Privacidade e retenção</CardTitle>
-            <CardDescription>Dados do visitante e histórico de conversas.</CardDescription>
+            <CardTitle className="text-base">Retenção</CardTitle>
+            <CardDescription>Por quanto tempo o histórico de conversas deste assistente fica guardado.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="a-priv">Privacidade do visitante</Label>
-              <Select defaultValue="anonimo" disabled={readOnly}>
-                <SelectTrigger id="a-priv">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="anonimo">Anônimo (sem identificação)</SelectItem>
-                  <SelectItem value="pseudonimo">Pseudônimo por sessão</SelectItem>
-                  <SelectItem value="identificado">Identificado pelo site hospedeiro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="a-ret">Retenção de histórico</Label>
-              <Select defaultValue="90" disabled={readOnly}>
+              <Select value={retentionDays} onValueChange={setRetentionDays} disabled={readOnly}>
                 <SelectTrigger id="a-ret">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Não reter</SelectItem>
-                  <SelectItem value="30">30 dias</SelectItem>
-                  <SelectItem value="90">90 dias</SelectItem>
-                  <SelectItem value="365">12 meses</SelectItem>
+                  {retentionOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Encaminhamento para WhatsApp</p>
-                <p className="text-xs text-muted-foreground">Oferece atendimento humano quando não há resposta.</p>
-              </div>
-              <Switch defaultChecked disabled={readOnly} aria-label="Encaminhamento WhatsApp" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="a-wpp">Número de destino</Label>
-              <Input id="a-wpp" defaultValue="+55 11 4000-0000" disabled={readOnly} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="a-wpp-msg">Mensagem inicial</Label>
-              <Input
-                id="a-wpp-msg"
-                defaultValue="Olá! Vim do atendimento digital e preciso de ajuda."
-                disabled={readOnly}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Aparência do widget</CardTitle>
-            <CardDescription>Como o assistente aparece no site externo.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="w-color">Cor de destaque</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="w-color"
-                    type="color"
-                    className="h-9 w-14 p-1"
-                    value={widgetColor}
-                    disabled={readOnly}
-                    onChange={(e) => setWidgetColor(e.target.value)}
-                  />
-                  <Input value={widgetColor} readOnly className="font-mono" />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="w-theme">Tema</Label>
-                <Select defaultValue="sincronizado" disabled={readOnly}>
-                  <SelectTrigger id="w-theme">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="claro">Claro</SelectItem>
-                    <SelectItem value="escuro">Escuro</SelectItem>
-                    <SelectItem value="sincronizado">Sincronizado com o site</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="w-pos">Posição</Label>
-                <Select defaultValue="direita" disabled={readOnly}>
-                  <SelectTrigger id="w-pos">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="direita">Inferior direita</SelectItem>
-                    <SelectItem value="esquerda">Inferior esquerda</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="w-mode">Modo</Label>
-                <Select value={mode} onValueChange={setMode} disabled={readOnly}>
-                  <SelectTrigger id="w-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="floating">Flutuante</SelectItem>
-                    <SelectItem value="inline">Embutido</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="w-logo">Logo</Label>
-              <Input id="w-logo" type="file" disabled={readOnly} />
-            </div>
-            <div className="rounded-lg border bg-muted/40 p-4">
-              <p className="mb-3 text-xs font-medium text-muted-foreground">Pré-visualização</p>
-              <div className="flex justify-end">
-                <div className="w-56 overflow-hidden rounded-lg border bg-card shadow-panel">
-                  <div className="px-3 py-2 text-xs font-medium" style={{ background: widgetColor, color: "#fff" }}>
-                    {assistant.name}
-                  </div>
-                  <div className="space-y-2 p-3 text-xs">
-                    <p className="w-fit rounded-md bg-muted px-2 py-1">Como posso ajudar?</p>
-                    <p className="ml-auto w-fit rounded-md px-2 py-1 text-white" style={{ background: widgetColor }}>
-                      Qual a tarifa?
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Sem um valor aqui, vale a retenção da organização (e, na falta dela, 90 dias).
+              </p>
             </div>
           </CardContent>
         </Card>

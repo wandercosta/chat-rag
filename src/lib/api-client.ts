@@ -117,10 +117,25 @@ export interface CreateAssistantInput {
   instructions?: string | null;
 }
 
+export interface UpdateAssistantInput {
+  name?: string;
+  status?: Assistant["status"];
+  modelId?: string;
+  instructions?: string | null;
+  retentionDays?: number | null;
+}
+
 export const assistantsApi = {
   list: (organizationId: string) => get<Assistant[]>(`/organizations/${organizationId}/assistants`),
+  get: (organizationId: string, assistantId: string) =>
+    get<Assistant>(`/organizations/${organizationId}/assistants/${assistantId}`),
   create: (organizationId: string, input: CreateAssistantInput) =>
     post<Assistant>(`/organizations/${organizationId}/assistants`, input),
+  update: (organizationId: string, assistantId: string, input: UpdateAssistantInput) =>
+    apiFetch<Assistant>(`/organizations/${organizationId}/assistants/${assistantId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
 };
 
 export interface AllowedModel {
