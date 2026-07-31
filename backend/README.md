@@ -86,6 +86,21 @@ A pagina ja abre com o assistente do seed (chave gravada automaticamente).
 Repita so o `seed:demo` (sem rebuildar o widget) para trocar de assistente —
 ele atualiza a chave no HTML a cada execucao.
 
+## Diagnostico do RAG
+
+Se o assistente responder "nao encontrei essa informacao" para uma pergunta cuja
+resposta esta na base, meca a distancia antes de mexer em qualquer coisa:
+
+```bash
+npx tsx scripts/debug-retrieval.ts <organizationId> "a pergunta que falhou" "uma pergunta fora do escopo"
+```
+
+Mostra a distancia cosine dos chunks mais proximos e se cada um passa no limiar
+atual. Se a pergunta legitima estiver perto do limiar e a irrelevante bem acima,
+o limiar precisa subir (ver `docs/backend/especificacao-backend.md` - Politica de
+resposta). Antes disso, confira o escopo: um assistente vinculado a colecoes so
+enxerga os topicos delas (ADR-003).
+
 ## Testes
 
 ```bash

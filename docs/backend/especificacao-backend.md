@@ -32,6 +32,10 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 O backend busca apenas chunks acessiveis ao assistente e organizacao. Se a relevancia nao atingir o limiar configurado, nao deve usar conhecimento geral quando o modo estrito estiver ativo: registra lacuna e oferece encaminhamento.
 
+O limiar e distancia cosine do pgvector (`RELEVANCE_DISTANCE_THRESHOLD` em `rag/retrieval.service.ts`), hoje `0.65` e global. Foi calibrado com medicao numa base real (`backend/scripts/debug-retrieval.ts`) e nao por estimativa: com `text-embedding-3-small`, perguntas legitimas sobre o conteudo indexado ficaram entre 0.42 e 0.56, e perguntas fora do escopo entre 0.70 e 0.83. O valor anterior (`0.45`) recusava pergunta cuja resposta estava literalmente na base. Ao trocar de modelo de embedding, o limiar precisa ser remedido — a escala de distancia muda com o modelo. Torna-lo configuravel por assistente continua sendo trabalho futuro.
+
+O limiar e o primeiro filtro, nao a unica protecao: o prompt do modo estrito instrui o modelo a dizer que nao encontrou quando o contexto recuperado nao contem a resposta.
+
 ## Provedor de IA
 
 Uma interface interna deve separar chat, embeddings e moderacao do fornecedor. OpenAI e a implementacao inicial. Cada tenant configura sua propria chave (BYOK), usada para chat, embeddings e moderacao daquele tenant; ela permanece apenas no servidor, criptografada em repouso e nunca e devolvida pela API. O sistema armazena somente metadados seguros de diagnostico, como provedor, estado, data de atualizacao e sufixo mascarado.
