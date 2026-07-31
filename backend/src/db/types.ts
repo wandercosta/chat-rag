@@ -184,6 +184,8 @@ export interface KnowledgeGapsTable {
   organization_id: string;
   assistant_id: string;
   question_normalized: string;
+  original_question: string | null;
+  context_snippet: string | null;
   frequency: Generated<number>;
   status: GapStatus;
   last_seen_at: ColumnType<Date, string | undefined, string>;

@@ -15,7 +15,7 @@ Todas as tabelas de dominio multi-tenant devem ter `organization_id` e consultas
 | knowledge_collections, topics, sources, source_chunks | Base e vetores |
 | embed_keys, allowed_domains | Integracao por ambiente e origem permitida |
 | visitors, conversations, messages | Identidade e historico de chat |
-| feedbacks, knowledge_gaps | Qualidade e melhoria da base |
+| feedbacks, knowledge_gaps | Qualidade e melhoria da base; a lacuna guarda a chave de agrupamento, a pergunta original e um trecho da conversa (ver `workflows/rag-e-conhecimento.md` - Lacunas) |
 | handoff_configs | Encaminhamento para WhatsApp por organizacao/assistente/setor |
 | audit_events, usage_events | Seguranca, rastreabilidade e metricas |
 | support_access_sessions | Acesso temporario do Master a tenant, com justificativa e expiracao |

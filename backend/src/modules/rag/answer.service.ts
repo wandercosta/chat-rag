@@ -78,6 +78,19 @@ function buildRetrievalQuery(question: string, history: ChatMessage[]): string {
   return lastUserQuestion ? `${lastUserQuestion} ${question}` : question;
 }
 
+/**
+ * Transcricao curta dos turnos anteriores, guardada junto da lacuna. Sem ela,
+ * "quantos filhos ele tem?" chega solto na tela de lacunas e quem for
+ * responder nao tem como saber de quem se falava.
+ */
+function buildContextSnippet(history: ChatMessage[]): string | null {
+  if (history.length === 0) return null;
+  return history
+    .slice(-4)
+    .map((m) => `${m.role === "user" ? "Visitante" : "Assistente"}: ${m.content}`)
+    .join("\n");
+}
+
 /** Nome/email/contexto que o sistema hospedeiro passou ao abrir o widget
  * (docs/integrations/widget-embed.md - Contexto do visitante). */
 async function loadVisitorContext(organizationId: string, conversationId?: string): Promise<string | null> {
@@ -126,16 +139,18 @@ export const answerService = {
       return { conversationId, answer: reply, usedContext: false };
     }
 
-    // A lacuna guarda a forma expandida: "e o salario dele?" sozinho nao diz
-    // nada a quem for melhorar a base depois.
     const retrievalQuery = buildRetrievalQuery(question, history);
+    const contextSnippet = buildContextSnippet(history);
 
     const recordNoAnswer = async (reason: "sem_recuperacao" | "modelo_nao_respondeu") => {
       // So oferece atendente se houver WhatsApp configurado para este assistente.
       const sectors = await handoffService.list(assistantId);
       const answer = noContextReply(sectors.length > 0);
 
-      await gapsService.recordOccurrence(organizationId, assistantId, retrievalQuery);
+      await gapsService.recordOccurrence(organizationId, assistantId, retrievalQuery, {
+        originalQuestion: question,
+        contextSnippet,
+      });
       await conversationsService.addAssistantMessage(conversationId, answer);
       await usageService.record({
         organizationId,

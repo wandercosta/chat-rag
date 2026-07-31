@@ -479,7 +479,12 @@ export interface KnowledgeGap {
   id: string;
   organization_id: string;
   assistant_id: string;
+  /** Chave de agrupamento; numa pergunta de continuidade carrega a anterior. */
   question_normalized: string;
+  /** O que o visitante digitou, quando disponivel. */
+  original_question: string | null;
+  /** Turnos anteriores, para responder sem abrir a conversa. */
+  context_snippet: string | null;
   frequency: number;
   status: "pendente" | "resolvida";
   last_seen_at: string;

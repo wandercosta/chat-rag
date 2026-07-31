@@ -92,7 +92,16 @@ function GapsPage() {
             <TableBody>
               {gapsQuery.data.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell className="max-w-md font-medium">{g.question_normalized}</TableCell>
+                  <TableCell className="max-w-md">
+                    {/* A pergunta literal e o que o visitante digitou; a chave
+                        de agrupamento so aparece se nao houver original. */}
+                    <p className="font-medium">{g.original_question ?? g.question_normalized}</p>
+                    {g.context_snippet && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        Contexto: {g.context_snippet.replace(/\n/g, " · ")}
+                      </p>
+                    )}
+                  </TableCell>
                   <TableCell className="tabular-nums">{g.frequency}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {assistantNames.get(g.assistant_id) ?? g.assistant_id}
@@ -198,7 +207,15 @@ function AnswerGapDialog({
           <div className="space-y-4">
             <div>
               <Label className="text-muted-foreground">Pergunta</Label>
-              <p className="mt-1 text-sm font-medium">{gap.question_normalized}</p>
+              <p className="mt-1 text-sm font-medium">{gap.original_question ?? gap.question_normalized}</p>
+              {gap.context_snippet && (
+                <div className="mt-2 rounded-md border bg-muted/40 p-3">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Contexto da conversa</p>
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-muted-foreground">
+                    {gap.context_snippet}
+                  </pre>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -12,10 +12,28 @@ export const gapsService = {
     return gapsRepository.listForOrganization(organizationId);
   },
 
-  /** Chamado pelo modulo rag quando a relevancia recuperada fica abaixo do
-   * limiar configurado (docs/workflows/rag-e-conhecimento.md - Lacunas). */
-  recordOccurrence(organizationId: string, assistantId: string, question: string) {
-    return gapsRepository.upsertOccurrence(organizationId, assistantId, normalizeQuestion(question));
+  /**
+   * Chamado pelo modulo rag quando a relevancia recuperada fica abaixo do
+   * limiar configurado (docs/workflows/rag-e-conhecimento.md - Lacunas).
+   *
+   * `groupingQuestion` e a chave de agrupamento — numa pergunta de
+   * continuidade ela carrega a anterior junto, senao "e o CPF?" de conversas
+   * sem relacao nenhuma cairia tudo na mesma lacuna. `originalQuestion` e
+   * `contextSnippet` existem para a tela: quem responde precisa ver o que a
+   * pessoa realmente digitou e sobre o que se falava.
+   */
+  recordOccurrence(
+    organizationId: string,
+    assistantId: string,
+    groupingQuestion: string,
+    details: { originalQuestion?: string; contextSnippet?: string | null } = {},
+  ) {
+    return gapsRepository.upsertOccurrence(
+      organizationId,
+      assistantId,
+      normalizeQuestion(groupingQuestion),
+      details,
+    );
   },
 
   resolve(organizationId: string, id: string) {
