@@ -17,10 +17,11 @@ const GREETING = /^(oi+|ola+|opa|eae?|e ai|hey|hi|hello|bom dia|boa tarde|boa no
 const THANKS = /^(obrigad[oa]|valeu|vlw|agradecid[oa]|muito obrigad[oa]|thanks|obg)$/;
 const FAREWELL = /^(tchau|ate mais|ate logo|adeus|falou|ate breve|bye)$/;
 
+/** Texto lido pelo visitante — acentuado, ao contrario dos comentarios. */
 const REPLIES: Record<SmalltalkKind, string> = {
-  saudacao: "Ola! Como posso ajudar?",
-  agradecimento: "Por nada! Se precisar de mais alguma coisa, e so perguntar.",
-  despedida: "Ate logo! Qualquer duvida, estou por aqui.",
+  saudacao: "Olá! Como posso ajudar?",
+  agradecimento: "Por nada! Se precisar de mais alguma coisa, é só perguntar.",
+  despedida: "Até logo! Qualquer dúvida, estou por aqui.",
 };
 
 /** Remove acentos e pontuacao para "Olá!" e "ola" caírem na mesma regra. */

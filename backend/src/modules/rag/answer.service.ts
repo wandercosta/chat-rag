@@ -1,4 +1,4 @@
-import { assistantsService } from "../assistants/index.js";
+import { assistantsService, handoffService } from "../assistants/index.js";
 import { conversationsService, gapsService, visitorsService } from "../conversations/index.js";
 import { usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
@@ -8,8 +8,18 @@ import type { ChatMessage } from "./provider.types.js";
 
 export class AssistantNotFoundError extends Error {}
 
-const NO_CONTEXT_REPLY =
-  "Nao encontrei essa informacao na base de conhecimento configurada. Posso encaminhar para um atendente.";
+/**
+ * Texto que o visitante le, nao diagnostico interno. A versao anterior
+ * ("Nao encontrei essa informacao na base de conhecimento configurada")
+ * expunha jargao do produto a quem so quer uma resposta, e oferecia atendente
+ * mesmo quando o assistente nao tinha nenhum WhatsApp configurado — promessa
+ * que o widget nao tinha como cumprir.
+ */
+function noContextReply(hasHandoff: boolean): string {
+  return hasHandoff
+    ? "Não consigo responder isso agora. Se preferir, fale com um atendente pelo WhatsApp no botão abaixo."
+    : "Não consigo responder isso agora. Tente perguntar de outro jeito ou com mais detalhes.";
+}
 
 /**
  * Sentinela que o modelo devolve quando o contexto recuperado nao responde a
@@ -121,15 +131,19 @@ export const answerService = {
     const retrievalQuery = buildRetrievalQuery(question, history);
 
     const recordNoAnswer = async (reason: "sem_recuperacao" | "modelo_nao_respondeu") => {
+      // So oferece atendente se houver WhatsApp configurado para este assistente.
+      const sectors = await handoffService.list(assistantId);
+      const answer = noContextReply(sectors.length > 0);
+
       await gapsService.recordOccurrence(organizationId, assistantId, retrievalQuery);
-      await conversationsService.addAssistantMessage(conversationId, NO_CONTEXT_REPLY);
+      await conversationsService.addAssistantMessage(conversationId, answer);
       await usageService.record({
         organizationId,
         assistantId,
         type: "no_context",
         payload: { latencyMs: Date.now() - startedAt, reason },
       });
-      return { conversationId, answer: NO_CONTEXT_REPLY, usedContext: false };
+      return { conversationId, answer, usedContext: false };
     };
 
     const retrieval = await retrievalService.retrieve(organizationId, assistantId, retrievalQuery, environment);
