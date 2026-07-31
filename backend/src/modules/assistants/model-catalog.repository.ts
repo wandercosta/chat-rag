@@ -26,7 +26,24 @@ export const modelCatalogRepository = {
     return db.updateTable("ai_model_catalog").set({ enabled }).where("id", "=", id).execute();
   },
 
-  listAllowedForTenant(organizationId: string) {
+  /** Uma linha em `tenant_allowed_models` significa restricao explicita do
+   * Master. Sem nenhuma, valem os modelos ativos do catalogo (ADR-004) — senao
+   * um tenant recem-criado nasceria sem poder criar assistente nenhum. */
+  async hasExplicitAllowList(organizationId: string): Promise<boolean> {
+    const row = await db
+      .selectFrom("tenant_allowed_models")
+      .select("model_id")
+      .where("organization_id", "=", organizationId)
+      .executeTakeFirst();
+    return Boolean(row);
+  },
+
+  async listAllowedForTenant(organizationId: string) {
+    if (!(await this.hasExplicitAllowList(organizationId))) {
+      const enabled = await this.listEnabled();
+      return enabled.map((m) => ({ id: m.id, label: m.label, note: m.note }));
+    }
+
     return db
       .selectFrom("tenant_allowed_models as tam")
       .innerJoin("ai_model_catalog as c", "c.id", "tam.model_id")
@@ -46,6 +63,13 @@ export const modelCatalogRepository = {
   },
 
   async isAllowedForTenant(organizationId: string, modelId: string): Promise<boolean> {
+    // Sem lista explicita, o limite e o catalogo ativo — nao "nada liberado"
+    // (ADR-004). Um modelo desativado no catalogo nunca passa, nos dois casos.
+    if (!(await this.hasExplicitAllowList(organizationId))) {
+      const model = await this.findById(modelId);
+      return Boolean(model?.enabled);
+    }
+
     const row = await db
       .selectFrom("tenant_allowed_models")
       .select("model_id")

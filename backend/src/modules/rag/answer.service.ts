@@ -2,6 +2,7 @@ import { assistantsService } from "../assistants/index.js";
 import { conversationsService, gapsService, visitorsService } from "../conversations/index.js";
 import { usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
+import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
 import { resolveProviderForTenant } from "./provider-resolver.js";
 import type { ChatMessage } from "./provider.types.js";
 
@@ -30,6 +31,41 @@ function buildSystemPrompt(instructions: string | null, context: string[], visit
     ? `${withInstructions}\n\nDados do atendimento atual (use so para personalizar o tom, nunca como fonte de fatos da base): ${visitorContext}`
     : withInstructions;
   return `${withVisitor}\n\nCONTEXTO:\n${context.join("\n---\n")}`;
+}
+
+/** Quantas mensagens anteriores acompanham a pergunta. Suficiente para
+ * resolver referencia do tipo "e o dele?" sem inflar o prompt. */
+const HISTORY_MESSAGES = 6;
+
+/**
+ * Sem historico, cada mensagem era tratada isoladamente e "e o CPF?" nao tinha
+ * como saber de quem — o visitante recebia "nao encontrei na base" mesmo com o
+ * dado indexado, e a pergunta ainda virava lacuna falsa.
+ */
+async function loadRecentHistory(organizationId: string, conversationId?: string): Promise<ChatMessage[]> {
+  if (!conversationId) return [];
+  const conversation = await conversationsService.getWithMessages(organizationId, conversationId);
+  if (!conversation) return [];
+
+  return conversation.messages.slice(-HISTORY_MESSAGES).map((m) => ({
+    role: m.role === "visitante" ? ("user" as const) : ("assistant" as const),
+    content: m.content,
+  }));
+}
+
+/**
+ * A recuperacao vetorial nao ve o historico: "e o CPF?" sozinho nao se parece
+ * com a ficha cadastral. Pergunta curta de continuidade herda a ultima pergunta
+ * do visitante, tanto para a busca vetorial quanto para o registro da lacuna.
+ * A pergunta enviada ao modelo continua sendo a original — quem resolve o
+ * "dele" ali e o historico, nao a query expandida.
+ */
+function buildRetrievalQuery(question: string, history: ChatMessage[]): string {
+  const words = question.trim().split(/\s+/).length;
+  if (words > 6) return question;
+
+  const lastUserQuestion = [...history].reverse().find((m) => m.role === "user")?.content;
+  return lastUserQuestion ? `${lastUserQuestion} ${question}` : question;
 }
 
 /** Nome/email/contexto que o sistema hospedeiro passou ao abrir o widget
@@ -66,10 +102,26 @@ export const answerService = {
     const conversationId =
       options.conversationId ?? (await conversationsService.start(organizationId, assistantId, "playground")).id;
 
+    // Lido antes de gravar a pergunta atual, senao ela viraria "historico" dela mesma.
+    const history = await loadRecentHistory(organizationId, options.conversationId);
+
     await conversationsService.addVisitorMessage(conversationId, question);
 
+    // Cortesia nao passa pela base: responder "nao encontrei na base" a um
+    // "oi" faz o produto parecer quebrado e suja a lista de lacunas.
+    const smalltalk = detectSmalltalk(question);
+    if (smalltalk) {
+      const reply = smalltalkReply(smalltalk);
+      await conversationsService.addAssistantMessage(conversationId, reply);
+      return { conversationId, answer: reply, usedContext: false };
+    }
+
+    // A lacuna guarda a forma expandida: "e o salario dele?" sozinho nao diz
+    // nada a quem for melhorar a base depois.
+    const retrievalQuery = buildRetrievalQuery(question, history);
+
     const recordNoAnswer = async (reason: "sem_recuperacao" | "modelo_nao_respondeu") => {
-      await gapsService.recordOccurrence(organizationId, assistantId, question);
+      await gapsService.recordOccurrence(organizationId, assistantId, retrievalQuery);
       await conversationsService.addAssistantMessage(conversationId, NO_CONTEXT_REPLY);
       await usageService.record({
         organizationId,
@@ -80,7 +132,7 @@ export const answerService = {
       return { conversationId, answer: NO_CONTEXT_REPLY, usedContext: false };
     };
 
-    const retrieval = await retrievalService.retrieve(organizationId, assistantId, question, environment);
+    const retrieval = await retrievalService.retrieve(organizationId, assistantId, retrievalQuery, environment);
 
     if (!retrieval.sufficientContext) return recordNoAnswer("sem_recuperacao");
 
@@ -91,6 +143,7 @@ export const answerService = {
         role: "system",
         content: buildSystemPrompt(assistant.instructions, retrieval.chunks.map((c) => c.content), visitorContext),
       },
+      ...history,
       { role: "user", content: question },
     ];
 

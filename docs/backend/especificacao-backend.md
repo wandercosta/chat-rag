@@ -30,6 +30,10 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 ## Politica de resposta
 
+Saudacao e cortesia ("oi", "bom dia", "obrigado") nao passam pela base: recebem resposta cordial e **nao** geram lacuna. Antes, um "oi" respondia "nao encontrei essa informacao na base" — como se o produto estivesse quebrado — e entrava na lista de lacunas do tenant, que deveria mostrar o que falta na base. A deteccao (`rag/smalltalk.ts`) e conservadora de proposito: so trata como cortesia a mensagem que e *inteiramente* cortesia; "oi, qual o horario?" segue o fluxo normal.
+
+As ultimas mensagens da conversa acompanham a pergunta enviada ao modelo, e uma pergunta curta de continuidade herda a anterior para efeito de busca vetorial e de registro de lacuna. Sem isso, "e o CPF?" nao tinha como saber de quem: o visitante recebia "nao encontrei na base" com o dado indexado, e a lacuna registrada ("e o salario dele?") era inutil para quem fosse melhorar a base depois.
+
 O backend busca apenas chunks acessiveis ao assistente e organizacao. Se a relevancia nao atingir o limiar configurado, nao deve usar conhecimento geral quando o modo estrito estiver ativo: registra lacuna e oferece encaminhamento.
 
 O limiar e distancia cosine do pgvector (`RELEVANCE_DISTANCE_THRESHOLD` em `rag/retrieval.service.ts`), hoje `0.65` e global. Foi calibrado com medicao numa base real (`backend/scripts/debug-retrieval.ts`) e nao por estimativa: com `text-embedding-3-small`, perguntas legitimas sobre o conteudo indexado ficaram entre 0.42 e 0.56, e perguntas fora do escopo entre 0.70 e 0.83. O valor anterior (`0.45`) recusava pergunta cuja resposta estava literalmente na base. Ao trocar de modelo de embedding, o limiar precisa ser remedido — a escala de distancia muda com o modelo. Torna-lo configuravel por assistente continua sendo trabalho futuro.
@@ -42,4 +46,4 @@ Uma interface interna deve separar chat, embeddings e moderacao do fornecedor. O
 
 Uma validacao controlada deve testar a chave antes de ativa-la. O tenant pode configurar uma chave para teste e outra para producao, ou optar explicitamente por reutilizar a mesma credencial nos dois ambientes. A substituicao e a remocao invalidam o uso posterior e geram evento de auditoria. O Master pode verificar o estado e remover uma chave em suporte, mas nunca visualizar seu valor.
 
-O Master gerencia uma lista curta de modelos OpenAI aprovados. O tenant escolhe o modelo de cada assistente somente dentro de sua lista permitida; nao ha campo livre para nome de modelo no MVP.
+O Master gerencia uma lista curta de modelos OpenAI aprovados. O tenant escolhe o modelo de cada assistente somente dentro de sua lista permitida; nao ha campo livre para nome de modelo no MVP. Sem lista explicita em `tenant_allowed_models`, valem todos os modelos ativos do catalogo (ADR-004) — um modelo desativado no catalogo nunca e permitido, com ou sem lista.

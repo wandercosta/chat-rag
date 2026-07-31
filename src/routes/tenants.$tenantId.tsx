@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError, masterApi, type SupportSession } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
@@ -142,6 +143,7 @@ function TenantDetail() {
       )}
 
       <TenantCredentialsCard tenantId={tenantId} hasActiveSupport={!!active} />
+      <TenantModelsCard tenantId={tenantId} />
 
       <Card className="overflow-hidden p-0">
         <CardHeader>
@@ -233,6 +235,78 @@ function TenantCredentialsCard({ tenantId, hasActiveSupport }: { tenantId: strin
             ))}
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Modelos que este tenant pode usar. Nenhum marcado = sem restricao: valem os
+ * modelos ativos do catalogo (ADR-004). Sem isso, um tenant novo nao conseguia
+ * criar assistente algum e nao havia tela para liberar.
+ */
+function TenantModelsCard({ tenantId }: { tenantId: string }) {
+  const queryClient = useQueryClient();
+
+  const catalogQuery = useQuery({ queryKey: ["model-catalog"], queryFn: () => masterApi.listModelCatalog() });
+  const allowedQuery = useQuery({
+    queryKey: ["tenant-models", tenantId],
+    queryFn: () => masterApi.listTenantModels(tenantId),
+  });
+
+  const save = useMutation({
+    mutationFn: (modelIds: string[]) => masterApi.setTenantModels(tenantId, modelIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenant-models", tenantId] });
+      toast.success("Modelos do tenant atualizados");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar os modelos"),
+  });
+
+  const catalog = (catalogQuery.data ?? []).filter((m) => m.enabled);
+  const allowedIds = new Set((allowedQuery.data ?? []).map((m) => m.id));
+  // Lista igual ao catalogo inteiro = provavelmente o padrao, nao uma escolha.
+  const unrestricted = allowedIds.size === catalog.length;
+
+  const toggle = (id: string, checked: boolean) => {
+    const next = new Set(allowedIds);
+    if (checked) next.add(id);
+    else next.delete(id);
+    // Desmarcar tudo volta ao padrao da plataforma em vez de travar o tenant.
+    save.mutate(next.size === catalog.length ? [] : [...next]);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Modelos liberados</CardTitle>
+        <CardDescription>
+          O tenant só escolhe modelos desta lista ao criar assistentes. Sem restrição, valem todos os modelos
+          ativos do catálogo.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {unrestricted && (
+          <Badge variant="outline" className="border-success/30 text-success">
+            Sem restrição — todos os modelos ativos
+          </Badge>
+        )}
+        {catalogQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+        <div className="space-y-2">
+          {catalog.map((m) => (
+            <label key={m.id} className="flex items-center gap-3 rounded-md border p-3">
+              <Checkbox
+                checked={allowedIds.has(m.id)}
+                disabled={save.isPending}
+                onCheckedChange={(v) => toggle(m.id, v === true)}
+              />
+              <span className="text-sm">
+                <span className="font-mono text-xs font-medium">{m.label}</span>
+                {m.note && <span className="block text-xs text-muted-foreground">{m.note}</span>}
+              </span>
+            </label>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

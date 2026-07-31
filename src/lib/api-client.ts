@@ -123,7 +123,24 @@ export const masterApi = {
    * suporte ativa e nunca devolve o valor da chave. */
   getTenantCredentials: (organizationId: string) =>
     get<CredentialStatus[]>(`/master/tenants/${organizationId}/ai-credentials`),
+  listModelCatalog: () => get<CatalogModel[]>("/master/model-catalog"),
+  listTenantModels: (organizationId: string) =>
+    get<AllowedModel[]>(`/master/tenants/${organizationId}/allowed-models`),
+  /** Lista vazia volta a valer o padrao da plataforma (catalogo ativo, ADR-004),
+   * nao "nenhum modelo liberado". */
+  setTenantModels: (organizationId: string, modelIds: string[]) =>
+    apiFetch<{ ok: true }>(`/master/tenants/${organizationId}/allowed-models`, {
+      method: "PUT",
+      body: JSON.stringify({ modelIds }),
+    }),
 };
+
+export interface CatalogModel {
+  id: string;
+  label: string;
+  note: string | null;
+  enabled: boolean;
+}
 
 // --- assistants ------------------------------------------------------
 
