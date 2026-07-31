@@ -190,12 +190,50 @@ export interface Topic {
 export interface CreateTopicInput {
   name: string;
   description?: string | null;
+  collectionId?: string | null;
 }
 
 export const topicsApi = {
   list: (organizationId: string) => get<Topic[]>(`/organizations/${organizationId}/topics`),
   create: (organizationId: string, input: CreateTopicInput) =>
     post<Topic>(`/organizations/${organizationId}/topics`, input),
+  update: (organizationId: string, topicId: string, input: Partial<CreateTopicInput>) =>
+    apiFetch<Topic>(`/organizations/${organizationId}/topics/${topicId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+};
+
+// --- knowledge: colecoes ------------------------------------------------
+
+export interface Collection {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface CreateCollectionInput {
+  name: string;
+  description?: string | null;
+  requiresReview?: boolean;
+}
+
+export const collectionsApi = {
+  list: (organizationId: string) => get<Collection[]>(`/organizations/${organizationId}/collections`),
+  create: (organizationId: string, input: CreateCollectionInput) =>
+    post<Collection>(`/organizations/${organizationId}/collections`, input),
+  listForAssistant: (organizationId: string, assistantId: string) =>
+    get<Collection[]>(`/organizations/${organizationId}/assistants/${assistantId}/collections`),
+  link: (organizationId: string, assistantId: string, collectionId: string) =>
+    apiFetch<{ ok: true }>(
+      `/organizations/${organizationId}/assistants/${assistantId}/collections/${collectionId}`,
+      { method: "PUT" },
+    ),
+  unlink: (organizationId: string, assistantId: string, collectionId: string) =>
+    apiFetch<{ ok: true }>(
+      `/organizations/${organizationId}/assistants/${assistantId}/collections/${collectionId}`,
+      { method: "DELETE" },
+    ),
 };
 
 // --- knowledge: sources ------------------------------------------------
@@ -248,6 +286,37 @@ export const sourcesApi = {
    * IA válida passa a existir. */
   activatePending: (organizationId: string) =>
     post<{ activated: number }>(`/organizations/${organizationId}/sources/activate-pending`),
+};
+
+// --- identity: membros do tenant ------------------------------------------------
+
+export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+
+export interface Member {
+  id: string;
+  user_id: string;
+  email: string;
+  role: TenantRole;
+  created_at: string;
+}
+
+export interface CreateMemberInput {
+  email: string;
+  password: string;
+  role: TenantRole;
+}
+
+export const membersApi = {
+  list: (organizationId: string) => get<Member[]>(`/organizations/${organizationId}/members`),
+  create: (organizationId: string, input: CreateMemberInput) =>
+    post<Member>(`/organizations/${organizationId}/members`, input),
+  updateRole: (organizationId: string, membershipId: string, role: TenantRole) =>
+    apiFetch<Member>(`/organizations/${organizationId}/members/${membershipId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+  remove: (organizationId: string, membershipId: string) =>
+    apiFetch<{ ok: true }>(`/organizations/${organizationId}/members/${membershipId}`, { method: "DELETE" }),
 };
 
 // --- embed: widget keys ------------------------------------------------

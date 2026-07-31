@@ -10,5 +10,6 @@ export {
   requireMasterSupportSession,
 } from "./plugin.js";
 export { identityService } from "./service.js";
+export { membersRoutes } from "./members.routes.js";
 export { supportSessionsService } from "./support-sessions.service.js";
 export type { AuthContext } from "./types.js";

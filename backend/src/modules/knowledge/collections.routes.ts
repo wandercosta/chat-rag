@@ -37,6 +37,14 @@ export async function collectionsRoutes(app: FastifyInstance) {
     },
   );
 
+  app.get<{ Params: { organizationId: string; assistantId: string } }>(
+    "/organizations/:organizationId/assistants/:assistantId/collections",
+    { preHandler: requireOrgRole([...roles, "Analista"]) },
+    async (request) => {
+      return collectionsRepository.listForAssistant(request.params.assistantId);
+    },
+  );
+
   app.put<{ Params: { organizationId: string; assistantId: string; collectionId: string } }>(
     "/organizations/:organizationId/assistants/:assistantId/collections/:collectionId",
     { preHandler: requireOrgRole(roles) },

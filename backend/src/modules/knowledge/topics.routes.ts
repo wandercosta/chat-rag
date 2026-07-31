@@ -11,6 +11,12 @@ const createSchema = z.object({
   collectionId: z.string().uuid().nullable().optional(),
 });
 
+const updateSchema = z.object({
+  name: z.string().min(2).optional(),
+  description: z.string().nullable().optional(),
+  collectionId: z.string().uuid().nullable().optional(),
+});
+
 export async function topicsRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
 
@@ -34,6 +40,17 @@ export async function topicsRoutes(app: FastifyInstance) {
         body.collectionId ?? null,
       );
       return reply.code(201).send(topic);
+    },
+  );
+
+  app.patch<{ Params: { organizationId: string; topicId: string } }>(
+    "/organizations/:organizationId/topics/:topicId",
+    { preHandler: requireOrgRole(roles) },
+    async (request, reply) => {
+      const body = updateSchema.parse(request.body);
+      const topic = await topicsRepository.update(request.params.organizationId, request.params.topicId, body);
+      if (!topic) return reply.code(404).send({ error: "topico nao encontrado" });
+      return topic;
     },
   );
 }

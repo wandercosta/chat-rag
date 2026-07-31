@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Check, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -23,7 +23,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ApiError, sourcesApi, topicsApi, type Source, type Topic } from "@/lib/api-client";
+import {
+  ApiError,
+  collectionsApi,
+  sourcesApi,
+  topicsApi,
+  type Collection,
+  type Source,
+  type Topic,
+} from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/conhecimento")({
@@ -59,7 +67,14 @@ function KnowledgePage() {
     enabled: !!tenantId,
   });
 
+  const collectionsQuery = useQuery({
+    queryKey: ["collections", tenantId],
+    queryFn: () => collectionsApi.list(tenantId!),
+    enabled: !!tenantId,
+  });
+
   const topics = topicsQuery.data ?? [];
+  const collections = collectionsQuery.data ?? [];
 
   return (
     <>
@@ -69,7 +84,8 @@ function KnowledgePage() {
         actions={
           writable && (
             <div className="flex gap-2">
-              <NewTopicDialog tenantId={tenantId} />
+              <NewCollectionDialog tenantId={tenantId} />
+              <NewTopicDialog tenantId={tenantId} collections={collections} />
               <NewSourceDialog tenantId={tenantId} topics={topics} />
             </div>
           )
@@ -86,7 +102,13 @@ function KnowledgePage() {
 
       <Accordion type="multiple" defaultValue={topics.slice(0, 1).map((t) => t.id)} className="space-y-3">
         {topics.map((topic) => (
-          <TopicSection key={topic.id} topic={topic} tenantId={tenantId} writable={writable} />
+          <TopicSection
+            key={topic.id}
+            topic={topic}
+            tenantId={tenantId}
+            writable={writable}
+            collections={collections}
+          />
         ))}
       </Accordion>
 
@@ -107,10 +129,12 @@ function TopicSection({
   topic,
   tenantId,
   writable,
+  collections,
 }: {
   topic: Topic;
   tenantId: string | null;
   writable: boolean;
+  collections: Collection[];
 }) {
   const queryClient = useQueryClient();
 
@@ -119,6 +143,17 @@ function TopicSection({
     queryFn: () => sourcesApi.list(tenantId!, topic.id),
     enabled: !!tenantId,
   });
+
+  const moveToCollection = useMutation({
+    mutationFn: (collectionId: string | null) => topicsApi.update(tenantId!, topic.id, { collectionId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["topics", tenantId] });
+      toast.success("Coleção do tópico atualizada");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível mover o tópico"),
+  });
+
+  const collectionName = collections.find((c) => c.id === topic.collection_id)?.name;
 
   const action = useMutation({
     mutationFn: ({ sourceId, kind }: { sourceId: string; kind: "approve" | "reindex" | "archive" }) =>
@@ -145,10 +180,38 @@ function TopicSection({
           <p className="text-xs text-muted-foreground">
             {topic.description ? `${topic.description} · ` : ""}
             {sourcesQuery.isSuccess ? `${sources.length} fontes` : "…"}
+            {collectionName && ` · coleção ${collectionName}`}
           </p>
         </div>
       </AccordionTrigger>
       <AccordionContent>
+        {writable && collections.length > 0 && (
+          <div className="mb-3 flex items-center gap-3 rounded-md border border-dashed p-3">
+            <Label htmlFor={`col-${topic.id}`} className="text-xs text-muted-foreground">
+              Coleção
+            </Label>
+            <Select
+              value={topic.collection_id ?? "none"}
+              onValueChange={(v) => moveToCollection.mutate(v === "none" ? null : v)}
+              disabled={moveToCollection.isPending}
+            >
+              <SelectTrigger id={`col-${topic.id}`} className="w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem coleção</SelectItem>
+                {collections.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Só assistentes vinculados a esta coleção consultarão este tópico.
+            </p>
+          </div>
+        )}
         {sourcesQuery.isLoading && <p className="py-3 text-sm text-muted-foreground">Carregando fontes…</p>}
         {sourcesQuery.isSuccess && sources.length === 0 && (
           <p className="py-3 text-sm text-muted-foreground">Nenhuma fonte neste tópico ainda.</p>
@@ -218,14 +281,82 @@ function TopicSection({
   );
 }
 
-function NewTopicDialog({ tenantId }: { tenantId: string | null }) {
+function NewCollectionDialog({ tenantId }: { tenantId: string | null }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const create = useMutation({
-    mutationFn: () => topicsApi.create(tenantId!, { name, description: description || null }),
+    mutationFn: () => collectionsApi.create(tenantId!, { name, description: description || null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["collections", tenantId] });
+      setOpen(false);
+      setName("");
+      setDescription("");
+      toast.success("Coleção criada");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a coleção"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Plus /> Nova coleção
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nova coleção</DialogTitle>
+          <DialogDescription>
+            Coleções restringem o que cada assistente consulta. Um assistente sem nenhuma coleção vinculada
+            continua consultando toda a base.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            create.mutate();
+          }}
+        >
+          <div className="grid gap-2">
+            <Label htmlFor="c-name">Nome</Label>
+            <Input id="c-name" required minLength={2} value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="c-desc">Descrição (opcional)</Label>
+            <Input id="c-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={create.isPending || name.trim().length < 2}>
+              {create.isPending ? "Criando..." : "Criar coleção"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NewTopicDialog({ tenantId, collections }: { tenantId: string | null; collections: Collection[] }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [collectionId, setCollectionId] = useState("none");
+
+  const create = useMutation({
+    mutationFn: () =>
+      topicsApi.create(tenantId!, {
+        name,
+        description: description || null,
+        collectionId: collectionId === "none" ? null : collectionId,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topics", tenantId] });
       setOpen(false);
@@ -263,6 +394,24 @@ function NewTopicDialog({ tenantId }: { tenantId: string | null }) {
             <Label htmlFor="t-desc">Descrição (opcional)</Label>
             <Input id="t-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
+          {collections.length > 0 && (
+            <div className="grid gap-2">
+              <Label htmlFor="t-col">Coleção (opcional)</Label>
+              <Select value={collectionId} onValueChange={setCollectionId}>
+                <SelectTrigger id="t-col">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem coleção</SelectItem>
+                  {collections.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar

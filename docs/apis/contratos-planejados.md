@@ -44,13 +44,14 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET|POST|PATCH /organizations/:organizationId/assistants[/:assistantId]`
 - `GET|POST|PATCH /master/model-catalog[/:modelId]`, `GET|PUT /master/tenants/:organizationId/allowed-models`, `GET /organizations/:organizationId/allowed-models`
 - `GET|POST|DELETE /organizations/:organizationId/assistants/:assistantId/handoff-configs[/:configId]` (setores de WhatsApp)
-- `GET|POST /organizations/:organizationId/collections`, `PUT|DELETE .../assistants/:assistantId/collections/:collectionId`
-- `GET|POST /organizations/:organizationId/topics`
-- `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`
+- `GET|POST /organizations/:organizationId/collections`, `GET|PUT|DELETE .../assistants/:assistantId/collections[/:collectionId]` (escopo de conhecimento do assistente — ver ADR-003)
+- `GET|POST /organizations/:organizationId/topics`, `PATCH .../topics/:topicId` (inclusive mover o topico entre colecoes)
+- `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`, `POST .../sources/activate-pending` (destrava fontes presas em `aguardando_ativacao` apos uma chave de IA valida existir)
 - `POST /organizations/:organizationId/assistants/:assistantId/playground-messages`
 - `GET /organizations/:organizationId/conversations[/:conversationId]`, `POST .../feedback`
 - `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`, `POST .../gaps/:gapId/answer` (responder a lacuna cria uma fonte de texto no topico indicado — mesmo pipeline de qualquer outra fonte — e marca a lacuna como resolvida; papeis Administrador/Editor de base)
 - `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]`
+- `GET|POST /organizations/:organizationId/members`, `PATCH|DELETE .../members/:membershipId` (acessos do tenant; senha provisoria definida pelo administrador, sem cadastro publico; a organizacao nunca fica sem administrador)
 - `GET /organizations/:organizationId/audit`
 - `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)
 

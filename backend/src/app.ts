@@ -2,7 +2,7 @@ import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerCors } from "./cors.js";
-import { identityPlugin } from "./modules/identity/index.js";
+import { identityPlugin, membersRoutes } from "./modules/identity/index.js";
 import { organizationsRoutes, aiCredentialsRoutes, supportSessionsRoutes } from "./modules/organizations/index.js";
 import { auditRoutes } from "./modules/audit/index.js";
 import { assistantsRoutes, modelCatalogRoutes, handoffRoutes } from "./modules/assistants/index.js";
@@ -23,6 +23,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(cookie);
   await app.register(multipart);
   await app.register(identityPlugin);
+  await app.register(membersRoutes);
   await app.register(organizationsRoutes);
   await app.register(aiCredentialsRoutes);
   await app.register(supportSessionsRoutes);

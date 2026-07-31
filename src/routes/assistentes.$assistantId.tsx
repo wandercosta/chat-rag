@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ApiError, assistantsApi, modelsApi, type Assistant } from "@/lib/api-client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { ApiError, assistantsApi, collectionsApi, modelsApi, type Assistant } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/assistentes/$assistantId")({
@@ -174,6 +176,8 @@ function AssistantDetail() {
           </CardContent>
         </Card>
 
+        <KnowledgeScopeCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
@@ -202,5 +206,95 @@ function AssistantDetail() {
         </Card>
       </div>
     </>
+  );
+}
+
+/**
+ * Vinculo assistente ↔ colecao. Segue o ADR-003: nenhuma colecao marcada
+ * significa "toda a base da organizacao"; marcar restringe aos topicos
+ * daquelas colecoes.
+ */
+function KnowledgeScopeCard({
+  tenantId,
+  assistantId,
+  readOnly,
+}: {
+  tenantId: string | null;
+  assistantId: string;
+  readOnly: boolean;
+}) {
+  const queryClient = useQueryClient();
+
+  const collectionsQuery = useQuery({
+    queryKey: ["collections", tenantId],
+    queryFn: () => collectionsApi.list(tenantId!),
+    enabled: !!tenantId,
+  });
+
+  const linkedQuery = useQuery({
+    queryKey: ["assistant-collections", tenantId, assistantId],
+    queryFn: () => collectionsApi.listForAssistant(tenantId!, assistantId),
+    enabled: !!tenantId,
+  });
+
+  const toggle = useMutation({
+    mutationFn: ({ collectionId, link }: { collectionId: string; link: boolean }) =>
+      link
+        ? collectionsApi.link(tenantId!, assistantId, collectionId)
+        : collectionsApi.unlink(tenantId!, assistantId, collectionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assistant-collections", tenantId, assistantId] });
+      toast.success("Escopo de conhecimento atualizado");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível atualizar o escopo"),
+  });
+
+  const collections = collectionsQuery.data ?? [];
+  const linkedIds = new Set((linkedQuery.data ?? []).map((c) => c.id));
+  const unrestricted = linkedIds.size === 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Base de conhecimento</CardTitle>
+        <CardDescription>Coleções que este assistente pode consultar.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {unrestricted && (
+          <div className="rounded-md border border-dashed p-3">
+            <Badge variant="outline" className="mb-1">
+              Sem restrição
+            </Badge>
+            <p className="text-xs text-muted-foreground">
+              Nenhuma coleção marcada — o assistente consulta toda a base da organização. Marque uma ou mais para
+              restringir.
+            </p>
+          </div>
+        )}
+
+        {collectionsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+        {collectionsQuery.isSuccess && collections.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma coleção cadastrada. Crie coleções em Base de conhecimento para poder restringir o escopo.
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {collections.map((c) => (
+            <label key={c.id} className="flex items-start gap-3 rounded-md border p-3">
+              <Checkbox
+                checked={linkedIds.has(c.id)}
+                disabled={readOnly || toggle.isPending}
+                onCheckedChange={(v) => toggle.mutate({ collectionId: c.id, link: v === true })}
+              />
+              <span className="text-sm">
+                <span className="font-medium">{c.name}</span>
+                {c.description && <span className="block text-xs text-muted-foreground">{c.description}</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
