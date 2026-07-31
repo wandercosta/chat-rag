@@ -91,6 +91,16 @@ export interface CreateTenantInput {
   adminPassword: string;
 }
 
+export interface SupportSession {
+  id: string;
+  master_user_id: string;
+  organization_id: string;
+  justification: string;
+  started_at: string;
+  expires_at: string;
+  ended_at: string | null;
+}
+
 export const masterApi = {
   listTenants: () => get<Organization[]>("/master/tenants"),
   createTenant: (input: CreateTenantInput) =>
@@ -101,6 +111,18 @@ export const masterApi = {
         body: JSON.stringify(input),
       },
     ),
+  setStatus: (organizationId: string, status: "ativo" | "suspenso") =>
+    post<{ ok: true }>(`/master/tenants/${organizationId}/status`, { status }),
+  listSupportSessions: (organizationId: string) =>
+    get<SupportSession[]>(`/master/tenants/${organizationId}/support-sessions`),
+  startSupportSession: (organizationId: string, justification: string, minutes: number) =>
+    post<SupportSession>(`/master/tenants/${organizationId}/support-sessions`, { justification, minutes }),
+  endSupportSession: (organizationId: string, sessionId: string) =>
+    post<{ ok: true }>(`/master/tenants/${organizationId}/support-sessions/${sessionId}/end`),
+  /** Estado da chave de IA do tenant visto pelo Master: exige sessao de
+   * suporte ativa e nunca devolve o valor da chave. */
+  getTenantCredentials: (organizationId: string) =>
+    get<CredentialStatus[]>(`/master/tenants/${organizationId}/ai-credentials`),
 };
 
 // --- assistants ------------------------------------------------------

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
@@ -172,12 +172,13 @@ function TenantsList() {
               <TableHead>Organização</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Criada em</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {tenantsQuery.isLoading && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -193,6 +194,13 @@ function TenantsList() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button asChild size="sm" variant="ghost">
+                    <Link to="/tenants/$tenantId" params={{ tenantId: t.id }}>
+                      Detalhes
+                    </Link>
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

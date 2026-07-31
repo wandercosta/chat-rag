@@ -1,36 +1,35 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Building2, MessageSquare, Users, Bot } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as ReTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, PauseCircle, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tenants, usageSeries } from "@/lib/mock-data";
+import { masterApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/plataforma")({
   head: () => ({
     meta: [
       { title: "Visão geral da plataforma — ChatRAG Master" },
-      { name: "description", content: "Métricas agregadas de todas as organizações da plataforma ChatRAG." },
+      { name: "description", content: "Organizações da plataforma ChatRAG e seus estados." },
       { property: "og:title", content: "Visão geral da plataforma — ChatRAG Master" },
-      { property: "og:description", content: "Consumo agregado, tenants ativos e evolução de mensagens." },
+      { property: "og:description", content: "Organizações, estados e retenção configurada." },
     ],
   }),
   component: PlatformOverview,
 });
 
-// TODO(API): GET /api/master/overview
 function PlatformOverview() {
   const { scope } = useSession();
+
+  const tenantsQuery = useQuery({
+    queryKey: ["master-tenants"],
+    queryFn: () => masterApi.listTenants(),
+    enabled: scope === "master",
+  });
+
   if (scope !== "master") {
     return (
       <Card className="p-8 text-center text-sm text-muted-foreground">
@@ -39,102 +38,88 @@ function PlatformOverview() {
     );
   }
 
+  const tenants = tenantsQuery.data ?? [];
   const metrics = [
     { label: "Organizações", value: tenants.length, icon: Building2 },
-    { label: "Tenants ativos", value: tenants.filter((t) => t.status === "ativo").length, icon: Users },
-    { label: "Assistentes", value: tenants.reduce((s, t) => s + t.usage.assistants, 0), icon: Bot },
-    {
-      label: "Mensagens no mês",
-      value: tenants.reduce((s, t) => s + t.usage.messagesMonth, 0),
-      icon: MessageSquare,
-    },
+    { label: "Ativas", value: tenants.filter((t) => t.status === "ativo").length, icon: Users },
+    { label: "Suspensas", value: tenants.filter((t) => t.status === "suspenso").length, icon: PauseCircle },
   ];
 
   return (
     <>
-      <PageHeader title="Visão geral da plataforma" description="Números consolidados de todos os tenants." />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <PageHeader
+        title="Visão geral da plataforma"
+        description="Organizações provisionadas e seus estados."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
         {metrics.map((m) => (
           <Card key={m.label}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{m.label}</CardTitle>
-              <m.icon className="size-4 text-primary" />
+              <m.icon className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold tabular-nums">{m.value.toLocaleString("pt-BR")}</p>
+              <p className="text-2xl font-semibold tabular-nums">{m.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mensagens e conversas por mês</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={usageSeries}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <ReTooltip
-                contentStyle={{
-                  background: "var(--color-popover)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "8px",
-                  color: "var(--color-popover-foreground)",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="mensagens"
-                stroke="var(--color-chart-1)"
-                fill="url(#g1)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="conversas"
-                stroke="var(--color-chart-2)"
-                fill="transparent"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
+      <Card className="overflow-hidden p-0">
+        {tenantsQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
+        {tenantsQuery.isSuccess && tenants.length === 0 && (
+          <p className="p-6 text-sm text-muted-foreground">Nenhuma organização provisionada ainda.</p>
+        )}
+        {tenants.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Organização</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Retenção</TableHead>
+                <TableHead>Criada em</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tenants.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-medium">{t.name}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{t.slug}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={t.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {t.retention_days ? `${t.retention_days} dias` : "padrão (90 dias)"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to="/tenants/$tenantId" params={{ tenantId: t.id }}>
+                        Detalhes
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
-      <Card className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Organização</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Consumo de mensagens</TableHead>
-              <TableHead>Fontes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tenants.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-medium">{t.name}</TableCell>
-                <TableCell>
-                  <StatusBadge status={t.status} />
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  {t.usage.messagesMonth.toLocaleString("pt-BR")} de {t.limits.messagesMonth.toLocaleString("pt-BR")}
-                </TableCell>
-                <TableCell className="tabular-nums">{t.usage.sources}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Consumo agregado</CardTitle>
+          <CardDescription>
+            Métricas de uso cruzando todos os tenants (mensagens por período, assistentes, custo estimado) ainda
+            não existem no backend — `usage_events` hoje é agregado por organização, não pela plataforma inteira.
+            O consumo de cada organização está em Auditoria e uso, dentro do tenant.
+          </CardDescription>
+        </CardHeader>
       </Card>
     </>
   );

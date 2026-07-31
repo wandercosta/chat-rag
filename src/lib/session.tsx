@@ -6,12 +6,6 @@ export type TenantRole = "Administrador" | "Editor de base" | "Analista";
 export type Profile = "Master" | TenantRole;
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
-interface SupportSession {
-  tenantId: string;
-  justification: string;
-  expiresAt: number;
-}
-
 interface SessionValue {
   status: AuthStatus;
   scope: Scope | null;
@@ -21,13 +15,6 @@ interface SessionValue {
   tenantName: string;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Sessao de suporte do Master — o backend real existe e funciona
-   * (backend/src/modules/organizations/support-sessions.routes.ts), mas
-   * ainda nao foi ligado nesta tela; fica inerte de proposito. */
-  support: SupportSession | null;
-  startSupport: (tenantId: string, justification: string, minutes: number) => void;
-  endSupport: () => void;
-  supportRemaining: string;
   theme: "light" | "dark";
   toggleTheme: () => void;
   can: (perm: Permission) => boolean;
@@ -84,8 +71,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [auth, setAuth] = useState<ApiAuthContext | null>(null);
   const [tenantName, setTenantName] = useState("—");
-  const [support, setSupport] = useState<SupportSession | null>(null);
-  const [now, setNow] = useState(() => Date.now());
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   async function refresh() {
@@ -116,24 +101,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [auth]);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
-
-  useEffect(() => {
-    if (support && support.expiresAt <= now) setSupport(null);
-  }, [support, now]);
 
   const value = useMemo<SessionValue>(() => {
     const profile = auth ? deriveProfile(auth) : null;
     const scope: Scope | null = auth ? (auth.isPlatform ? "master" : "tenant") : null;
-    const remainingMs = support ? Math.max(0, support.expiresAt - now) : 0;
-    const mm = String(Math.floor(remainingMs / 60000)).padStart(2, "0");
-    const ss = String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0");
 
     return {
       status,
@@ -151,16 +124,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setAuth(null);
         setStatus("unauthenticated");
       },
-      support,
-      startSupport: (tenantId, justification, minutes) =>
-        setSupport({ tenantId, justification, expiresAt: Date.now() + minutes * 60000 }),
-      endSupport: () => setSupport(null),
-      supportRemaining: `${mm}:${ss}`,
       theme,
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
       can: (perm) => (profile ? matrix[profile].includes(perm) : false),
     };
-  }, [status, auth, tenantName, support, now, theme]);
+  }, [status, auth, tenantName, theme]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -1,14 +1,16 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, LifeBuoy, PauseCircle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -18,41 +20,71 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { auditEvents, tenants } from "@/lib/mock-data";
+import { ApiError, masterApi, type SupportSession } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/tenants/$tenantId")({
-  loader: ({ params }) => {
-    // TODO(API): GET /api/master/tenants/{id}
-    const tenant = tenants.find((t) => t.id === params.tenantId);
-    if (!tenant) throw notFound();
-    return { tenant };
-  },
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.tenant.name} — ChatRAG Master` : "Organização — ChatRAG" },
-      { name: "description", content: "Consumo, auditoria e ações administrativas da organização." },
+      { title: "Organização — ChatRAG Master" },
+      { name: "description", content: "Status, acesso de suporte auditado e chave de IA da organização." },
       { property: "og:title", content: "Detalhe da organização — ChatRAG" },
-      { property: "og:description", content: "Consumo, auditoria e acesso de suporte auditado." },
+      { property: "og:description", content: "Suspensão, reativação e acesso de suporte auditado." },
     ],
   }),
   component: TenantDetail,
 });
 
-function TenantDetail() {
-  const { tenant } = Route.useLoaderData();
-  const { support, startSupport } = useSession();
-  const [status, setStatus] = useState(tenant.status);
-  const [justification, setJustification] = useState("");
-  const [open, setOpen] = useState(false);
+function isActive(s: SupportSession) {
+  return !s.ended_at && new Date(s.expires_at).getTime() > Date.now();
+}
 
-  const rows = [
-    { label: "Assistentes", used: tenant.usage.assistants, limit: tenant.limits.assistants },
-    { label: "Fontes de conhecimento", used: tenant.usage.sources, limit: tenant.limits.sources },
-    { label: "Mensagens no mês", used: tenant.usage.messagesMonth, limit: tenant.limits.messagesMonth },
-  ];
+function TenantDetail() {
+  const { tenantId } = Route.useParams();
+  const { scope } = useSession();
+  const queryClient = useQueryClient();
+
+  const tenantsQuery = useQuery({
+    queryKey: ["master-tenants"],
+    queryFn: () => masterApi.listTenants(),
+    enabled: scope === "master",
+  });
+
+  const sessionsQuery = useQuery({
+    queryKey: ["support-sessions", tenantId],
+    queryFn: () => masterApi.listSupportSessions(tenantId),
+    enabled: scope === "master",
+  });
+
+  const setStatus = useMutation({
+    mutationFn: (status: "ativo" | "suspenso") => masterApi.setStatus(tenantId, status),
+    onSuccess: (_d, status) => {
+      queryClient.invalidateQueries({ queryKey: ["master-tenants"] });
+      toast.success(status === "suspenso" ? "Organização suspensa" : "Organização reativada");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível alterar o status"),
+  });
+
+  const endSession = useMutation({
+    mutationFn: (sessionId: string) => masterApi.endSupportSession(tenantId, sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-sessions", tenantId] });
+      toast.success("Acesso de suporte encerrado");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível encerrar o acesso"),
+  });
+
+  if (scope !== "master") {
+    return <Card className="p-8 text-center text-sm text-muted-foreground">Área exclusiva do Master.</Card>;
+  }
+
+  const tenant = tenantsQuery.data?.find((t) => t.id === tenantId);
+  const sessions = sessionsQuery.data ?? [];
+  const active = sessions.find(isActive);
+
+  if (tenantsQuery.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (!tenant) return <p className="text-sm text-destructive">Organização não encontrada.</p>;
 
   return (
     <>
@@ -63,125 +95,223 @@ function TenantDetail() {
       </Button>
       <PageHeader
         title={tenant.name}
-        description={`Identificação ${tenant.slug} · criada em ${tenant.createdAt}`}
+        description={`Slug ${tenant.slug} · criada em ${new Date(tenant.created_at).toLocaleDateString("pt-BR")}`}
         actions={
           <>
-            <StatusBadge status={status} className="h-9 px-3 text-sm" />
-            {status === "ativo" ? (
+            <StatusBadge status={tenant.status} className="h-9 px-3 text-sm" />
+            {tenant.status === "ativo" ? (
               <Button
                 variant="outline"
-                onClick={() => {
-                  setStatus("suspenso");
-                  toast.warning("Tenant suspenso (simulado)");
-                }}
+                disabled={setStatus.isPending}
+                onClick={() => setStatus.mutate("suspenso")}
               >
                 <PauseCircle /> Suspender
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStatus("ativo");
-                  toast.success("Tenant reativado (simulado)");
-                }}
-              >
+              <Button disabled={setStatus.isPending} onClick={() => setStatus.mutate("ativo")}>
                 <PlayCircle /> Reativar
               </Button>
             )}
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button disabled={!!support}>
-                  <LifeBuoy /> Acesso de suporte
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Solicitar acesso de suporte</DialogTitle>
-                  <DialogDescription>
-                    A justificativa é obrigatória e fica registrada na auditoria do tenant.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-2">
-                  <Label htmlFor="just">Justificativa</Label>
-                  <Textarea
-                    id="just"
-                    rows={4}
-                    value={justification}
-                    onChange={(e) => setJustification(e.target.value)}
-                    placeholder="Ex.: investigar falha de indexação reportada no chamado #4821"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    disabled={justification.trim().length < 10}
-                    onClick={() => {
-                      // TODO(API): POST /api/master/tenants/{id}/support-access
-                      startSupport(tenant.id, justification.trim(), 30);
-                      setOpen(false);
-                      setJustification("");
-                    }}
-                  >
-                    Ativar por 30 minutos
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <StartSupportDialog tenantId={tenantId} hasActive={!!active} />
           </>
         }
       />
 
-      <Tabs defaultValue="uso">
-        <TabsList>
-          <TabsTrigger value="uso">Uso e consumo</TabsTrigger>
-          <TabsTrigger value="auditoria">Auditoria</TabsTrigger>
-        </TabsList>
-        <TabsContent value="uso" className="mt-4 grid gap-4 md:grid-cols-3">
-          {rows.map((r) => (
-            <Card key={r.label}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{r.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-2xl font-semibold tabular-nums">
-                  {r.used.toLocaleString("pt-BR")}
-                  <span className="text-base font-normal text-muted-foreground">
-                    {" "}
-                    / {r.limit.toLocaleString("pt-BR")}
-                  </span>
-                </p>
-                <Progress value={(r.used / r.limit) * 100} />
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-        <TabsContent value="auditoria" className="mt-4">
-          <Card className="overflow-hidden p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quem</TableHead>
-                  <TableHead>O quê</TableHead>
-                  <TableHead>Alvo</TableHead>
-                  <TableHead>Quando</TableHead>
+      {active && (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <LifeBuoy className="size-4 text-warning" />
+              <CardTitle className="text-base">Acesso de suporte ativo</CardTitle>
+            </div>
+            <CardDescription>
+              Expira em {new Date(active.expires_at).toLocaleString("pt-BR")} · {active.justification}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={endSession.isPending}
+              onClick={() => endSession.mutate(active.id)}
+            >
+              Encerrar agora
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <TenantCredentialsCard tenantId={tenantId} hasActiveSupport={!!active} />
+
+      <Card className="overflow-hidden p-0">
+        <CardHeader>
+          <CardTitle className="text-base">Histórico de acessos de suporte</CardTitle>
+          <CardDescription>
+            Todo acesso do Master a dados deste tenant exige uma sessão justificada e expira sozinho.
+          </CardDescription>
+        </CardHeader>
+        {sessionsQuery.isSuccess && sessions.length === 0 && (
+          <p className="px-6 pb-6 text-sm text-muted-foreground">Nenhum acesso de suporte registrado.</p>
+        )}
+        {sessions.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Justificativa</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Início</TableHead>
+                <TableHead>Expira</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sessions.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="max-w-md">{s.justification}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={isActive(s) ? "border-success/30 text-success" : "text-muted-foreground"}
+                    >
+                      {isActive(s) ? "ativa" : s.ended_at ? "encerrada" : "expirada"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(s.started_at).toLocaleString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(s.expires_at).toLocaleString("pt-BR")}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {auditEvents.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-mono text-xs">{e.actor}</TableCell>
-                    <TableCell>{e.action}</TableCell>
-                    <TableCell className="text-muted-foreground">{e.target}</TableCell>
-                    <TableCell className="tabular-nums text-muted-foreground">{e.at}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
     </>
+  );
+}
+
+/** O Master só enxerga o estado da chave do tenant (nunca o valor) e só com
+ * uma sessão de suporte ativa — sem ela a API responde 403 de propósito. */
+function TenantCredentialsCard({ tenantId, hasActiveSupport }: { tenantId: string; hasActiveSupport: boolean }) {
+  const credentialsQuery = useQuery({
+    queryKey: ["master-tenant-credentials", tenantId],
+    queryFn: () => masterApi.getTenantCredentials(tenantId),
+    enabled: hasActiveSupport,
+    retry: false,
+  });
+
+  const configured = (credentialsQuery.data ?? []).filter(
+    (c) => c.status !== "ausente" && c.status !== "removida",
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Chave de IA do tenant</CardTitle>
+        <CardDescription>
+          Somente o estado e o final mascarado — o valor da chave nunca é devolvido pela API.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!hasActiveSupport ? (
+          <p className="text-sm text-muted-foreground">
+            Inicie um acesso de suporte para consultar este estado.
+          </p>
+        ) : credentialsQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : configured.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma chave configurada neste tenant.</p>
+        ) : (
+          <div className="space-y-2">
+            {configured.map((c) => (
+              <div key={c.environment} className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+                <span className="font-medium capitalize">{c.environment}</span>
+                <StatusBadge status={c.status} />
+                {c.masked && <span className="font-mono text-xs text-muted-foreground">{c.masked}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function StartSupportDialog({ tenantId, hasActive }: { tenantId: string; hasActive: boolean }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [justification, setJustification] = useState("");
+  const [minutes, setMinutes] = useState(60);
+
+  const start = useMutation({
+    mutationFn: () => masterApi.startSupportSession(tenantId, justification, minutes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-sessions", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["master-tenant-credentials", tenantId] });
+      setOpen(false);
+      setJustification("");
+      toast.success("Acesso de suporte iniciado — a ação foi auditada");
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível iniciar o acesso"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" disabled={hasActive}>
+          <LifeBuoy /> Acesso de suporte
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Iniciar acesso de suporte</DialogTitle>
+          <DialogDescription>
+            Concede acesso temporário aos dados operacionais deste tenant. A justificativa fica registrada na
+            auditoria e o acesso expira sozinho.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            start.mutate();
+          }}
+        >
+          <div className="grid gap-2">
+            <Label htmlFor="s-just">Justificativa</Label>
+            <Textarea
+              id="s-just"
+              rows={3}
+              required
+              minLength={10}
+              value={justification}
+              onChange={(e) => setJustification(e.target.value)}
+              placeholder="Ex.: investigar chamado #482 sobre falha de indexação"
+            />
+            <p className="text-xs text-muted-foreground">Mínimo de 10 caracteres.</p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="s-min">Duração (minutos)</Label>
+            <Input
+              id="s-min"
+              type="number"
+              min={5}
+              max={240}
+              value={minutes}
+              onChange={(e) => setMinutes(Number(e.target.value))}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={start.isPending || justification.trim().length < 10}>
+              {start.isPending ? "Iniciando..." : "Iniciar acesso"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
