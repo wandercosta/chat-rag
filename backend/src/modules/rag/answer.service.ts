@@ -10,11 +10,21 @@ export class AssistantNotFoundError extends Error {}
 const NO_CONTEXT_REPLY =
   "Nao encontrei essa informacao na base de conhecimento configurada. Posso encaminhar para um atendente.";
 
+/**
+ * Sentinela que o modelo devolve quando o contexto recuperado nao responde a
+ * pergunta. Sem isso a lacuna se perdia: a recuperacao trazia chunks (passava
+ * do limiar), o modelo respondia "nao encontrei" em texto livre, e como
+ * `sufficientContext` era true nada era registrado — justamente a pergunta que
+ * mais interessa para melhorar a base. Detectar por sentinela e deterministico;
+ * comparar a frase em texto livre nao seria.
+ */
+const NO_ANSWER_SENTINEL = "__SEM_RESPOSTA_NA_BASE__";
+
 function buildSystemPrompt(instructions: string | null, context: string[], visitorContext: string | null): string {
   const base =
     "Voce e um assistente que responde EXCLUSIVAMENTE com base no CONTEXTO abaixo. " +
-    "Se o contexto nao contiver a resposta, diga que nao encontrou a informacao na base. " +
-    "Nunca invente informacao fora do contexto.";
+    `Se o contexto nao contiver a resposta, responda APENAS com o texto ${NO_ANSWER_SENTINEL} ` +
+    "e mais nada. Nunca invente informacao fora do contexto.";
   const withInstructions = instructions ? `${base}\n\nInstrucoes adicionais do assistente: ${instructions}` : base;
   const withVisitor = visitorContext
     ? `${withInstructions}\n\nDados do atendimento atual (use so para personalizar o tom, nunca como fonte de fatos da base): ${visitorContext}`
@@ -58,19 +68,21 @@ export const answerService = {
 
     await conversationsService.addVisitorMessage(conversationId, question);
 
-    const retrieval = await retrievalService.retrieve(organizationId, assistantId, question, environment);
-
-    if (!retrieval.sufficientContext) {
+    const recordNoAnswer = async (reason: "sem_recuperacao" | "modelo_nao_respondeu") => {
       await gapsService.recordOccurrence(organizationId, assistantId, question);
       await conversationsService.addAssistantMessage(conversationId, NO_CONTEXT_REPLY);
       await usageService.record({
         organizationId,
         assistantId,
         type: "no_context",
-        payload: { latencyMs: Date.now() - startedAt },
+        payload: { latencyMs: Date.now() - startedAt, reason },
       });
       return { conversationId, answer: NO_CONTEXT_REPLY, usedContext: false };
-    }
+    };
+
+    const retrieval = await retrievalService.retrieve(organizationId, assistantId, question, environment);
+
+    if (!retrieval.sufficientContext) return recordNoAnswer("sem_recuperacao");
 
     const visitorContext = await loadVisitorContext(organizationId, options.conversationId);
     const provider = await resolveProviderForTenant(organizationId, environment);
@@ -83,6 +95,11 @@ export const answerService = {
     ];
 
     const reply = await provider.chat(messages, assistant.model_id);
+
+    // Recuperou contexto, mas o contexto nao responde a pergunta: conta como
+    // lacuna igual, senao a pergunta some do radar do tenant.
+    if (reply.includes(NO_ANSWER_SENTINEL)) return recordNoAnswer("modelo_nao_respondeu");
+
     await conversationsService.addAssistantMessage(conversationId, reply);
 
     await usageService.record({

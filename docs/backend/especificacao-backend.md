@@ -34,7 +34,7 @@ O backend busca apenas chunks acessiveis ao assistente e organizacao. Se a relev
 
 O limiar e distancia cosine do pgvector (`RELEVANCE_DISTANCE_THRESHOLD` em `rag/retrieval.service.ts`), hoje `0.65` e global. Foi calibrado com medicao numa base real (`backend/scripts/debug-retrieval.ts`) e nao por estimativa: com `text-embedding-3-small`, perguntas legitimas sobre o conteudo indexado ficaram entre 0.42 e 0.56, e perguntas fora do escopo entre 0.70 e 0.83. O valor anterior (`0.45`) recusava pergunta cuja resposta estava literalmente na base. Ao trocar de modelo de embedding, o limiar precisa ser remedido — a escala de distancia muda com o modelo. Torna-lo configuravel por assistente continua sendo trabalho futuro.
 
-O limiar e o primeiro filtro, nao a unica protecao: o prompt do modo estrito instrui o modelo a dizer que nao encontrou quando o contexto recuperado nao contem a resposta.
+O limiar e o primeiro filtro, nao a unica protecao: o prompt do modo estrito instrui o modelo a devolver uma sentinela (`__SEM_RESPOSTA_NA_BASE__`) quando o contexto recuperado nao contem a resposta. Essa sentinela cai no mesmo caminho de "sem contexto": resposta padrao ao visitante **e lacuna registrada**. Sem isso, uma pergunta que recuperava trechos mas nao tinha resposta na base sumia do radar do tenant — o `usage_event` de `no_context` grava `reason` (`sem_recuperacao` ou `modelo_nao_respondeu`) para diferenciar os dois casos no diagnostico.
 
 ## Provedor de IA
 

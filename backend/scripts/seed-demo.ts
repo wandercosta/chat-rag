@@ -58,6 +58,12 @@ const adminPassword = str("admin-password", "demo12345")!;
 const assistantName = str("assistant", "Assistente Widget Demo")!;
 const modelId = str("model", "gpt-4o-mini")!;
 const domain = str("domain", "localhost")!;
+// Identidade/contexto do visitante gravados na pagina de teste do widget
+// (docs/integrations/widget-embed.md). Vazio = atributo omitido no <script>.
+const externalUserId = str("external-user-id", "");
+const visitorName = str("visitor-name", "");
+const visitorEmail = str("visitor-email", "");
+const visitorContext = str("context", "");
 const writeHtml = args["no-html"] !== true;
 const masterEmail = str("master-email");
 const masterPassword = str("master-password");
@@ -160,12 +166,43 @@ async function resolveTopic(tenant: Session, organizationId: string): Promise<To
   return created;
 }
 
-async function writeTestHtml(key: string) {
+/** Reescreve o `<script>` inteiro da pagina de teste: so trocar a chave
+ * deixaria para tras atributos de uma execucao anterior (ex.: um
+ * data-context antigo continuaria valendo em silencio). */
+function buildScriptTag(key: string, assistant: string): string {
+  const attrs = [
+    `      src="../dist/chat-widget.js"`,
+    `      data-key="${key}"`,
+    `      data-mode="floating"`,
+    `      data-title="${assistant}"`,
+    `      data-greeting="Ola! Sou o assistente de teste. Pergunte algo."`,
+  ];
+  if (externalUserId) attrs.push(`      data-external-user-id="${externalUserId}"`);
+  if (visitorName) attrs.push(`      data-visitor-name="${visitorName}"`);
+  if (visitorEmail) attrs.push(`      data-visitor-email="${visitorEmail}"`);
+  if (visitorContext) attrs.push(`      data-context='${visitorContext}'`);
+  attrs.push(`      async`);
+  return `    <script\n${attrs.join("\n")}\n    ></script>`;
+}
+
+async function writeTestHtml(key: string, assistant: string) {
   const path = fileURLToPath(new URL("../../widget/test/real-backend-test.html", import.meta.url));
   const html = await readFile(path, "utf8");
-  const updated = html.replace(/data-key="[^"]*"/, `data-key="${key}"`);
+  const updated = html.replace(/ {4}<script\b[\s\S]*?<\/script>/, buildScriptTag(key, assistant));
   await writeFile(path, updated, "utf8");
   console.log(`\nwidget/test/real-backend-test.html atualizado com a nova chave.`);
+  if (externalUserId || visitorName || visitorEmail || visitorContext) {
+    console.log(
+      `Identidade do visitante gravada: ${[
+        externalUserId && `external-user-id=${externalUserId}`,
+        visitorName && `nome=${visitorName}`,
+        visitorEmail && `email=${visitorEmail}`,
+        visitorContext && `context=${visitorContext}`,
+      ]
+        .filter(Boolean)
+        .join(" · ")}`,
+    );
+  }
   console.log("Para abrir: build o widget (npm run build em widget/) e sirva a raiz do repo, ex.:");
   console.log("  python -m http.server 4174");
   console.log("  http://localhost:4174/widget/test/real-backend-test.html");
@@ -211,7 +248,7 @@ async function main() {
   console.log(`Dominio liberado: ${domain}`);
   console.log(`Chave de widget (teste) — guarde agora, so aparece uma vez: ${key.plaintext}`);
 
-  if (writeHtml) await writeTestHtml(key.plaintext);
+  if (writeHtml) await writeTestHtml(key.plaintext, assistant.name);
 }
 
 main()

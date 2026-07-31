@@ -84,7 +84,34 @@ python -m http.server 4174   # a partir da raiz do repo
 
 A pagina ja abre com o assistente do seed (chave gravada automaticamente).
 Repita so o `seed:demo` (sem rebuildar o widget) para trocar de assistente —
-ele atualiza a chave no HTML a cada execucao.
+ele reescreve a tag `<script>` inteira a cada execucao.
+
+Para gravar tambem identidade e contexto do visitante na pagina de teste
+(ver `docs/integrations/widget-embed.md`):
+
+```bash
+npm run seed:demo --   --master-email admin@chatrag.local --master-password "uma-senha-forte"   --slug acme --org-name "Acme" --admin-email admin@acme.com --admin-password "acme12345"   --assistant "Suporte Acme" --model gpt-4o-mini --domain localhost   --external-user-id pedido-4821 --visitor-name "Maria Souza"   --visitor-email maria@exemplo.com --context '{"plano":"Pro","pedido":"4821"}'
+```
+
+Atributo omitido = nao escrito no HTML. `widget/test/e2e-widget.html` traz o
+roteiro manual completo (abrir, perguntar sem base, cadastrar fonte, responder
+lacuna, feedback, handoff, conferir no painel).
+
+## Teste ponta a ponta do chat
+
+Exercita o ciclo real (pergunta sem base -> recusa e cria lacuna -> cadastra
+fonte -> responde -> responde a lacuna -> vira fonte -> pergunta fora do escopo
+e recusa), contra o backend de verdade. Precisa do worker rodando e do tenant
+com chave OpenAI valida:
+
+```bash
+npm run e2e:chat -- --email admin@demo-widget.com --password demo12345
+```
+
+Passe tambem `--widget-key pk_test_...` (a chave que o `seed:demo` imprime) para
+testar o mesmo fluxo pelo chat externo, sem sessao. Sai com codigo 1 se qualquer
+verificacao falhar. Cada execucao usa um identificador proprio, entao rodar de
+novo nao passa por engano com dado da rodada anterior.
 
 ## Diagnostico do RAG
 

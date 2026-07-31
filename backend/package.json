@@ -13,6 +13,7 @@
     "deps:check": "depcruise src --config .dependency-cruiser.cjs",
     "bucket:create": "tsx scripts/create-bucket.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "e2e:chat": "tsx scripts/e2e-chat.ts",
     "test": "vitest run",
     "test:integration": "cross-env RUN_INTEGRATION_TESTS=1 vitest run"
   },

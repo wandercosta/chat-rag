@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChatRAG — roteiro de teste do widget (backend real)</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        margin: 0; padding: 40px 24px; background: #f5f5f7; color: #1a1a1a;
+      }
+      @media (prefers-color-scheme: dark) { body { background: #16181d; color: #e8e8ea; } }
+      main { max-width: 720px; margin: 0 auto; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      .sub { color: #666; margin: 0 0 28px; font-size: 14px; }
+      @media (prefers-color-scheme: dark) { .sub { color: #9a9aa2; } }
+      ol { padding-left: 20px; margin: 0; }
+      li { margin-bottom: 18px; line-height: 1.55; }
+      li strong { display: block; }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+        background: rgba(127, 127, 127, 0.16); padding: 1px 5px; border-radius: 4px;
+      }
+      .esperado { font-size: 13px; color: #666; }
+      @media (prefers-color-scheme: dark) { .esperado { color: #9a9aa2; } }
+      .aviso {
+        border-left: 3px solid #d19a00; background: rgba(209, 154, 0, 0.1);
+        padding: 12px 16px; border-radius: 4px; font-size: 14px; margin-bottom: 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Roteiro de teste do widget</h1>
+      <p class="sub">
+        Página hospedeira falsa. Não há mock: o widget no canto inferior direito fala com a API real em
+        <code>localhost:3333</code>.
+      </p>
+
+      <div class="aviso">
+        A chave e a identidade do visitante deste <code>&lt;script&gt;</code> são gravadas por
+        <code>npm run seed:demo</code>. Rode o seed antes, senão a chave pode estar revogada ou apontar para outro
+        assistente.
+      </div>
+
+      <ol>
+        <li>
+          <strong>Abrir o chat</strong>
+          <span class="esperado">
+            Clique na bolha. A saudação aparece e o campo de texto fica habilitado. Se aparecer erro de chave ou
+            domínio, o <code>data-key</code> está errado ou o domínio desta página não está liberado.
+          </span>
+        </li>
+        <li>
+          <strong>Perguntar algo que a base não sabe</strong>
+          <span class="esperado">
+            Deve responder que não encontrou na base e oferecer atendimento — nunca inventar. No painel, a pergunta
+            aparece em <em>Lacunas e feedbacks</em>.
+          </span>
+        </li>
+        <li>
+          <strong>Cadastrar a fonte que responde, no painel</strong>
+          <span class="esperado">
+            Em <em>Base de conhecimento</em> → Adicionar fonte. Aguarde o status virar <em>Pronta</em> (precisa do
+            worker rodando). Recarregue esta página e pergunte de novo: agora deve responder a partir da base.
+          </span>
+        </li>
+        <li>
+          <strong>Responder a lacuna pelo painel</strong>
+          <span class="esperado">
+            Em <em>Lacunas e feedbacks</em> → Responder. A resposta vira fonte indexada e a lacuna fica
+            <em>Resolvida</em>. Perguntar de novo aqui deve trazer a resposta.
+          </span>
+        </li>
+        <li>
+          <strong>Dar feedback</strong>
+          <span class="esperado">
+            Os botões 👍/👎 abaixo de uma resposta gravam o feedback na conversa — confira em <em>Conversas</em>.
+          </span>
+        </li>
+        <li>
+          <strong>Encaminhar para WhatsApp</strong>
+          <span class="esperado">
+            Com um setor configurado, abre o <code>wa.me</code> direto; com dois ou mais, o widget mostra os setores
+            para escolher. Sem nenhum, responde que o encaminhamento não está configurado.
+          </span>
+        </li>
+        <li>
+          <strong>Conferir no painel</strong>
+          <span class="esperado">
+            Em <em>Conversas</em>, esta conversa deve aparecer com canal <em>widget</em> e a transcrição completa. Se
+            o script abaixo tiver <code>data-external-user-id</code>, recarregar a página abre uma conversa nova
+            ligada ao mesmo visitante.
+          </span>
+        </li>
+      </ol>
+    </main>
+
+    <script
+      src="../dist/chat-widget.js"
+      data-key="COLE_A_CHAVE_OU_RODE_O_SEED"
+      data-mode="floating"
+      data-title="Assistente de teste"
+      data-greeting="Ola! Sou o assistente de teste. Pergunte algo."
+      async
+    ></script>
+  </body>
+</html>
