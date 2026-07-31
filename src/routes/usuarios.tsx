@@ -1,27 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { Construction } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tenantUsers } from "@/lib/mock-data";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/usuarios")({
@@ -36,14 +16,18 @@ export const Route = createFileRoute("/usuarios")({
   component: UsersPage,
 });
 
-// TODO(API): GET /api/tenants/{id}/users · POST /api/tenants/{id}/invitations
+/**
+ * Esta tela nao tem backend: nao existem rotas de listagem de usuarios do
+ * tenant nem de convite (o modulo identity so expoe login/logout/me). A versao
+ * anterior mostrava quatro usuarios ficticios e um "convite enviado
+ * (simulado)", o que dava a entender que a gestao de acesso ja funcionava.
+ * Melhor mostrar o estado real ate as rotas existirem.
+ */
 function UsersPage() {
-  const { can } = useSession();
-  const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState("email");
+  const { can, userEmail, profile } = useSession();
 
   if (!can("users")) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">Seu perfil não tem acesso a usuários.</Card>;
+    return <Card className="p-8 text-center text-sm text-muted-foreground">Seu perfil não acessa usuários.</Card>;
   }
 
   return (
@@ -51,97 +35,27 @@ function UsersPage() {
       <PageHeader
         title="Usuários e permissões"
         description="Todo acesso é criado por um administrador — o produto não possui cadastro público."
-        actions={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus /> Convidar usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Convidar usuário</DialogTitle>
-                <DialogDescription>O acesso é vinculado apenas a esta organização.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="u-name">Nome</Label>
-                  <Input id="u-name" placeholder="Nome completo" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="u-email">E-mail</Label>
-                  <Input id="u-email" type="email" placeholder="pessoa@empresa.com" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="u-role">Perfil</Label>
-                  <Select defaultValue="Analista">
-                    <SelectTrigger id="u-role">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Administrador">Administrador</SelectItem>
-                      <SelectItem value="Editor de base">Editor de base</SelectItem>
-                      <SelectItem value="Analista">Analista</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Forma de acesso</Label>
-                  <RadioGroup value={method} onValueChange={setMethod} className="gap-2">
-                    <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                      <RadioGroupItem value="email" /> Convite por e-mail
-                    </label>
-                    <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                      <RadioGroupItem value="senha" /> Senha provisória com troca obrigatória no primeiro acesso
-                    </label>
-                  </RadioGroup>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => {
-                    setOpen(false);
-                    toast.success("Convite enviado (simulado)");
-                  }}
-                >
-                  Enviar convite
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        }
       />
-      <Card className="overflow-hidden p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Perfil</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Último acesso</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tenantUsers.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>
-                  <p className="font-medium">{u.name}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{u.role}</Badge>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={u.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground">{u.lastAccess}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <Card className="border-dashed">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Construction className="size-4 text-warning" />
+            <CardTitle className="text-base">Ainda não disponível</CardTitle>
+          </div>
+          <CardDescription>
+            A gestão de usuários do tenant ainda não existe no backend — não há rotas de listagem nem de convite.
+            Enquanto isso, novos usuários só são criados junto com a organização (o administrador inicial, definido
+            pelo Master na criação do tenant).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border p-3 text-sm">
+            <p className="font-medium">{userEmail ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">
+              Você, nesta organização · perfil {profile ?? "—"}
+            </p>
+          </div>
+        </CardContent>
       </Card>
     </>
   );

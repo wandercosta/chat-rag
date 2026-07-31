@@ -250,6 +250,99 @@ export const sourcesApi = {
     post<{ activated: number }>(`/organizations/${organizationId}/sources/activate-pending`),
 };
 
+// --- embed: widget keys ------------------------------------------------
+
+export interface WidgetKey {
+  id: string;
+  organization_id: string;
+  assistant_id: string;
+  environment: "teste" | "producao";
+  masked: string;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface AllowedDomain {
+  id: string;
+  embed_key_id: string;
+  domain: string;
+  created_at: string;
+}
+
+export interface CreateWidgetKeyInput {
+  assistantId: string;
+  environment: "teste" | "producao";
+  domains: string[];
+}
+
+export const widgetKeysApi = {
+  list: (organizationId: string) => get<WidgetKey[]>(`/organizations/${organizationId}/widget-keys`),
+  /** O `plaintext` so existe nesta resposta — nunca fica recuperavel depois. */
+  create: (organizationId: string, input: CreateWidgetKeyInput) =>
+    post<{ id: string; environment: string; masked: string; plaintext: string }>(
+      `/organizations/${organizationId}/widget-keys`,
+      input,
+    ),
+  revoke: (organizationId: string, keyId: string) =>
+    post<{ ok: true }>(`/organizations/${organizationId}/widget-keys/${keyId}/revoke`),
+};
+
+// --- audit ------------------------------------------------
+
+export interface AuditEvent {
+  id: string;
+  organization_id: string | null;
+  actor_user_id: string | null;
+  action: string;
+  type: string;
+  target: string | null;
+  created_at: string;
+}
+
+export const auditApi = {
+  list: (organizationId: string) => get<AuditEvent[]>(`/organizations/${organizationId}/audit`),
+};
+
+// --- analytics ------------------------------------------------
+
+export interface UsageSummary {
+  periodDays: number;
+  eventCounts: Record<string, number>;
+  avgRagLatencyMs: number | null;
+  openGaps: number;
+}
+
+export const usageApi = {
+  getSummary: (organizationId: string) => get<UsageSummary>(`/organizations/${organizationId}/usage`),
+};
+
+// --- conversations ------------------------------------------------
+
+export interface Conversation {
+  id: string;
+  organization_id: string;
+  assistant_id: string;
+  visitor_id: string | null;
+  channel: "widget" | "whatsapp" | "playground";
+  started_at: string;
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  role: "visitante" | "assistente";
+  content: string;
+  created_at: string;
+}
+
+export const conversationsApi = {
+  list: (organizationId: string) => get<Conversation[]>(`/organizations/${organizationId}/conversations`),
+  get: (organizationId: string, conversationId: string) =>
+    get<Conversation & { messages: ConversationMessage[] }>(
+      `/organizations/${organizationId}/conversations/${conversationId}`,
+    ),
+};
+
 // --- organizations: AI credentials ------------------------------------------------
 
 export type CredentialEnvironment = "teste" | "producao" | "ambos";
