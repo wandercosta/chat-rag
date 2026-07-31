@@ -171,9 +171,20 @@ export class ChatRagWidget {
         window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
       }
     } catch (err) {
-      this.messages.push({ role: "assistente", content: this.describeError(err) });
+      this.messages.push({ role: "assistente", content: this.describeHandoffError(err) });
       this.renderMessages();
     }
+  }
+
+  /** O 409 aqui significa "sem WhatsApp configurado", nao "assistente fora do
+   * ar" como em /messages. Reusar describeError diria ao visitante que o
+   * atendimento quebrou, quando o chat esta funcionando normalmente. */
+  private describeHandoffError(err: unknown): string {
+    if (err instanceof ChatRagApiError) {
+      if (err.status === 409) return "O encaminhamento para atendente nao esta disponivel neste atendimento.";
+      if (err.status === 422) return "Nao consegui identificar o setor escolhido. Tente novamente.";
+    }
+    return this.describeError(err);
   }
 
   private async chooseSector(sectorId: string) {
