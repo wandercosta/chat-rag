@@ -34,7 +34,7 @@ Particionamento fisico da tabela de chunks por `organization_id` nao entra no MV
 
 ## Provisionamento
 
-Ao criar um tenant, o Master informa identificacao, nome, status inicial, configuracoes padrao e o usuario administrador inicial. A criacao deve ser atomica: nenhum tenant parcialmente criado pode ficar disponivel para widget ou indexacao. A exclusao definitiva nao entra no MVP; suspensao bloqueia painel e widget sem apagar dados.
+Ao criar um tenant, o Master informa identificacao, nome, status inicial, configuracoes padrao e o usuario administrador inicial. A criacao deve ser atomica: nenhum tenant parcialmente criado pode ficar disponivel para widget ou indexacao. A exclusao definitiva nao entra no MVP; suspensao bloqueia painel e widget sem apagar dados — aplicado em `backend/src/tenant-status.ts` (painel) e em `embed/public-access.service.ts` (widget). `GET /organizations/:id` continua liberado mesmo suspenso, para o painel conseguir explicar o motivo em vez de quebrar; as rotas `/master/*` tambem seguem liberadas, senao nao haveria como reativar.
 
 O administrador inicial recebe acesso ao painel do tenant desde o MVP. Pode cadastrar outros usuarios conforme seu papel, mas nao pode criar, suspender ou acessar outro tenant.
 

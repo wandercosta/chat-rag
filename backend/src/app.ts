@@ -2,6 +2,7 @@ import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerCors } from "./cors.js";
+import { registerTenantStatusGuard } from "./tenant-status.js";
 import { identityPlugin, membersRoutes } from "./modules/identity/index.js";
 import { organizationsRoutes, aiCredentialsRoutes, supportSessionsRoutes } from "./modules/organizations/index.js";
 import { auditRoutes } from "./modules/audit/index.js";
@@ -20,6 +21,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   const app = Fastify({ logger: options.logger ?? true });
 
   registerCors(app);
+  registerTenantStatusGuard(app);
   await app.register(cookie);
   await app.register(multipart);
   await app.register(identityPlugin);

@@ -4,7 +4,12 @@ import { conversationsService, visitorsService } from "../conversations/index.js
 import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
 import { NoHandoffConfiguredError, SectorNotFoundError, handoffService } from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
-import { DomainNotAllowedError, InvalidKeyError, publicAccessService } from "./public-access.service.js";
+import {
+  DomainNotAllowedError,
+  InvalidKeyError,
+  OrganizationSuspendedError,
+  publicAccessService,
+} from "./public-access.service.js";
 import { rateLimits } from "./rate-limit.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
@@ -165,6 +170,9 @@ export async function embedPublicRoutes(app: FastifyInstance) {
 function handlePublicError(err: unknown, reply: import("fastify").FastifyReply) {
   if (err instanceof InvalidKeyError) return reply.code(401).send({ error: "chave invalida" });
   if (err instanceof DomainNotAllowedError) return reply.code(403).send({ error: "dominio nao autorizado" });
+  if (err instanceof OrganizationSuspendedError) {
+    return reply.code(403).send({ error: "atendimento indisponivel" });
+  }
   if (err instanceof AssistantNotFoundError) return reply.code(404).send({ error: "assistente nao encontrado" });
   if (err instanceof NoActiveCredentialError) {
     return reply.code(409).send({ error: "assistente indisponivel no momento" });

@@ -1,9 +1,11 @@
+import { organizationsService } from "../organizations/index.js";
 import { domainsRepository } from "./domains.repository.js";
 import { hashEmbedKey } from "./keys.crypto.js";
 import { keysRepository } from "./keys.repository.js";
 
 export class InvalidKeyError extends Error {}
 export class DomainNotAllowedError extends Error {}
+export class OrganizationSuspendedError extends Error {}
 
 export interface ResolvedEmbedKey {
   id: string;
@@ -31,6 +33,12 @@ export const publicAccessService = {
     const host = hostnameFrom(originHeader);
     if (!host || !(await domainsRepository.isAllowed(row.id, host))) {
       throw new DomainNotAllowedError();
+    }
+
+    // Chave valida e dominio certo nao bastam se o tenant esta suspenso: a
+    // suspensao tem que derrubar o widget publicado, nao so o painel.
+    if (await organizationsService.isSuspended(row.organization_id)) {
+      throw new OrganizationSuspendedError();
     }
 
     return {

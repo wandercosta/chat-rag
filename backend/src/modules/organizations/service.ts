@@ -46,6 +46,14 @@ export const organizationsService = {
     return organizationsRepository.findById(organizationId);
   },
 
+  /** Suspensao bloqueia painel e widget sem apagar dados
+   * (docs/database/modelo-de-dados.md - Provisionamento). Organizacao
+   * inexistente conta como suspensa: nada operacional deve responder por ela. */
+  async isSuspended(organizationId: string): Promise<boolean> {
+    const organization = await organizationsRepository.findById(organizationId);
+    return !organization || organization.status === "suspenso";
+  },
+
   /** null = usa o padrao de plataforma (90 dias). Usado pelo modulo assistants
    * para resolver a politica efetiva de retencao (docs/security). */
   getRetentionDays(organizationId: string) {
