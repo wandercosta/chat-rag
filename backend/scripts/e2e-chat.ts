@@ -8,6 +8,9 @@
  *   4. responde a lacuna pelo painel            -> vira fonte nova, lacuna resolvida
  *   5. pergunta o conteudo dessa resposta       -> deve RESPONDER
  *   6. pergunta fora do escopo                  -> deve RECUSAR (nao alucina)
+ *   7. saudacao                                 -> resposta cordial, SEM lacuna
+ *   8. pergunta de continuidade                 -> usa o historico; a lacuna
+ *                                                  guarda pergunta original + contexto
  *
  * Usa apenas a API HTTP publica (mesmas rotas do painel), entao passa pelas
  * mesmas regras de autorizacao e de negocio.
@@ -98,11 +101,23 @@ interface Source {
   status: string;
   chunk_count: number;
 }
+interface Gap {
+  id: string;
+  question_normalized: string;
+  original_question: string | null;
+  context_snippet: string | null;
+  status: string;
+}
 
-async function ask(orgId: string, assistantId: string, message: string): Promise<Answer> {
+async function ask(
+  orgId: string,
+  assistantId: string,
+  message: string,
+  conversationId?: string,
+): Promise<Answer> {
   return api<Answer>(`/organizations/${orgId}/assistants/${assistantId}/playground-messages`, {
     method: "POST",
-    body: JSON.stringify({ message, environment: "teste" }),
+    body: JSON.stringify({ message, environment: "teste", ...(conversationId ? { conversationId } : {}) }),
   });
 }
 
@@ -137,7 +152,7 @@ async function main() {
   console.log("1. Pergunta sem base (deve recusar e registrar lacuna)");
   const before = await ask(orgId, assistant.id, QUESTION);
   check("recusou por falta de contexto", before.usedContext === false, before.answer.slice(0, 60));
-  const gapsAfterAsk = await api<{ question_normalized: string }[]>(`/organizations/${orgId}/gaps`);
+  const gapsAfterAsk = await api<Gap[]>(`/organizations/${orgId}/gaps`);
   check(
     "lacuna registrada",
     gapsAfterAsk.some((g) => g.question_normalized.includes(run)),
@@ -161,9 +176,7 @@ async function main() {
 
   console.log("\n4. Responder uma lacuna cria fonte de conhecimento");
   await ask(orgId, assistant.id, GAP_QUESTION); // gera a lacuna
-  const gaps = await api<{ id: string; question_normalized: string; status: string }[]>(
-    `/organizations/${orgId}/gaps`,
-  );
+  const gaps = await api<Gap[]>(`/organizations/${orgId}/gaps`);
   const gap = gaps.find((g) => g.question_normalized.includes(run) && g.question_normalized.includes("garantia"));
   if (!gap) throw new Error("lacuna da pergunta de garantia nao foi registrada");
 
@@ -173,7 +186,7 @@ async function main() {
   });
   const gapIndexed = await waitIndexed(orgId, topic.id, fromGap.id);
   check("resposta da lacuna virou fonte indexada", gapIndexed.status === "pronta");
-  const gapsNow = await api<{ id: string; status: string }[]>(`/organizations/${orgId}/gaps`);
+  const gapsNow = await api<Gap[]>(`/organizations/${orgId}/gaps`);
   check("lacuna marcada como resolvida", gapsNow.find((g) => g.id === gap.id)?.status === "resolvida");
 
   console.log("\n5. Pergunta o que foi respondido na lacuna (deve responder)");
@@ -186,8 +199,34 @@ async function main() {
   check("recusou pergunta fora da base", off.usedContext === false);
   check("nao respondeu 'Paris'", !off.answer.toLowerCase().includes("paris"), off.answer.slice(0, 60));
 
+  console.log("\n7. Saudacao nao consulta a base nem vira lacuna");
+  const gapsBeforeHello = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).length;
+  const hello = await ask(orgId, assistant.id, "bom dia");
+  check("respondeu com cortesia", !hello.answer.includes("Não consigo responder"), hello.answer.slice(0, 50));
+  const gapsAfterHello = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).length;
+  check("nao criou lacuna para a saudacao", gapsAfterHello === gapsBeforeHello);
+
+  console.log("\n8. Conversa tem memoria e a lacuna guarda contexto");
+  const turn1 = await ask(orgId, assistant.id, QUESTION);
+  const orphan = await ask(orgId, assistant.id, "quem assinou esse documento?", turn1.conversationId);
+  check("continuidade sem resposta na base e recusada", orphan.usedContext === false);
+
+  // A pergunta de continuidade e curta de proposito (so assim herda a
+  // anterior), entao ela se repete entre execucoes. Casar tambem pelo marcador
+  // do run evita pegar a lacuna de uma rodada passada.
+  const orphanGap = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).find(
+    (g) => g.original_question === "quem assinou esse documento?" && g.question_normalized.includes(run),
+  );
+  check("lacuna guarda a pergunta original", !!orphanGap);
+  check("lacuna guarda o contexto da conversa", !!orphanGap?.context_snippet?.includes("Visitante:"));
+  check(
+    "chave de agrupamento carrega a pergunta anterior",
+    !!orphanGap?.question_normalized.includes(run),
+    orphanGap?.question_normalized.slice(0, 70),
+  );
+
   if (widgetKey) {
-    console.log("\n7. Mesmo fluxo pelo widget publico (chat externo, sem sessao)");
+    console.log("\n9. Mesmo fluxo pelo widget publico (chat externo, sem sessao)");
     await widget("/widget/config", { key: widgetKey });
     const conv = await widget<{ conversationId: string }>("/widget/conversations", {
       key: widgetKey,
@@ -210,7 +249,7 @@ async function main() {
       conversations.some((c) => c.id === conv.conversationId && c.channel === "widget"),
     );
   } else {
-    console.log("\n7. (pulado) passe --widget-key pk_test_... para testar tambem o chat externo");
+    console.log("\n9. (pulado) passe --widget-key pk_test_... para testar tambem o chat externo");
   }
 
   console.log(`\n${failures === 0 ? "TUDO PASSOU" : `${failures} VERIFICACAO(OES) FALHARAM`}`);

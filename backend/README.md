@@ -99,9 +99,12 @@ lacuna, feedback, handoff, conferir no painel).
 
 ## Teste ponta a ponta do chat
 
-Exercita o ciclo real (pergunta sem base -> recusa e cria lacuna -> cadastra
-fonte -> responde -> responde a lacuna -> vira fonte -> pergunta fora do escopo
-e recusa), contra o backend de verdade. Precisa do worker rodando e do tenant
+Exercita o ciclo real contra o backend de verdade, em nove passos: pergunta sem
+base (recusa e cria lacuna) -> cadastra fonte -> responde -> responde a lacuna
+(vira fonte, lacuna resolvida) -> pergunta fora do escopo (recusa sem alucinar)
+-> saudacao (resposta cordial, sem criar lacuna) -> pergunta de continuidade
+(usa o historico; a lacuna guarda pergunta original e contexto) -> e, com
+`--widget-key`, o mesmo pelo chat externo. Precisa do worker rodando e do tenant
 com chave OpenAI valida:
 
 ```bash
