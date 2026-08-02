@@ -9,8 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +40,15 @@ export const Route = createFileRoute("/usuarios")({
   head: () => ({
     meta: [
       { title: "Usuários e permissões — ChatRAG" },
-      { name: "description", content: "Usuários da organização, perfis de acesso e criação de acessos administrativos." },
+      {
+        name: "description",
+        content: "Usuários da organização, perfis de acesso e criação de acessos administrativos.",
+      },
       { property: "og:title", content: "Usuários e permissões — ChatRAG" },
-      { property: "og:description", content: "Acesso criado por administrador; não há cadastro público." },
+      {
+        property: "og:description",
+        content: "Acesso criado por administrador; não há cadastro público.",
+      },
     ],
   }),
   component: UsersPage,
@@ -50,12 +69,14 @@ function UsersPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["members", tenantId] });
 
   const updateRole = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: TenantRole }) => membersApi.updateRole(tenantId!, id, role),
+    mutationFn: ({ id, role }: { id: string; role: TenantRole }) =>
+      membersApi.updateRole(tenantId!, id, role),
     onSuccess: () => {
       invalidate();
       toast.success("Papel atualizado");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível alterar o papel"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível alterar o papel"),
   });
 
   const remove = useMutation({
@@ -64,11 +85,16 @@ function UsersPage() {
       invalidate();
       toast.success("Acesso removido");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível remover o acesso"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível remover o acesso"),
   });
 
   if (!can("users")) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">Seu perfil não acessa usuários.</Card>;
+    return (
+      <Card className="p-8 text-center text-sm text-muted-foreground">
+        Seu perfil não acessa usuários.
+      </Card>
+    );
   }
 
   const members = membersQuery.data ?? [];
@@ -112,7 +138,9 @@ function UsersPage() {
                     <TableCell>
                       <Select
                         value={m.role}
-                        onValueChange={(role) => updateRole.mutate({ id: m.id, role: role as TenantRole })}
+                        onValueChange={(role) =>
+                          updateRole.mutate({ id: m.id, role: role as TenantRole })
+                        }
                         disabled={updateRole.isPending}
                       >
                         <SelectTrigger className="w-44" aria-label={`Papel de ${m.email}`}>
@@ -148,7 +176,8 @@ function UsersPage() {
         )}
       </Card>
       <p className="text-xs text-muted-foreground">
-        A organização precisa manter pelo menos um administrador — o último não pode ser rebaixado nem removido.
+        A organização precisa manter pelo menos um administrador — o último não pode ser rebaixado
+        nem removido.
       </p>
     </>
   );
@@ -171,7 +200,8 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
       setRole("Analista");
       toast.success("Acesso criado — passe a senha provisória ao usuário");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o acesso"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o acesso"),
   });
 
   return (
@@ -185,9 +215,9 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
         <DialogHeader>
           <DialogTitle>Criar acesso</DialogTitle>
           <DialogDescription>
-            Você define uma senha provisória e a repassa ao usuário — não há envio de e-mail nem cadastro público
-            nesta fase. Se o e-mail já existir na plataforma, o usuário é reaproveitado e só ganha acesso a esta
-            organização.
+            Você define uma senha provisória e a repassa ao usuário — não há envio de e-mail nem
+            cadastro público nesta fase. Se o e-mail já existir na plataforma, o usuário é
+            reaproveitado e só ganha acesso a esta organização.
           </DialogDescription>
         </DialogHeader>
         <form

@@ -19,10 +19,20 @@ export const collectionsRepository = {
       .executeTakeFirst();
   },
 
-  insert(organizationId: string, name: string, description: string | null, requiresReview: boolean) {
+  insert(
+    organizationId: string,
+    name: string,
+    description: string | null,
+    requiresReview: boolean,
+  ) {
     return db
       .insertInto("knowledge_collections")
-      .values({ organization_id: organizationId, name, description, requires_review: requiresReview })
+      .values({
+        organization_id: organizationId,
+        name,
+        description,
+        requires_review: requiresReview,
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
   },

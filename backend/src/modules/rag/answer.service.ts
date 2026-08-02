@@ -31,12 +31,18 @@ function noContextReply(hasHandoff: boolean): string {
  */
 const NO_ANSWER_SENTINEL = "__SEM_RESPOSTA_NA_BASE__";
 
-function buildSystemPrompt(instructions: string | null, context: string[], visitorContext: string | null): string {
+function buildSystemPrompt(
+  instructions: string | null,
+  context: string[],
+  visitorContext: string | null,
+): string {
   const base =
     "Voce e um assistente que responde EXCLUSIVAMENTE com base no CONTEXTO abaixo. " +
     `Se o contexto nao contiver a resposta, responda APENAS com o texto ${NO_ANSWER_SENTINEL} ` +
     "e mais nada. Nunca invente informacao fora do contexto.";
-  const withInstructions = instructions ? `${base}\n\nInstrucoes adicionais do assistente: ${instructions}` : base;
+  const withInstructions = instructions
+    ? `${base}\n\nInstrucoes adicionais do assistente: ${instructions}`
+    : base;
   const withVisitor = visitorContext
     ? `${withInstructions}\n\nDados do atendimento atual (use so para personalizar o tom, nunca como fonte de fatos da base): ${visitorContext}`
     : withInstructions;
@@ -52,7 +58,10 @@ const HISTORY_MESSAGES = 6;
  * como saber de quem — o visitante recebia "nao encontrei na base" mesmo com o
  * dado indexado, e a pergunta ainda virava lacuna falsa.
  */
-async function loadRecentHistory(organizationId: string, conversationId?: string): Promise<ChatMessage[]> {
+async function loadRecentHistory(
+  organizationId: string,
+  conversationId?: string,
+): Promise<ChatMessage[]> {
   if (!conversationId) return [];
   const conversation = await conversationsService.getWithMessages(organizationId, conversationId);
   if (!conversation) return [];
@@ -93,7 +102,10 @@ function buildContextSnippet(history: ChatMessage[]): string | null {
 
 /** Nome/email/contexto que o sistema hospedeiro passou ao abrir o widget
  * (docs/integrations/widget-embed.md - Contexto do visitante). */
-async function loadVisitorContext(organizationId: string, conversationId?: string): Promise<string | null> {
+async function loadVisitorContext(
+  organizationId: string,
+  conversationId?: string,
+): Promise<string | null> {
   if (!conversationId) return null;
   const conversation = await conversationsService.get(organizationId, conversationId);
   if (!conversation?.visitor_id) return null;
@@ -123,7 +135,8 @@ export const answerService = {
     if (!assistant) throw new AssistantNotFoundError();
 
     const conversationId =
-      options.conversationId ?? (await conversationsService.start(organizationId, assistantId, "playground")).id;
+      options.conversationId ??
+      (await conversationsService.start(organizationId, assistantId, "playground")).id;
 
     // Lido antes de gravar a pergunta atual, senao ela viraria "historico" dela mesma.
     const history = await loadRecentHistory(organizationId, options.conversationId);
@@ -161,7 +174,12 @@ export const answerService = {
       return { conversationId, answer, usedContext: false };
     };
 
-    const retrieval = await retrievalService.retrieve(organizationId, assistantId, retrievalQuery, environment);
+    const retrieval = await retrievalService.retrieve(
+      organizationId,
+      assistantId,
+      retrievalQuery,
+      environment,
+    );
 
     if (!retrieval.sufficientContext) return recordNoAnswer("sem_recuperacao");
 
@@ -170,7 +188,11 @@ export const answerService = {
     const messages: ChatMessage[] = [
       {
         role: "system",
-        content: buildSystemPrompt(assistant.instructions, retrieval.chunks.map((c) => c.content), visitorContext),
+        content: buildSystemPrompt(
+          assistant.instructions,
+          retrieval.chunks.map((c) => c.content),
+          visitorContext,
+        ),
       },
       ...history,
       { role: "user", content: question },
@@ -188,7 +210,11 @@ export const answerService = {
       organizationId,
       assistantId,
       type: "rag_query",
-      payload: { latencyMs: Date.now() - startedAt, model: assistant.model_id, chunksUsed: retrieval.chunks.length },
+      payload: {
+        latencyMs: Date.now() - startedAt,
+        model: assistant.model_id,
+        chunksUsed: retrieval.chunks.length,
+      },
     });
 
     return { conversationId, answer: reply, usedContext: true };

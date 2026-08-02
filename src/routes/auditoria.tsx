@@ -5,8 +5,21 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { auditApi, usageApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -14,9 +27,15 @@ export const Route = createFileRoute("/auditoria")({
   head: () => ({
     meta: [
       { title: "Auditoria e uso — ChatRAG" },
-      { name: "description", content: "Eventos administrativos e de segurança: quem fez o quê e quando." },
+      {
+        name: "description",
+        content: "Eventos administrativos e de segurança: quem fez o quê e quando.",
+      },
       { property: "og:title", content: "Auditoria e uso — ChatRAG" },
-      { property: "og:description", content: "Trilha de auditoria filtrável por tipo de evento e período." },
+      {
+        property: "og:description",
+        content: "Trilha de auditoria filtrável por tipo de evento e período.",
+      },
     ],
   }),
   component: AuditPage,
@@ -48,7 +67,11 @@ function AuditPage() {
   });
 
   if (!can("audit")) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">Seu perfil não acessa a auditoria.</Card>;
+    return (
+      <Card className="p-8 text-center text-sm text-muted-foreground">
+        Seu perfil não acessa a auditoria.
+      </Card>
+    );
   }
 
   const events = auditQuery.data ?? [];
@@ -58,7 +81,10 @@ function AuditPage() {
 
   return (
     <>
-      <PageHeader title="Auditoria e uso" description="Registro imutável de ações administrativas e de segurança." />
+      <PageHeader
+        title="Auditoria e uso"
+        description="Registro imutável de ações administrativas e de segurança."
+      />
 
       {usage && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -76,7 +102,9 @@ function AuditPage() {
           ))}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Latência média do RAG</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Latência média do RAG
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold tabular-nums">
@@ -110,7 +138,9 @@ function AuditPage() {
       <Card className="overflow-hidden p-0">
         {auditQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
         {auditQuery.isSuccess && rows.length === 0 && (
-          <p className="p-6 text-sm text-muted-foreground">Nenhum evento de auditoria registrado.</p>
+          <p className="p-6 text-sm text-muted-foreground">
+            Nenhum evento de auditoria registrado.
+          </p>
         )}
         {rows.length > 0 && (
           <Table>

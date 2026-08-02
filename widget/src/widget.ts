@@ -47,7 +47,9 @@ export class ChatRagWidget {
       this.panel.hidden = true;
     }
 
-    const mountPoint = this.options.mountSelector ? document.querySelector(this.options.mountSelector) : null;
+    const mountPoint = this.options.mountSelector
+      ? document.querySelector(this.options.mountSelector)
+      : null;
     (mountPoint ?? document.body).append(host);
 
     this.renderGreeting();
@@ -69,13 +71,21 @@ export class ChatRagWidget {
   }
 
   private buildLauncher() {
-    const launcher = el("button", { class: "chatrag-launcher", "aria-label": this.options.title, html: CHAT_ICON });
+    const launcher = el("button", {
+      class: "chatrag-launcher",
+      "aria-label": this.options.title,
+      html: CHAT_ICON,
+    });
     launcher.addEventListener("click", () => this.toggle());
     this.root.append(launcher);
   }
 
   private buildPanel() {
-    const closeBtn = el("button", { class: "chatrag-close", "aria-label": "Fechar", html: CLOSE_ICON });
+    const closeBtn = el("button", {
+      class: "chatrag-close",
+      "aria-label": "Fechar",
+      html: CLOSE_ICON,
+    });
     closeBtn.addEventListener("click", () => this.toggle());
 
     const headerChildren: (Node | string)[] = [el("h1", {}, [this.options.title])];
@@ -85,7 +95,11 @@ export class ChatRagWidget {
 
     this.messagesEl = el("div", { class: "chatrag-messages" });
 
-    this.input = el("textarea", { class: "chatrag-input", rows: "1", placeholder: "Escreva sua mensagem..." });
+    this.input = el("textarea", {
+      class: "chatrag-input",
+      rows: "1",
+      placeholder: "Escreva sua mensagem...",
+    });
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -181,7 +195,8 @@ export class ChatRagWidget {
    * atendimento quebrou, quando o chat esta funcionando normalmente. */
   private describeHandoffError(err: unknown): string {
     if (err instanceof ChatRagApiError) {
-      if (err.status === 409) return "O encaminhamento para atendente nao esta disponivel neste atendimento.";
+      if (err.status === 409)
+        return "O encaminhamento para atendente nao esta disponivel neste atendimento.";
       if (err.status === 422) return "Nao consegui identificar o setor escolhido. Tente novamente.";
     }
     return this.describeError(err);
@@ -191,7 +206,8 @@ export class ChatRagWidget {
     if (!this.conversationId) return;
     try {
       const result = await this.api.requestHandoff(this.options.key, this.conversationId, sectorId);
-      if (!result.needsSectorSelection) window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+      if (!result.needsSectorSelection)
+        window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       this.messages.push({ role: "assistente", content: this.describeError(err) });
       this.renderMessages();
@@ -220,9 +236,11 @@ export class ChatRagWidget {
 
   private describeError(err: unknown): string {
     if (err instanceof ChatRagApiError) {
-      if (err.status === 429) return "Muitas mensagens em pouco tempo. Tente novamente em instantes.";
+      if (err.status === 429)
+        return "Muitas mensagens em pouco tempo. Tente novamente em instantes.";
       if (err.status === 409) return "Este assistente esta temporariamente indisponivel.";
-      if (err.status === 401 || err.status === 403) return "Este atendimento nao esta disponivel neste site.";
+      if (err.status === 401 || err.status === 403)
+        return "Este atendimento nao esta disponivel neste site.";
     }
     return "Nao foi possivel enviar sua mensagem agora. Tente novamente.";
   }

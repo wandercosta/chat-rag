@@ -5,7 +5,14 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { masterApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -42,7 +49,11 @@ function PlatformOverview() {
   const metrics = [
     { label: "Organizações", value: tenants.length, icon: Building2 },
     { label: "Ativas", value: tenants.filter((t) => t.status === "ativo").length, icon: Users },
-    { label: "Suspensas", value: tenants.filter((t) => t.status === "suspenso").length, icon: PauseCircle },
+    {
+      label: "Suspensas",
+      value: tenants.filter((t) => t.status === "suspenso").length,
+      icon: PauseCircle,
+    },
   ];
 
   return (
@@ -69,7 +80,9 @@ function PlatformOverview() {
       <Card className="overflow-hidden p-0">
         {tenantsQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
         {tenantsQuery.isSuccess && tenants.length === 0 && (
-          <p className="p-6 text-sm text-muted-foreground">Nenhuma organização provisionada ainda.</p>
+          <p className="p-6 text-sm text-muted-foreground">
+            Nenhuma organização provisionada ainda.
+          </p>
         )}
         {tenants.length > 0 && (
           <Table>
@@ -87,7 +100,9 @@ function PlatformOverview() {
               {tenants.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{t.slug}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {t.slug}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={t.status} />
                   </TableCell>
@@ -113,11 +128,14 @@ function PlatformOverview() {
 
       <Card className="border-dashed">
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">Consumo agregado</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Consumo agregado
+          </CardTitle>
           <CardDescription>
-            Métricas de uso cruzando todos os tenants (mensagens por período, assistentes, custo estimado) ainda
-            não existem no backend — `usage_events` hoje é agregado por organização, não pela plataforma inteira.
-            O consumo de cada organização está em Auditoria e uso, dentro do tenant.
+            Métricas de uso cruzando todos os tenants (mensagens por período, assistentes, custo
+            estimado) ainda não existem no backend — `usage_events` hoje é agregado por organização,
+            não pela plataforma inteira. O consumo de cada organização está em Auditoria e uso,
+            dentro do tenant.
           </CardDescription>
         </CardHeader>
       </Card>

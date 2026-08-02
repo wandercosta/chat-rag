@@ -14,8 +14,11 @@ function readContext(): Record<string, unknown> | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
-    console.error("[chatrag-widget] data-context precisa ser um objeto JSON, ex.: '{\"plano\":\"Pro\"}'");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+      return parsed as Record<string, unknown>;
+    console.error(
+      '[chatrag-widget] data-context precisa ser um objeto JSON, ex.: \'{"plano":"Pro"}\'',
+    );
   } catch {
     console.error("[chatrag-widget] data-context nao e um JSON valido");
   }
@@ -33,7 +36,10 @@ function readOptions(): WidgetOptions | null {
     key,
     apiBaseUrl: attr("data-api", __CHATRAG_DEFAULT_API_BASE_URL__),
     mode: (attr("data-mode", "floating") as Mode) === "embedded" ? "embedded" : "floating",
-    position: (attr("data-position", "bottom-right") as Position) === "bottom-left" ? "bottom-left" : "bottom-right",
+    position:
+      (attr("data-position", "bottom-right") as Position) === "bottom-left"
+        ? "bottom-left"
+        : "bottom-right",
     theme: (["light", "dark", "sync"] as Theme[]).includes(attr("data-theme") as Theme)
       ? (attr("data-theme") as Theme)
       : "light",

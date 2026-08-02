@@ -2,7 +2,7 @@
 
 ## Local
 
-Docker Compose sobe PostgreSQL com pgvector, Redis e MinIO. API, worker, painel e widget devem ter configuracoes separadas por ambiente.
+Docker Compose sobe PostgreSQL com pgvector, Redis e MinIO (ver detalhes e padronização em [`containers.md`](containers.md)). API, worker, painel e widget devem ter configurações separadas por ambiente.
 
 ## Ambientes externos
 

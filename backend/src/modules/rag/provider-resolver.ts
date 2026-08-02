@@ -16,7 +16,9 @@ export async function resolveProviderForTenant(
 }
 
 /** Para operacoes internas (ex.: indexacao) onde qualquer ambiente valido serve. */
-export async function resolveAnyProviderForTenant(organizationId: string): Promise<ProviderAdapter> {
+export async function resolveAnyProviderForTenant(
+  organizationId: string,
+): Promise<ProviderAdapter> {
   const producao = await aiCredentialsService.resolveActiveKey(organizationId, "producao");
   if (producao) return createOpenAiAdapter(producao);
 

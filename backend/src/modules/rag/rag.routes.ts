@@ -19,16 +19,23 @@ export async function ragRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = messageSchema.parse(request.body);
       try {
-        return await answerService.answer(request.params.organizationId, request.params.assistantId, body.message, {
-          conversationId: body.conversationId,
-          environment: body.environment,
-        });
+        return await answerService.answer(
+          request.params.organizationId,
+          request.params.assistantId,
+          body.message,
+          {
+            conversationId: body.conversationId,
+            environment: body.environment,
+          },
+        );
       } catch (err) {
         if (err instanceof AssistantNotFoundError) {
           return reply.code(404).send({ error: "assistente nao encontrado" });
         }
         if (err instanceof NoActiveCredentialError) {
-          return reply.code(409).send({ error: "sem chave de IA valida configurada para esta organizacao" });
+          return reply
+            .code(409)
+            .send({ error: "sem chave de IA valida configurada para esta organizacao" });
         }
         throw err;
       }

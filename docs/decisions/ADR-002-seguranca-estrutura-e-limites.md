@@ -20,7 +20,7 @@ Complementa o ADR-001 com decisoes levantadas em revisao de arquitetura anterior
    - 60 requisicoes/minuto por chave+IP;
    - 30 novas conversas/hora por chave+dominio;
    - 60 mensagens/hora por conversa.
-   Mecanismo: janela deslizante ou token bucket no Redis. CAPTCHA ou desafio antiautomacao continua como camada adicional futura, conforme telemetria de abuso (ver `security/privacidade-e-acesso.md`), mas o rate limit numerico acima nao depende dessa telemetria para existir.
+     Mecanismo: janela deslizante ou token bucket no Redis. CAPTCHA ou desafio antiautomacao continua como camada adicional futura, conforme telemetria de abuso (ver `security/privacidade-e-acesso.md`), mas o rate limit numerico acima nao depende dessa telemetria para existir.
 
 6. **Job de retencao.** Um worker agendado (job recorrente na mesma infraestrutura de fila) executa a expurgacao/anonimizacao de conversas alem da politica de retencao efetiva de cada organizacao/assistente. Cada execucao gera um `audit_event` agregado (organizacao, quantidade afetada, timestamp), sem registrar conteudo de conversa. Criado junto com a funcionalidade de retencao configuravel; nao bloqueia a Fase 0.
 

@@ -34,7 +34,10 @@ export async function assistantsRoutes(app: FastifyInstance) {
     "/organizations/:organizationId/assistants/:assistantId",
     { preHandler: requireOrgRole([...roles, "Analista"]) },
     async (request, reply) => {
-      const assistant = await assistantsService.get(request.params.organizationId, request.params.assistantId);
+      const assistant = await assistantsService.get(
+        request.params.organizationId,
+        request.params.assistantId,
+      );
       if (!assistant) return reply.code(404).send({ error: "assistente nao encontrado" });
       return assistant;
     },
@@ -46,11 +49,17 @@ export async function assistantsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = createSchema.parse(request.body);
       try {
-        const assistant = await assistantsService.create(request.auth!.userId, request.params.organizationId, body);
+        const assistant = await assistantsService.create(
+          request.auth!.userId,
+          request.params.organizationId,
+          body,
+        );
         return reply.code(201).send(assistant);
       } catch (err) {
         if (err instanceof ModelNotAllowedError) {
-          return reply.code(422).send({ error: "modelo nao esta na lista liberada para esta organizacao" });
+          return reply
+            .code(422)
+            .send({ error: "modelo nao esta na lista liberada para esta organizacao" });
         }
         throw err;
       }
@@ -73,7 +82,9 @@ export async function assistantsRoutes(app: FastifyInstance) {
         return assistant;
       } catch (err) {
         if (err instanceof ModelNotAllowedError) {
-          return reply.code(422).send({ error: "modelo nao esta na lista liberada para esta organizacao" });
+          return reply
+            .code(422)
+            .send({ error: "modelo nao esta na lista liberada para esta organizacao" });
         }
         throw err;
       }

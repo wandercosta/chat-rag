@@ -43,14 +43,27 @@ const worker = new Worker<SourceIndexingJob>(
     try {
       await sourcesService.markProcessing(organizationId, sourceId);
       const { topicId, chunks } = await extractionService.extractAndChunk(organizationId, sourceId);
-      const chunkCount = await indexingService.embedAndStoreChunks(organizationId, sourceId, topicId, chunks);
+      const chunkCount = await indexingService.embedAndStoreChunks(
+        organizationId,
+        sourceId,
+        topicId,
+        chunks,
+      );
       await sourcesService.markReady(organizationId, sourceId, chunkCount);
-      await usageService.record({ organizationId, type: "indexing_completed", payload: { sourceId, chunkCount } });
+      await usageService.record({
+        organizationId,
+        type: "indexing_completed",
+        payload: { sourceId, chunkCount },
+      });
     } catch (err) {
       if (err instanceof DelayedError) throw err;
       const message = err instanceof Error ? err.message : "erro desconhecido na indexacao";
       await sourcesService.markError(organizationId, sourceId, message);
-      await usageService.record({ organizationId, type: "indexing_failed", payload: { sourceId, message } });
+      await usageService.record({
+        organizationId,
+        type: "indexing_failed",
+        payload: { sourceId, message },
+      });
     } finally {
       await releaseTenantSlot(organizationId);
     }

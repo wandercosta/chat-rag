@@ -3,7 +3,12 @@ import type { MigrationBuilder } from "node-pg-migrate";
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("embed_keys", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     assistant_id: { type: "uuid", notNull: true, references: "assistants", onDelete: "cascade" },
     environment: { type: "text", notNull: true },
     key_hash: { type: "text", notNull: true, unique: true },

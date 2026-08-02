@@ -3,7 +3,12 @@ import { s3, SOURCES_BUCKET } from "./s3.js";
 
 export async function putSourceFile(key: string, body: Buffer, contentType: string): Promise<void> {
   await s3.send(
-    new PutObjectCommand({ Bucket: SOURCES_BUCKET, Key: key, Body: body, ContentType: contentType }),
+    new PutObjectCommand({
+      Bucket: SOURCES_BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
   );
 }
 
@@ -16,6 +21,10 @@ export async function getSourceFile(key: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-export function sourceObjectKey(organizationId: string, sourceId: string, filename: string): string {
+export function sourceObjectKey(
+  organizationId: string,
+  sourceId: string,
+  filename: string,
+): string {
   return `${organizationId}/${sourceId}/${filename}`;
 }

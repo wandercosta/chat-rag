@@ -43,10 +43,20 @@ export const conversationsRepository = {
       .execute();
   },
 
-  start(organizationId: string, assistantId: string, channel: ConversationChannel, visitorId: string | null) {
+  start(
+    organizationId: string,
+    assistantId: string,
+    channel: ConversationChannel,
+    visitorId: string | null,
+  ) {
     return db
       .insertInto("conversations")
-      .values({ organization_id: organizationId, assistant_id: assistantId, channel, visitor_id: visitorId })
+      .values({
+        organization_id: organizationId,
+        assistant_id: assistantId,
+        channel,
+        visitor_id: visitorId,
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
   },

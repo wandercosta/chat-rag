@@ -27,7 +27,13 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession, type Permission } from "@/lib/session";
 
-type Item = { title: string; url: string; icon: typeof Bot; perm?: Permission; masterOnly?: boolean };
+type Item = {
+  title: string;
+  url: string;
+  icon: typeof Bot;
+  perm?: Permission;
+  masterOnly?: boolean;
+};
 
 const tenantItems: Item[] = [
   { title: "Visão geral do tenant", url: "/", icon: LayoutDashboard },

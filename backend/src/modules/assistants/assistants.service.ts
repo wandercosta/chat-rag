@@ -44,9 +44,17 @@ export const assistantsService = {
     return assistant;
   },
 
-  async update(actorUserId: string, organizationId: string, id: string, input: AssistantUpdateInput) {
+  async update(
+    actorUserId: string,
+    organizationId: string,
+    id: string,
+    input: AssistantUpdateInput,
+  ) {
     if (input.modelId) {
-      const allowed = await modelCatalogRepository.isAllowedForTenant(organizationId, input.modelId);
+      const allowed = await modelCatalogRepository.isAllowedForTenant(
+        organizationId,
+        input.modelId,
+      );
       if (!allowed) throw new ModelNotAllowedError();
     }
 
@@ -65,14 +73,19 @@ export const assistantsService = {
 
   /** Politica efetiva por assistente: assistente > organizacao > padrao de
    * plataforma. Usado pelo job de retencao (modulo conversations). */
-  async listAllWithEffectiveRetention(): Promise<{ id: string; organizationId: string; retentionDays: number }[]> {
+  async listAllWithEffectiveRetention(): Promise<
+    { id: string; organizationId: string; retentionDays: number }[]
+  > {
     const rows = await assistantsRepository.listAll();
     const orgCache = new Map<string, number | null>();
 
     const result = [];
     for (const row of rows) {
       if (!orgCache.has(row.organization_id)) {
-        orgCache.set(row.organization_id, await organizationsService.getRetentionDays(row.organization_id));
+        orgCache.set(
+          row.organization_id,
+          await organizationsService.getRetentionDays(row.organization_id),
+        );
       }
       const orgDays = orgCache.get(row.organization_id) ?? null;
       result.push({

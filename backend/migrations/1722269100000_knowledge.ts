@@ -6,7 +6,12 @@ import type { MigrationBuilder } from "node-pg-migrate";
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("knowledge_collections", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     name: { type: "text", notNull: true },
     description: { type: "text" },
     requires_review: { type: "boolean", notNull: true, default: false },
@@ -16,7 +21,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("assistant_collections", {
     assistant_id: { type: "uuid", notNull: true, references: "assistants", onDelete: "cascade" },
-    collection_id: { type: "uuid", notNull: true, references: "knowledge_collections", onDelete: "cascade" },
+    collection_id: {
+      type: "uuid",
+      notNull: true,
+      references: "knowledge_collections",
+      onDelete: "cascade",
+    },
   });
   pgm.addConstraint("assistant_collections", "assistant_collections_pk", {
     primaryKey: ["assistant_id", "collection_id"],
@@ -24,7 +34,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("topics", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     collection_id: { type: "uuid", references: "knowledge_collections", onDelete: "set null" },
     name: { type: "text", notNull: true },
     description: { type: "text" },
@@ -35,7 +50,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("sources", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     topic_id: { type: "uuid", notNull: true, references: "topics", onDelete: "cascade" },
     title: { type: "text", notNull: true },
     kind: { type: "text", notNull: true },

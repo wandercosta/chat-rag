@@ -9,7 +9,11 @@ export class ChatRagApiError extends Error {
   }
 }
 
-async function postJson<T>(baseUrl: string, path: string, body: Record<string, unknown>): Promise<T> {
+async function postJson<T>(
+  baseUrl: string,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -18,7 +22,10 @@ async function postJson<T>(baseUrl: string, path: string, body: Record<string, u
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new ChatRagApiError(response.status, (data as { error?: string }).error ?? "erro inesperado");
+    throw new ChatRagApiError(
+      response.status,
+      (data as { error?: string }).error ?? "erro inesperado",
+    );
   }
   return data as T;
 }
@@ -50,14 +57,21 @@ export function createApiClient(baseUrl: string) {
     },
 
     sendMessage(key: string, conversationId: string, message: string) {
-      return postJson<{ answer: string }>(baseUrl, `/widget/conversations/${conversationId}/messages`, {
-        key,
-        message,
-      });
+      return postJson<{ answer: string }>(
+        baseUrl,
+        `/widget/conversations/${conversationId}/messages`,
+        {
+          key,
+          message,
+        },
+      );
     },
 
     sendFeedback(key: string, conversationId: string, rating: "positivo" | "negativo") {
-      return postJson<{ ok: true }>(baseUrl, `/widget/conversations/${conversationId}/feedback`, { key, rating });
+      return postJson<{ ok: true }>(baseUrl, `/widget/conversations/${conversationId}/feedback`, {
+        key,
+        rating,
+      });
     },
 
     requestHandoff(key: string, conversationId: string, sectorId?: string) {

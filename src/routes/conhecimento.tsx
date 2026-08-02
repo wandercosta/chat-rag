@@ -11,9 +11,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -38,9 +56,15 @@ export const Route = createFileRoute("/conhecimento")({
   head: () => ({
     meta: [
       { title: "Base de conhecimento — ChatRAG" },
-      { name: "description", content: "Tópicos e fontes da base de conhecimento privada, com status de indexação." },
+      {
+        name: "description",
+        content: "Tópicos e fontes da base de conhecimento privada, com status de indexação.",
+      },
       { property: "og:title", content: "Base de conhecimento — ChatRAG" },
-      { property: "og:description", content: "Gerencie tópicos, fontes e reindexação da base privada." },
+      {
+        property: "og:description",
+        content: "Gerencie tópicos, fontes e reindexação da base privada.",
+      },
     ],
   }),
   component: KnowledgePage,
@@ -100,7 +124,11 @@ function KnowledgePage() {
         </Card>
       )}
 
-      <Accordion type="multiple" defaultValue={topics.slice(0, 1).map((t) => t.id)} className="space-y-3">
+      <Accordion
+        type="multiple"
+        defaultValue={topics.slice(0, 1).map((t) => t.id)}
+        className="space-y-3"
+      >
         {topics.map((topic) => (
           <TopicSection
             key={topic.id}
@@ -114,10 +142,12 @@ function KnowledgePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">Nota de operação</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Nota de operação
+          </CardTitle>
           <CardDescription>
-            A ordem de processamento é: rascunho → aguardando revisão → na fila → processando → pronta. Sem chave de
-            IA válida, as fontes ficam em “aguardando ativação”.
+            A ordem de processamento é: rascunho → aguardando revisão → na fila → processando →
+            pronta. Sem chave de IA válida, as fontes ficam em “aguardando ativação”.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -145,19 +175,26 @@ function TopicSection({
   });
 
   const moveToCollection = useMutation({
-    mutationFn: (collectionId: string | null) => topicsApi.update(tenantId!, topic.id, { collectionId }),
+    mutationFn: (collectionId: string | null) =>
+      topicsApi.update(tenantId!, topic.id, { collectionId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topics", tenantId] });
       toast.success("Coleção do tópico atualizada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível mover o tópico"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível mover o tópico"),
   });
 
   const collectionName = collections.find((c) => c.id === topic.collection_id)?.name;
 
   const action = useMutation({
-    mutationFn: ({ sourceId, kind }: { sourceId: string; kind: "approve" | "reindex" | "archive" }) =>
-      sourcesApi[kind](tenantId!, sourceId),
+    mutationFn: ({
+      sourceId,
+      kind,
+    }: {
+      sourceId: string;
+      kind: "approve" | "reindex" | "archive";
+    }) => sourcesApi[kind](tenantId!, sourceId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["sources", tenantId, topic.id] });
       const messages = {
@@ -167,7 +204,8 @@ function TopicSection({
       };
       toast.success(messages[variables.kind]);
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível concluir a ação"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível concluir a ação"),
   });
 
   const sources = sourcesQuery.data ?? [];
@@ -212,7 +250,9 @@ function TopicSection({
             </p>
           </div>
         )}
-        {sourcesQuery.isLoading && <p className="py-3 text-sm text-muted-foreground">Carregando fontes…</p>}
+        {sourcesQuery.isLoading && (
+          <p className="py-3 text-sm text-muted-foreground">Carregando fontes…</p>
+        )}
         {sourcesQuery.isSuccess && sources.length === 0 && (
           <p className="py-3 text-sm text-muted-foreground">Nenhuma fonte neste tópico ainda.</p>
         )}
@@ -233,7 +273,9 @@ function TopicSection({
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">
                     {s.title}
-                    {s.error_message && <p className="text-xs text-destructive">{s.error_message}</p>}
+                    {s.error_message && (
+                      <p className="text-xs text-destructive">{s.error_message}</p>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{s.kind}</TableCell>
                   <TableCell>
@@ -296,7 +338,8 @@ function NewCollectionDialog({ tenantId }: { tenantId: string | null }) {
       setDescription("");
       toast.success("Coleção criada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a coleção"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a coleção"),
   });
 
   return (
@@ -310,8 +353,8 @@ function NewCollectionDialog({ tenantId }: { tenantId: string | null }) {
         <DialogHeader>
           <DialogTitle>Nova coleção</DialogTitle>
           <DialogDescription>
-            Coleções restringem o que cada assistente consulta. Um assistente sem nenhuma coleção vinculada
-            continua consultando toda a base.
+            Coleções restringem o que cada assistente consulta. Um assistente sem nenhuma coleção
+            vinculada continua consultando toda a base.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -323,11 +366,21 @@ function NewCollectionDialog({ tenantId }: { tenantId: string | null }) {
         >
           <div className="grid gap-2">
             <Label htmlFor="c-name">Nome</Label>
-            <Input id="c-name" required minLength={2} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="c-name"
+              required
+              minLength={2}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="c-desc">Descrição (opcional)</Label>
-            <Input id="c-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input
+              id="c-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -343,7 +396,13 @@ function NewCollectionDialog({ tenantId }: { tenantId: string | null }) {
   );
 }
 
-function NewTopicDialog({ tenantId, collections }: { tenantId: string | null; collections: Collection[] }) {
+function NewTopicDialog({
+  tenantId,
+  collections,
+}: {
+  tenantId: string | null;
+  collections: Collection[];
+}) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -364,7 +423,8 @@ function NewTopicDialog({ tenantId, collections }: { tenantId: string | null; co
       setDescription("");
       toast.success("Tópico criado");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o tópico"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o tópico"),
   });
 
   return (
@@ -388,11 +448,21 @@ function NewTopicDialog({ tenantId, collections }: { tenantId: string | null; co
         >
           <div className="grid gap-2">
             <Label htmlFor="t-name">Nome</Label>
-            <Input id="t-name" required minLength={2} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="t-name"
+              required
+              minLength={2}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="t-desc">Descrição (opcional)</Label>
-            <Input id="t-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input
+              id="t-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
           {collections.length > 0 && (
             <div className="grid gap-2">
@@ -456,11 +526,14 @@ function NewSourceDialog({ tenantId, topics }: { tenantId: string | null; topics
       reset();
       toast.success("Fonte cadastrada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível cadastrar a fonte"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível cadastrar a fonte"),
   });
 
   const ready =
-    topicId && title.trim().length >= 2 && (kind === "arquivo" ? !!file : content.trim().length > 0);
+    topicId &&
+    title.trim().length >= 2 &&
+    (kind === "arquivo" ? !!file : content.trim().length > 0);
 
   return (
     <Dialog
@@ -479,7 +552,8 @@ function NewSourceDialog({ tenantId, topics }: { tenantId: string | null; topics
         <DialogHeader>
           <DialogTitle>Adicionar fonte</DialogTitle>
           <DialogDescription>
-            Texto, URL ou arquivo (PDF/DOCX). A indexação entra na fila automaticamente quando há chave de IA válida.
+            Texto, URL ou arquivo (PDF/DOCX). A indexação entra na fila automaticamente quando há
+            chave de IA válida.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -506,7 +580,13 @@ function NewSourceDialog({ tenantId, topics }: { tenantId: string | null; topics
           </div>
           <div className="grid gap-2">
             <Label htmlFor="s-title">Título</Label>
-            <Input id="s-title" required minLength={2} value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              id="s-title"
+              required
+              minLength={2}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="s-kind">Tipo</Label>
@@ -543,7 +623,12 @@ function NewSourceDialog({ tenantId, topics }: { tenantId: string | null; topics
                   onChange={(e) => setContent(e.target.value)}
                 />
               ) : (
-                <Textarea id="s-content" rows={6} value={content} onChange={(e) => setContent(e.target.value)} />
+                <Textarea
+                  id="s-content"
+                  rows={6}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
               )}
             </div>
           )}

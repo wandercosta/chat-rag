@@ -32,7 +32,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 A mensagem de "nao sei responder" e escrita para o visitante, nao para diagnostico: nao menciona "base de conhecimento" nem outro jargao do produto, e so oferece atendente quando o assistente realmente tem WhatsApp configurado — do contrario sugere reformular a pergunta, em vez de prometer um caminho que o widget nao tem como abrir.
 
-Saudacao e cortesia ("oi", "bom dia", "obrigado") nao passam pela base: recebem resposta cordial e **nao** geram lacuna. Antes, um "oi" respondia "nao encontrei essa informacao na base" — como se o produto estivesse quebrado — e entrava na lista de lacunas do tenant, que deveria mostrar o que falta na base. A deteccao (`rag/smalltalk.ts`) e conservadora de proposito: so trata como cortesia a mensagem que e *inteiramente* cortesia; "oi, qual o horario?" segue o fluxo normal.
+Saudacao e cortesia ("oi", "bom dia", "obrigado") nao passam pela base: recebem resposta cordial e **nao** geram lacuna. Antes, um "oi" respondia "nao encontrei essa informacao na base" — como se o produto estivesse quebrado — e entrava na lista de lacunas do tenant, que deveria mostrar o que falta na base. A deteccao (`rag/smalltalk.ts`) e conservadora de proposito: so trata como cortesia a mensagem que e _inteiramente_ cortesia; "oi, qual o horario?" segue o fluxo normal.
 
 As ultimas mensagens da conversa acompanham a pergunta enviada ao modelo, e uma pergunta curta de continuidade herda a anterior para efeito de busca vetorial e de registro de lacuna. Sem isso, "e o CPF?" nao tinha como saber de quem: o visitante recebia "nao encontrei na base" com o dado indexado, e a lacuna registrada ("e o salario dele?") era inutil para quem fosse melhorar a base depois.
 

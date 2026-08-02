@@ -13,7 +13,8 @@
 
 export type SmalltalkKind = "saudacao" | "agradecimento" | "despedida";
 
-const GREETING = /^(oi+|ola+|opa|eae?|e ai|hey|hi|hello|bom dia|boa tarde|boa noite|tudo bem|tudo bom|como vai)$/;
+const GREETING =
+  /^(oi+|ola+|opa|eae?|e ai|hey|hi|hello|bom dia|boa tarde|boa noite|tudo bem|tudo bom|como vai)$/;
 const THANKS = /^(obrigad[oa]|valeu|vlw|agradecid[oa]|muito obrigad[oa]|thanks|obg)$/;
 const FAREWELL = /^(tchau|ate mais|ate logo|adeus|falou|ate breve|bye)$/;
 
@@ -50,8 +51,14 @@ export function detectSmalltalk(message: string): SmalltalkKind | null {
   if (parts.length <= 4) {
     let i = 0;
     while (i < parts.length) {
-      if (GREETING.test(parts[i])) { i += 1; continue; }
-      if (i + 1 < parts.length && GREETING.test(`${parts[i]} ${parts[i + 1]}`)) { i += 2; continue; }
+      if (GREETING.test(parts[i])) {
+        i += 1;
+        continue;
+      }
+      if (i + 1 < parts.length && GREETING.test(`${parts[i]} ${parts[i + 1]}`)) {
+        i += 2;
+        continue;
+      }
       return null;
     }
     return "saudacao";

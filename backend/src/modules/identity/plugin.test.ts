@@ -21,11 +21,11 @@ function fakeReply() {
       return reply;
     },
   };
-  return { reply: reply as any, calls };
+  return { reply: reply as unknown as import("fastify").FastifyReply, calls };
 }
 
 function fakeRequest(auth: AuthContext | null, organizationId?: string) {
-  return { auth, params: { organizationId } } as any;
+  return { auth, params: { organizationId } } as unknown as import("fastify").FastifyRequest;
 }
 
 beforeEach(() => {
@@ -36,13 +36,19 @@ beforeEach(() => {
 describe("requireMaster", () => {
   it("blocks a request without platform role", async () => {
     const { reply, calls } = fakeReply();
-    await requireMaster(fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] }), reply);
+    await requireMaster(
+      fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] }),
+      reply,
+    );
     expect(calls.code).toBe(403);
   });
 
   it("allows a request with platform role", async () => {
     const { reply, calls } = fakeReply();
-    await requireMaster(fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: true, memberships: [] }), reply);
+    await requireMaster(
+      fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: true, memberships: [] }),
+      reply,
+    );
     expect(calls.code).toBeUndefined();
   });
 });
@@ -91,7 +97,12 @@ describe("requireOrgRole", () => {
     hasActive.mockResolvedValue(false);
     const guard = requireOrgRole(["Administrador"]);
     const { reply, calls } = fakeReply();
-    const auth: AuthContext = { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] };
+    const auth: AuthContext = {
+      userId: "master-1",
+      email: "master@example.com",
+      isPlatform: true,
+      memberships: [],
+    };
     await guard(fakeRequest(auth, "org-a"), reply);
     expect(calls.code).toBe(403);
   });
@@ -100,7 +111,12 @@ describe("requireOrgRole", () => {
     hasActive.mockResolvedValue(true);
     const guard = requireOrgRole(["Administrador"]);
     const { reply, calls } = fakeReply();
-    const auth: AuthContext = { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] };
+    const auth: AuthContext = {
+      userId: "master-1",
+      email: "master@example.com",
+      isPlatform: true,
+      memberships: [],
+    };
     await guard(fakeRequest(auth, "org-a"), reply);
     expect(calls.code).toBeUndefined();
     expect(hasActive).toHaveBeenCalledWith("master-1", "org-a");
@@ -110,21 +126,39 @@ describe("requireOrgRole", () => {
 describe("requireMasterSupportSession", () => {
   it("blocks a non-Master user", async () => {
     const { reply, calls } = fakeReply();
-    await requireMasterSupportSession(fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] }, "org-a"), reply);
+    await requireMasterSupportSession(
+      fakeRequest(
+        { userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] },
+        "org-a",
+      ),
+      reply,
+    );
     expect(calls.code).toBe(403);
   });
 
   it("blocks Master without an active session", async () => {
     hasActive.mockResolvedValue(false);
     const { reply, calls } = fakeReply();
-    await requireMasterSupportSession(fakeRequest({ userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] }, "org-a"), reply);
+    await requireMasterSupportSession(
+      fakeRequest(
+        { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] },
+        "org-a",
+      ),
+      reply,
+    );
     expect(calls.code).toBe(403);
   });
 
   it("allows Master with an active session", async () => {
     hasActive.mockResolvedValue(true);
     const { reply, calls } = fakeReply();
-    await requireMasterSupportSession(fakeRequest({ userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] }, "org-a"), reply);
+    await requireMasterSupportSession(
+      fakeRequest(
+        { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] },
+        "org-a",
+      ),
+      reply,
+    );
     expect(calls.code).toBeUndefined();
   });
 });

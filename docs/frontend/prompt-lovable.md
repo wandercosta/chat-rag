@@ -49,12 +49,12 @@ Simule um seletor/estado de "sessao atual" que alterna entre "Master" e um tenan
 
 ### Perfis e visibilidade condicional
 
-| Perfil | O que ve |
-|---|---|
-| Master | Tudo: todas as organizacoes, usuarios, auditoria e configuracoes globais |
-| Administrador (tenant) | Todos os recursos da propria organizacao |
-| Editor de base (tenant) | Somente topicos e fontes; sem acesso a chaves ou usuarios |
-| Analista (tenant) | Somente conversas, feedbacks, lacunas e metricas, em modo leitura |
+| Perfil                  | O que ve                                                                 |
+| ----------------------- | ------------------------------------------------------------------------ |
+| Master                  | Tudo: todas as organizacoes, usuarios, auditoria e configuracoes globais |
+| Administrador (tenant)  | Todos os recursos da propria organizacao                                 |
+| Editor de base (tenant) | Somente topicos e fontes; sem acesso a chaves ou usuarios                |
+| Analista (tenant)       | Somente conversas, feedbacks, lacunas e metricas, em modo leitura        |
 
 Ajuste a sidebar e os botoes de acao visiveis conforme o perfil simulado selecionado no protótipo.
 

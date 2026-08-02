@@ -7,7 +7,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("support_access_sessions", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
     master_user_id: { type: "uuid", notNull: true, references: "users", onDelete: "cascade" },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     justification: { type: "text", notNull: true },
     started_at: { type: "timestamptz", notNull: true, default: pgm.func("now()") },
     expires_at: { type: "timestamptz", notNull: true },

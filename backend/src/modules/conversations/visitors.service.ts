@@ -12,7 +12,10 @@ export const visitorsService = {
     if (!input.externalUserId && !input.name && !input.email && !input.context) return null;
 
     if (input.externalUserId) {
-      const existing = await visitorsRepository.findByExternalId(organizationId, input.externalUserId);
+      const existing = await visitorsRepository.findByExternalId(
+        organizationId,
+        input.externalUserId,
+      );
       if (existing) {
         if (input.name === undefined && input.email === undefined && input.context === undefined) {
           return existing;

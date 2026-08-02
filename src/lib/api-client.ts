@@ -116,7 +116,10 @@ export const masterApi = {
   listSupportSessions: (organizationId: string) =>
     get<SupportSession[]>(`/master/tenants/${organizationId}/support-sessions`),
   startSupportSession: (organizationId: string, justification: string, minutes: number) =>
-    post<SupportSession>(`/master/tenants/${organizationId}/support-sessions`, { justification, minutes }),
+    post<SupportSession>(`/master/tenants/${organizationId}/support-sessions`, {
+      justification,
+      minutes,
+    }),
   endSupportSession: (organizationId: string, sessionId: string) =>
     post<{ ok: true }>(`/master/tenants/${organizationId}/support-sessions/${sessionId}/end`),
   /** Estado da chave de IA do tenant visto pelo Master: exige sessao de
@@ -258,7 +261,8 @@ export interface CreateCollectionInput {
 }
 
 export const collectionsApi = {
-  list: (organizationId: string) => get<Collection[]>(`/organizations/${organizationId}/collections`),
+  list: (organizationId: string) =>
+    get<Collection[]>(`/organizations/${organizationId}/collections`),
   create: (organizationId: string, input: CreateCollectionInput) =>
     post<Collection>(`/organizations/${organizationId}/collections`, input),
   listForAssistant: (organizationId: string, assistantId: string) =>
@@ -283,7 +287,15 @@ export interface Source {
   topic_id: string;
   title: string;
   kind: "texto" | "URL" | "PDF" | "DOCX";
-  status: "rascunho" | "aguardando_revisao" | "aguardando_ativacao" | "fila" | "processando" | "pronta" | "erro" | "arquivada";
+  status:
+    | "rascunho"
+    | "aguardando_revisao"
+    | "aguardando_ativacao"
+    | "fila"
+    | "processando"
+    | "pronta"
+    | "erro"
+    | "arquivada";
   origin_url: string | null;
   error_message: string | null;
   chunk_count: number;
@@ -355,7 +367,9 @@ export const membersApi = {
       body: JSON.stringify({ role }),
     }),
   remove: (organizationId: string, membershipId: string) =>
-    apiFetch<{ ok: true }>(`/organizations/${organizationId}/members/${membershipId}`, { method: "DELETE" }),
+    apiFetch<{ ok: true }>(`/organizations/${organizationId}/members/${membershipId}`, {
+      method: "DELETE",
+    }),
 };
 
 // --- embed: widget keys ------------------------------------------------
@@ -384,7 +398,8 @@ export interface CreateWidgetKeyInput {
 }
 
 export const widgetKeysApi = {
-  list: (organizationId: string) => get<WidgetKey[]>(`/organizations/${organizationId}/widget-keys`),
+  list: (organizationId: string) =>
+    get<WidgetKey[]>(`/organizations/${organizationId}/widget-keys`),
   /** O `plaintext` so existe nesta resposta — nunca fica recuperavel depois. */
   create: (organizationId: string, input: CreateWidgetKeyInput) =>
     post<{ id: string; environment: string; masked: string; plaintext: string }>(
@@ -421,7 +436,8 @@ export interface UsageSummary {
 }
 
 export const usageApi = {
-  getSummary: (organizationId: string) => get<UsageSummary>(`/organizations/${organizationId}/usage`),
+  getSummary: (organizationId: string) =>
+    get<UsageSummary>(`/organizations/${organizationId}/usage`),
 };
 
 // --- conversations ------------------------------------------------
@@ -444,7 +460,8 @@ export interface ConversationMessage {
 }
 
 export const conversationsApi = {
-  list: (organizationId: string) => get<Conversation[]>(`/organizations/${organizationId}/conversations`),
+  list: (organizationId: string) =>
+    get<Conversation[]>(`/organizations/${organizationId}/conversations`),
   get: (organizationId: string, conversationId: string) =>
     get<Conversation & { messages: ConversationMessage[] }>(
       `/organizations/${organizationId}/conversations/${conversationId}`,
@@ -463,14 +480,21 @@ export interface CredentialStatus {
 }
 
 export const aiCredentialsApi = {
-  getStatus: (organizationId: string) => get<CredentialStatus[]>(`/organizations/${organizationId}/ai-credentials`),
+  getStatus: (organizationId: string) =>
+    get<CredentialStatus[]>(`/organizations/${organizationId}/ai-credentials`),
   configure: (organizationId: string, environment: CredentialEnvironment, apiKey: string) =>
-    apiFetch<{ environment: CredentialEnvironment; status: CredentialStatus["status"]; masked: string }>(
-      `/organizations/${organizationId}/ai-credentials`,
-      { method: "POST", body: JSON.stringify({ environment, apiKey }) },
-    ),
+    apiFetch<{
+      environment: CredentialEnvironment;
+      status: CredentialStatus["status"];
+      masked: string;
+    }>(`/organizations/${organizationId}/ai-credentials`, {
+      method: "POST",
+      body: JSON.stringify({ environment, apiKey }),
+    }),
   remove: (organizationId: string, environment: CredentialEnvironment) =>
-    apiFetch<{ ok: true }>(`/organizations/${organizationId}/ai-credentials/${environment}`, { method: "DELETE" }),
+    apiFetch<{ ok: true }>(`/organizations/${organizationId}/ai-credentials/${environment}`, {
+      method: "DELETE",
+    }),
 };
 
 // --- conversations: gaps ------------------------------------------------

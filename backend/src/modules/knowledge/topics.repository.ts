@@ -19,7 +19,12 @@ export const topicsRepository = {
       .executeTakeFirst();
   },
 
-  insert(organizationId: string, name: string, description: string | null, collectionId: string | null) {
+  insert(
+    organizationId: string,
+    name: string,
+    description: string | null,
+    collectionId: string | null,
+  ) {
     return db
       .insertInto("topics")
       .values({ organization_id: organizationId, name, description, collection_id: collectionId })

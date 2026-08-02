@@ -18,8 +18,19 @@ export const handoffService = {
     return handoffRepository.listForAssistant(assistantId);
   },
 
-  async create(actorUserId: string, organizationId: string, assistantId: string, sectorName: string, phoneNumber: string) {
-    const config = await handoffRepository.insert(organizationId, assistantId, sectorName, phoneNumber);
+  async create(
+    actorUserId: string,
+    organizationId: string,
+    assistantId: string,
+    sectorName: string,
+    phoneNumber: string,
+  ) {
+    const config = await handoffRepository.insert(
+      organizationId,
+      assistantId,
+      sectorName,
+      phoneNumber,
+    );
     await auditService.record({
       actorUserId,
       organizationId,
@@ -47,21 +58,36 @@ export const handoffService = {
    * (docs/integrations/widget-embed.md - Encaminhamento); nunca envia o
    * historico completo, so a ultima pergunta.
    */
-  async resolveForWidget(assistantId: string, lastQuestion: string, sectorId?: string): Promise<HandoffResolution> {
+  async resolveForWidget(
+    assistantId: string,
+    lastQuestion: string,
+    sectorId?: string,
+  ): Promise<HandoffResolution> {
     const configs = await handoffRepository.listForAssistant(assistantId);
     if (configs.length === 0) throw new NoHandoffConfiguredError();
 
     if (sectorId) {
       const chosen = configs.find((c) => c.id === sectorId);
       if (!chosen) throw new SectorNotFoundError();
-      return { needsSectorSelection: false, whatsappUrl: buildWhatsAppUrl(chosen.phone_number, lastQuestion), sectorName: chosen.sector_name };
+      return {
+        needsSectorSelection: false,
+        whatsappUrl: buildWhatsAppUrl(chosen.phone_number, lastQuestion),
+        sectorName: chosen.sector_name,
+      };
     }
 
     if (configs.length > 1) {
-      return { needsSectorSelection: true, sectors: configs.map((c) => ({ id: c.id, name: c.sector_name })) };
+      return {
+        needsSectorSelection: true,
+        sectors: configs.map((c) => ({ id: c.id, name: c.sector_name })),
+      };
     }
 
     const only = configs[0];
-    return { needsSectorSelection: false, whatsappUrl: buildWhatsAppUrl(only.phone_number, lastQuestion), sectorName: only.sector_name };
+    return {
+      needsSectorSelection: false,
+      whatsappUrl: buildWhatsAppUrl(only.phone_number, lastQuestion),
+      sectorName: only.sector_name,
+    };
   },
 };

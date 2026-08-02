@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
 import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
-import { NoHandoffConfiguredError, SectorNotFoundError, handoffService } from "../assistants/index.js";
+import {
+  NoHandoffConfiguredError,
+  SectorNotFoundError,
+  handoffService,
+} from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
 import {
   DomainNotAllowedError,
@@ -24,7 +28,10 @@ const feedbackSchema = keySchema.extend({ rating: z.enum(["positivo", "negativo"
 const handoffSchema = keySchema.extend({ sectorId: z.string().uuid().optional() });
 
 function originOf(request: import("fastify").FastifyRequest): string | undefined {
-  return (request.headers.origin as string | undefined) ?? (request.headers.referer as string | undefined);
+  return (
+    (request.headers.origin as string | undefined) ??
+    (request.headers.referer as string | undefined)
+  );
 }
 
 export async function embedPublicRoutes(app: FastifyInstance) {
@@ -33,10 +40,18 @@ export async function embedPublicRoutes(app: FastifyInstance) {
     try {
       const resolved = await publicAccessService.resolveAndAuthorize(body.key, originOf(request));
       if (!(await rateLimits.perKeyAndIp(resolved.id, request.ip))) {
-        await usageService.record({ organizationId: resolved.organizationId, assistantId: resolved.assistantId, type: "widget_rate_limited" });
+        await usageService.record({
+          organizationId: resolved.organizationId,
+          assistantId: resolved.assistantId,
+          type: "widget_rate_limited",
+        });
         return reply.code(429).send({ error: "limite de requisicoes excedido" });
       }
-      await usageService.record({ organizationId: resolved.organizationId, assistantId: resolved.assistantId, type: "widget_loaded" });
+      await usageService.record({
+        organizationId: resolved.organizationId,
+        assistantId: resolved.assistantId,
+        type: "widget_loaded",
+      });
       return { assistantId: resolved.assistantId, environment: resolved.environment };
     } catch (err) {
       return handlePublicError(err, reply);
@@ -97,10 +112,15 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
-        const result = await answerService.answer(resolved.organizationId, resolved.assistantId, body.message, {
-          conversationId: request.params.conversationId,
-          environment: resolved.environment,
-        });
+        const result = await answerService.answer(
+          resolved.organizationId,
+          resolved.assistantId,
+          body.message,
+          {
+            conversationId: request.params.conversationId,
+            environment: resolved.environment,
+          },
+        );
         return { answer: result.answer };
       } catch (err) {
         return handlePublicError(err, reply);
@@ -151,12 +171,19 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
-        const lastQuestion = [...conversation.messages].reverse().find((m) => m.role === "visitante")?.content ?? "";
-        const resolution = await handoffService.resolveForWidget(resolved.assistantId, lastQuestion, body.sectorId);
+        const lastQuestion =
+          [...conversation.messages].reverse().find((m) => m.role === "visitante")?.content ?? "";
+        const resolution = await handoffService.resolveForWidget(
+          resolved.assistantId,
+          lastQuestion,
+          body.sectorId,
+        );
         return resolution;
       } catch (err) {
         if (err instanceof NoHandoffConfiguredError) {
-          return reply.code(409).send({ error: "encaminhamento nao configurado para este assistente" });
+          return reply
+            .code(409)
+            .send({ error: "encaminhamento nao configurado para este assistente" });
         }
         if (err instanceof SectorNotFoundError) {
           return reply.code(422).send({ error: "setor invalido" });
@@ -169,11 +196,13 @@ export async function embedPublicRoutes(app: FastifyInstance) {
 
 function handlePublicError(err: unknown, reply: import("fastify").FastifyReply) {
   if (err instanceof InvalidKeyError) return reply.code(401).send({ error: "chave invalida" });
-  if (err instanceof DomainNotAllowedError) return reply.code(403).send({ error: "dominio nao autorizado" });
+  if (err instanceof DomainNotAllowedError)
+    return reply.code(403).send({ error: "dominio nao autorizado" });
   if (err instanceof OrganizationSuspendedError) {
     return reply.code(403).send({ error: "atendimento indisponivel" });
   }
-  if (err instanceof AssistantNotFoundError) return reply.code(404).send({ error: "assistente nao encontrado" });
+  if (err instanceof AssistantNotFoundError)
+    return reply.code(404).send({ error: "assistente nao encontrado" });
   if (err instanceof NoActiveCredentialError) {
     return reply.code(409).send({ error: "assistente indisponivel no momento" });
   }

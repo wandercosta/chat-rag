@@ -100,7 +100,10 @@ export const aiCredentialsService = {
 
   /** So para uso interno (ex.: modulo rag ao montar a chamada de chat/embeddings).
    * Nunca exposto via rota HTTP. */
-  async resolveActiveKey(organizationId: string, environment: "teste" | "producao"): Promise<string | null> {
+  async resolveActiveKey(
+    organizationId: string,
+    environment: "teste" | "producao",
+  ): Promise<string | null> {
     const row = await aiCredentialsRepository.findEffective(organizationId, environment);
     if (!row || row.status !== "valida") return null;
 

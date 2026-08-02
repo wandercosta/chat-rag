@@ -8,7 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError, assistantsApi, playgroundApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -17,7 +23,10 @@ export const Route = createFileRoute("/playground")({
   head: () => ({
     meta: [
       { title: "Playground de conversa — ChatRAG" },
-      { name: "description", content: "Teste um assistente em modo privado antes de publicar no widget." },
+      {
+        name: "description",
+        content: "Teste um assistente em modo privado antes de publicar no widget.",
+      },
       { property: "og:title", content: "Playground de conversa — ChatRAG" },
       { property: "og:description", content: "Ambiente de teste interno dos assistentes." },
     ],
@@ -67,10 +76,14 @@ function Playground() {
   }, [messages]);
 
   const send = useMutation({
-    mutationFn: (message: string) => playgroundApi.send(tenantId!, selected, { message, conversationId }),
+    mutationFn: (message: string) =>
+      playgroundApi.send(tenantId!, selected, { message, conversationId }),
     onSuccess: (result) => {
       setConversationId(result.conversationId);
-      setMessages((m) => [...m, { role: "assistente", content: result.answer, usedContext: result.usedContext }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistente", content: result.answer, usedContext: result.usedContext },
+      ]);
     },
     onError: (err) => {
       const message =
@@ -99,7 +112,10 @@ function Playground() {
         title="Playground de conversa"
         description="Ambiente privado de teste. Nada aqui é exposto publicamente."
         actions={
-          <Badge variant="outline" className="h-9 gap-1.5 border-warning/40 bg-warning/12 px-3 text-warning">
+          <Badge
+            variant="outline"
+            className="h-9 gap-1.5 border-warning/40 bg-warning/12 px-3 text-warning"
+          >
             <FlaskConical className="size-3.5" /> Modo teste
           </Badge>
         }
@@ -140,13 +156,17 @@ function Playground() {
                     >
                       {m.content}
                       {m.usedContext === false && (
-                        <span className="mt-1 block text-xs text-warning">Sem contexto na base</span>
+                        <span className="mt-1 block text-xs text-warning">
+                          Sem contexto na base
+                        </span>
                       )}
                     </div>
                   </div>
                 ))}
                 {send.isPending && (
-                  <div className="w-fit rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">Pensando…</div>
+                  <div className="w-fit rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    Pensando…
+                  </div>
                 )}
               </div>
               <div className="flex gap-2">

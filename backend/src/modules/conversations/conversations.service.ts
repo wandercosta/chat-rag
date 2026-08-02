@@ -17,7 +17,12 @@ export const conversationsService = {
     return { ...conversation, messages };
   },
 
-  start(organizationId: string, assistantId: string, channel: ConversationChannel, visitorId: string | null = null) {
+  start(
+    organizationId: string,
+    assistantId: string,
+    channel: ConversationChannel,
+    visitorId: string | null = null,
+  ) {
     return conversationsRepository.start(organizationId, assistantId, channel, visitorId);
   },
 

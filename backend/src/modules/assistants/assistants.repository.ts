@@ -70,6 +70,9 @@ export const assistantsRepository = {
   /** Lista global (todos os tenants) para o job de retencao — o unico
    * consumidor legitimo que precisa varrer alem de uma organizacao por vez. */
   listAll() {
-    return db.selectFrom("assistants").select(["id", "organization_id", "retention_days"]).execute();
+    return db
+      .selectFrom("assistants")
+      .select(["id", "organization_id", "retention_days"])
+      .execute();
   },
 };

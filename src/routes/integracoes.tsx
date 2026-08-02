@@ -10,8 +10,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +41,11 @@ export const Route = createFileRoute("/integracoes")({
   head: () => ({
     meta: [
       { title: "Integrações e widget — ChatRAG" },
-      { name: "description", content: "Script de instalação, chaves por ambiente com domínios permitidos e preview do widget." },
+      {
+        name: "description",
+        content:
+          "Script de instalação, chaves por ambiente com domínios permitidos e preview do widget.",
+      },
       { property: "og:title", content: "Integrações e widget — ChatRAG" },
       { property: "og:description", content: "Instale o widget do ChatRAG em sites externos." },
     ],
@@ -60,7 +77,8 @@ function IntegrationsPage() {
       queryClient.invalidateQueries({ queryKey: ["widget-keys", tenantId] });
       toast.success("Chave revogada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível revogar a chave"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível revogar a chave"),
   });
 
   const keys = keysQuery.data ?? [];
@@ -79,8 +97,8 @@ function IntegrationsPage() {
           <CardHeader>
             <CardTitle className="text-base">Script de instalação</CardTitle>
             <CardDescription>
-              Esta é a única vez que a chave aparece por extenso — copie agora. Cole antes do fechamento de
-              &lt;/body&gt; no site hospedeiro.
+              Esta é a única vez que a chave aparece por extenso — copie agora. Cole antes do
+              fechamento de &lt;/body&gt; no site hospedeiro.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -192,7 +210,8 @@ function NewKeyDialog({
     .filter(Boolean);
 
   const create = useMutation({
-    mutationFn: () => widgetKeysApi.create(tenantId!, { assistantId, environment, domains: parsedDomains }),
+    mutationFn: () =>
+      widgetKeysApi.create(tenantId!, { assistantId, environment, domains: parsedDomains }),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["widget-keys", tenantId] });
       onCreated({ masked: result.masked, plaintext: result.plaintext });
@@ -201,7 +220,8 @@ function NewKeyDialog({
       setDomains("");
       toast.success("Chave criada — copie o script agora");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a chave"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a chave"),
   });
 
   return (
@@ -215,7 +235,8 @@ function NewKeyDialog({
         <DialogHeader>
           <DialogTitle>Nova chave de widget</DialogTitle>
           <DialogDescription>
-            A chave só funciona nos domínios informados. O valor por extenso aparece uma única vez, na criação.
+            A chave só funciona nos domínios informados. O valor por extenso aparece uma única vez,
+            na criação.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -242,7 +263,10 @@ function NewKeyDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="w-env">Ambiente</Label>
-            <Select value={environment} onValueChange={(v) => setEnvironment(v as "teste" | "producao")}>
+            <Select
+              value={environment}
+              onValueChange={(v) => setEnvironment(v as "teste" | "producao")}
+            >
               <SelectTrigger id="w-env">
                 <SelectValue />
               </SelectTrigger>
@@ -268,7 +292,10 @@ function NewKeyDialog({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!assistantId || parsedDomains.length === 0 || create.isPending}>
+            <Button
+              type="submit"
+              disabled={!assistantId || parsedDomains.length === 0 || create.isPending}
+            >
               {create.isPending ? "Criando..." : "Criar chave"}
             </Button>
           </DialogFooter>

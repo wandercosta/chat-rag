@@ -6,7 +6,12 @@ import type { MigrationBuilder } from "node-pg-migrate";
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("usage_events", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     assistant_id: { type: "uuid", references: "assistants", onDelete: "cascade" },
     type: { type: "text", notNull: true },
     payload: { type: "jsonb", notNull: true, default: "{}" },

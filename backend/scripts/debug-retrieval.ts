@@ -18,7 +18,9 @@ import { RELEVANCE_DISTANCE_THRESHOLD } from "../src/modules/rag/retrieval.servi
 const [organizationId, ...questions] = process.argv.slice(2);
 
 if (!organizationId || questions.length === 0) {
-  console.error('Uso: tsx scripts/debug-retrieval.ts <organizationId> "pergunta" ["outra pergunta" ...]');
+  console.error(
+    'Uso: tsx scripts/debug-retrieval.ts <organizationId> "pergunta" ["outra pergunta" ...]',
+  );
   process.exit(1);
 }
 

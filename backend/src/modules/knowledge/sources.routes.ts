@@ -3,7 +3,12 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireOrgRole, requireSession } from "../identity/index.js";
 import { putSourceFile, sourceObjectKey } from "../../storage/objects.js";
-import { InvalidTransitionError, MAX_FILE_BYTES, TopicNotFoundError, sourcesService } from "./sources.service.js";
+import {
+  InvalidTransitionError,
+  MAX_FILE_BYTES,
+  TopicNotFoundError,
+  sourcesService,
+} from "./sources.service.js";
 
 const roles = ["Administrador", "Editor de base"] as const;
 
@@ -20,8 +25,10 @@ const FILE_MIME_TO_KIND: Record<string, "PDF" | "DOCX"> = {
 };
 
 function handleServiceError(err: unknown, reply: import("fastify").FastifyReply) {
-  if (err instanceof TopicNotFoundError) return reply.code(404).send({ error: "topico nao encontrado" });
-  if (err instanceof InvalidTransitionError) return reply.code(409).send({ error: "transicao de estado invalida" });
+  if (err instanceof TopicNotFoundError)
+    return reply.code(404).send({ error: "topico nao encontrado" });
+  if (err instanceof InvalidTransitionError)
+    return reply.code(409).send({ error: "transicao de estado invalida" });
   if (err instanceof RangeError) return reply.code(422).send({ error: err.message });
   throw err;
 }
@@ -43,7 +50,11 @@ export async function sourcesRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = createTextSchema.parse(request.body);
       try {
-        const source = await sourcesService.createTextOrUrl(request.auth!.userId, request.params.organizationId, body);
+        const source = await sourcesService.createTextOrUrl(
+          request.auth!.userId,
+          request.params.organizationId,
+          body,
+        );
         return reply.code(201).send(source);
       } catch (err) {
         return handleServiceError(err, reply);
@@ -59,7 +70,8 @@ export async function sourcesRoutes(app: FastifyInstance) {
       if (!file) return reply.code(400).send({ error: "arquivo ausente" });
 
       const kind = FILE_MIME_TO_KIND[file.mimetype];
-      if (!kind) return reply.code(422).send({ error: "tipo de arquivo nao suportado (use PDF ou DOCX)" });
+      if (!kind)
+        return reply.code(422).send({ error: "tipo de arquivo nao suportado (use PDF ou DOCX)" });
 
       const topicId = (file.fields.topicId as { value?: string } | undefined)?.value;
       const title = (file.fields.title as { value?: string } | undefined)?.value ?? file.filename;
@@ -75,12 +87,16 @@ export async function sourcesRoutes(app: FastifyInstance) {
       await putSourceFile(storageKey, buffer, file.mimetype);
 
       try {
-        const source = await sourcesService.createFileSource(request.auth!.userId, request.params.organizationId, {
-          topicId,
-          title,
-          kind,
-          storageKey,
-        });
+        const source = await sourcesService.createFileSource(
+          request.auth!.userId,
+          request.params.organizationId,
+          {
+            topicId,
+            title,
+            kind,
+            storageKey,
+          },
+        );
         return reply.code(201).send(source);
       } catch (err) {
         return handleServiceError(err, reply);
@@ -103,7 +119,11 @@ export async function sourcesRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(roles) },
     async (request, reply) => {
       try {
-        return await sourcesService.approve(request.auth!.userId, request.params.organizationId, request.params.sourceId);
+        return await sourcesService.approve(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.sourceId,
+        );
       } catch (err) {
         return handleServiceError(err, reply);
       }
@@ -115,7 +135,11 @@ export async function sourcesRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(roles) },
     async (request, reply) => {
       try {
-        return await sourcesService.reindex(request.auth!.userId, request.params.organizationId, request.params.sourceId);
+        return await sourcesService.reindex(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.sourceId,
+        );
       } catch (err) {
         return handleServiceError(err, reply);
       }
@@ -127,7 +151,11 @@ export async function sourcesRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(roles) },
     async (request, reply) => {
       try {
-        return await sourcesService.archive(request.auth!.userId, request.params.organizationId, request.params.sourceId);
+        return await sourcesService.archive(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.sourceId,
+        );
       } catch (err) {
         return handleServiceError(err, reply);
       }

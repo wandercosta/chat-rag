@@ -32,10 +32,6 @@ export const identityRepository = {
   },
 
   membershipsForUser(userId: string) {
-    return db
-      .selectFrom("memberships")
-      .selectAll()
-      .where("user_id", "=", userId)
-      .execute();
+    return db.selectFrom("memberships").selectAll().where("user_id", "=", userId).execute();
   },
 };

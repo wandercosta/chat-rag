@@ -22,6 +22,8 @@ Antes de qualquer implementacao, leia os documentos relevantes desta pasta. Alte
 - `decisions/ADR-002-seguranca-estrutura-e-limites.md` - seguranca de segredos, fronteiras de modulo, limites de escala e operacao.
 - `decisions/ADR-003-colecao-como-filtro-opcional.md` - colecao restringe o que o assistente enxerga da base, mas nao e pre-requisito para responder.
 - `decisions/ADR-004-modelos-liberados-por-padrao.md` - sem lista explicita, o tenant usa todos os modelos ativos do catalogo.
+- `deploy/ambientes.md` - ambientes e estratégias de deploy.
+- `deploy/containers.md` - guia e padronização de contêineres Docker (infraestrutura e stack completa).
 - `checklists/antes-de-implementar.md` - validacoes obrigatorias.
 
 ## Estado atual

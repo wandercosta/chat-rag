@@ -18,11 +18,17 @@ export const retentionService = {
       const cutoff = new Date(Date.now() - assistant.retentionDays * DAY_MS);
       const deleted = await conversationsRepository.deleteOlderThan(assistant.id, cutoff);
       if (deleted > 0) {
-        byOrganization.set(assistant.organizationId, (byOrganization.get(assistant.organizationId) ?? 0) + deleted);
+        byOrganization.set(
+          assistant.organizationId,
+          (byOrganization.get(assistant.organizationId) ?? 0) + deleted,
+        );
       }
     }
 
-    const summary = [...byOrganization.entries()].map(([organizationId, deleted]) => ({ organizationId, deleted }));
+    const summary = [...byOrganization.entries()].map(([organizationId, deleted]) => ({
+      organizationId,
+      deleted,
+    }));
 
     await Promise.all(
       summary.map(({ organizationId, deleted }) =>

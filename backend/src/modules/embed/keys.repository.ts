@@ -28,7 +28,13 @@ export const keysRepository = {
       .executeTakeFirst();
   },
 
-  insert(organizationId: string, assistantId: string, environment: "teste" | "producao", keyHash: string, masked: string) {
+  insert(
+    organizationId: string,
+    assistantId: string,
+    environment: "teste" | "producao",
+    keyHash: string,
+    masked: string,
+  ) {
     return db
       .insertInto("embed_keys")
       .values({

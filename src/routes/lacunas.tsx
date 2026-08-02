@@ -24,7 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError, assistantsApi, gapsApi, topicsApi, type KnowledgeGap } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -32,7 +39,10 @@ export const Route = createFileRoute("/lacunas")({
   head: () => ({
     meta: [
       { title: "Lacunas e feedbacks — ChatRAG" },
-      { name: "description", content: "Perguntas sem resposta na base, frequência e status de resolução." },
+      {
+        name: "description",
+        content: "Perguntas sem resposta na base, frequência e status de resolução.",
+      },
       { property: "og:title", content: "Lacunas e feedbacks — ChatRAG" },
       { property: "og:description", content: "Priorize o que falta na base de conhecimento." },
     ],
@@ -66,12 +76,16 @@ function GapsPage() {
       queryClient.invalidateQueries({ queryKey: ["gaps", tenantId] });
       toast.success("Lacuna marcada como resolvida");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Falha ao resolver lacuna"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Falha ao resolver lacuna"),
   });
 
   return (
     <>
-      <PageHeader title="Lacunas e feedbacks" description="Perguntas que a base atual não respondeu." />
+      <PageHeader
+        title="Lacunas e feedbacks"
+        description="Perguntas que a base atual não respondeu."
+      />
       <Card className="overflow-hidden p-0">
         {gapsQuery.isLoading ? (
           <p className="p-6 text-sm text-muted-foreground">Carregando…</p>
@@ -180,7 +194,8 @@ function AnswerGapDialog({
       setContent("");
       onAnswered();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Falha ao responder lacuna"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Falha ao responder lacuna"),
   });
 
   return (
@@ -198,8 +213,8 @@ function AnswerGapDialog({
         <DialogHeader>
           <DialogTitle>Responder lacuna</DialogTitle>
           <DialogDescription>
-            A resposta vira uma fonte de texto na base (mesmo pipeline de indexação de qualquer outra
-            fonte) e a lacuna é marcada como resolvida.
+            A resposta vira uma fonte de texto na base (mesmo pipeline de indexação de qualquer
+            outra fonte) e a lacuna é marcada como resolvida.
           </DialogDescription>
         </DialogHeader>
 
@@ -207,10 +222,14 @@ function AnswerGapDialog({
           <div className="space-y-4">
             <div>
               <Label className="text-muted-foreground">Pergunta</Label>
-              <p className="mt-1 text-sm font-medium">{gap.original_question ?? gap.question_normalized}</p>
+              <p className="mt-1 text-sm font-medium">
+                {gap.original_question ?? gap.question_normalized}
+              </p>
               {gap.context_snippet && (
                 <div className="mt-2 rounded-md border bg-muted/40 p-3">
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Contexto da conversa</p>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    Contexto da conversa
+                  </p>
                   <pre className="whitespace-pre-wrap font-sans text-xs text-muted-foreground">
                     {gap.context_snippet}
                   </pre>
@@ -234,7 +253,8 @@ function AnswerGapDialog({
               </Select>
               {topicsQuery.data?.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Nenhum tópico cadastrado ainda — crie um em Base de conhecimento antes de responder.
+                  Nenhum tópico cadastrado ainda — crie um em Base de conhecimento antes de
+                  responder.
                 </p>
               )}
             </div>

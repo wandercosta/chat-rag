@@ -26,7 +26,11 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("buildApp (HTTP integration)", () => {
   });
 
   it("propagates the session across module boundaries", async () => {
-    const master = await identityService.createUser(db, "app-master@chatrag.local", "senha-forte-123");
+    const master = await identityService.createUser(
+      db,
+      "app-master@chatrag.local",
+      "senha-forte-123",
+    );
     await db.insertInto("platform_roles").values({ user_id: master.id }).execute();
 
     const loginResponse = await app.inject({

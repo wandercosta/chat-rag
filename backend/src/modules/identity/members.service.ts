@@ -29,7 +29,10 @@ export const membersService = {
     const existingUser = await identityRepository.findUserByEmail(input.email);
 
     if (existingUser) {
-      const alreadyMember = await membersRepository.findByUserAndOrganization(organizationId, existingUser.id);
+      const alreadyMember = await membersRepository.findByUserAndOrganization(
+        organizationId,
+        existingUser.id,
+      );
       if (alreadyMember) throw new EmailAlreadyInOrganizationError();
     }
 
@@ -60,7 +63,12 @@ export const membersService = {
     return membership;
   },
 
-  async updateRole(actorUserId: string, organizationId: string, membershipId: string, role: TenantRole) {
+  async updateRole(
+    actorUserId: string,
+    organizationId: string,
+    membershipId: string,
+    role: TenantRole,
+  ) {
     const membership = await membersRepository.findById(organizationId, membershipId);
     if (!membership) throw new MemberNotFoundError();
 

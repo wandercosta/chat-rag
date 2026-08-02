@@ -49,7 +49,10 @@ export async function collectionsRoutes(app: FastifyInstance) {
     "/organizations/:organizationId/assistants/:assistantId/collections/:collectionId",
     { preHandler: requireOrgRole(roles) },
     async (request) => {
-      await collectionsRepository.linkAssistant(request.params.assistantId, request.params.collectionId);
+      await collectionsRepository.linkAssistant(
+        request.params.assistantId,
+        request.params.collectionId,
+      );
       return { ok: true };
     },
   );
@@ -58,7 +61,10 @@ export async function collectionsRoutes(app: FastifyInstance) {
     "/organizations/:organizationId/assistants/:assistantId/collections/:collectionId",
     { preHandler: requireOrgRole(roles) },
     async (request) => {
-      await collectionsRepository.unlinkAssistant(request.params.assistantId, request.params.collectionId);
+      await collectionsRepository.unlinkAssistant(
+        request.params.assistantId,
+        request.params.collectionId,
+      );
       return { ok: true };
     },
   );

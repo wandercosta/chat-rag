@@ -39,6 +39,10 @@ export const organizationsRepository = {
   },
 
   setRetentionDays(id: string, days: number | null) {
-    return db.updateTable("organizations").set({ retention_days: days }).where("id", "=", id).execute();
+    return db
+      .updateTable("organizations")
+      .set({ retention_days: days })
+      .where("id", "=", id)
+      .execute();
   },
 };

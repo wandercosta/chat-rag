@@ -48,7 +48,8 @@ function parseArgs(argv: string[]): Args {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const str = (key: string, fallback?: string) => (typeof args[key] === "string" ? (args[key] as string) : fallback);
+const str = (key: string, fallback?: string) =>
+  typeof args[key] === "string" ? (args[key] as string) : fallback;
 
 const apiBase = str("api", "http://localhost:3333")!;
 const slug = str("slug", "demo-widget")!;
@@ -122,12 +123,17 @@ interface Topic {
   name: string;
 }
 
-async function resolveOrganization(master: Session): Promise<{ organization: Organization; adminCreatedNow: boolean }> {
+async function resolveOrganization(
+  master: Session,
+): Promise<{ organization: Organization; adminCreatedNow: boolean }> {
   try {
-    const result = await master.request<{ organization: Organization; adminUser: { id: string; email: string } }>(
-      "/master/tenants",
-      { method: "POST", body: JSON.stringify({ name: orgName, slug, adminEmail, adminPassword }) },
-    );
+    const result = await master.request<{
+      organization: Organization;
+      adminUser: { id: string; email: string };
+    }>("/master/tenants", {
+      method: "POST",
+      body: JSON.stringify({ name: orgName, slug, adminEmail, adminPassword }),
+    });
     console.log(`Organizacao criada: ${result.organization.name} (${result.organization.id})`);
     return { organization: result.organization, adminCreatedNow: true };
   } catch (err) {
@@ -140,7 +146,9 @@ async function resolveOrganization(master: Session): Promise<{ organization: Org
 }
 
 async function resolveAssistant(tenant: Session, organizationId: string): Promise<Assistant> {
-  const assistants = await tenant.request<Assistant[]>(`/organizations/${organizationId}/assistants`);
+  const assistants = await tenant.request<Assistant[]>(
+    `/organizations/${organizationId}/assistants`,
+  );
   const existing = assistants.find((a) => a.name === assistantName);
   if (existing) {
     console.log(`Assistente ja existia, reaproveitando: ${existing.name} (${existing.id})`);
@@ -251,8 +259,7 @@ async function main() {
   if (writeHtml) await writeTestHtml(key.plaintext, assistant.name);
 }
 
-main()
-  .catch((err) => {
-    console.error(err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  });
+main().catch((err) => {
+  console.error(err instanceof Error ? err.message : err);
+  process.exitCode = 1;
+});

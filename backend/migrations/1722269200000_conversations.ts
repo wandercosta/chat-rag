@@ -3,7 +3,12 @@ import type { MigrationBuilder } from "node-pg-migrate";
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("visitors", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     external_user_id: { type: "text" },
     name: { type: "text" },
     email: { type: "citext" },
@@ -13,7 +18,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("conversations", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     assistant_id: { type: "uuid", notNull: true, references: "assistants", onDelete: "cascade" },
     visitor_id: { type: "uuid", references: "visitors", onDelete: "set null" },
     channel: { type: "text", notNull: true },
@@ -27,7 +37,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("messages", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    conversation_id: { type: "uuid", notNull: true, references: "conversations", onDelete: "cascade" },
+    conversation_id: {
+      type: "uuid",
+      notNull: true,
+      references: "conversations",
+      onDelete: "cascade",
+    },
     role: { type: "text", notNull: true },
     content: { type: "text", notNull: true },
     created_at: { type: "timestamptz", notNull: true, default: pgm.func("now()") },
@@ -39,7 +54,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("feedbacks", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    conversation_id: { type: "uuid", notNull: true, references: "conversations", onDelete: "cascade" },
+    conversation_id: {
+      type: "uuid",
+      notNull: true,
+      references: "conversations",
+      onDelete: "cascade",
+    },
     rating: { type: "text", notNull: true },
     created_at: { type: "timestamptz", notNull: true, default: pgm.func("now()") },
   });
@@ -49,7 +69,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable("knowledge_gaps", {
     id: { type: "uuid", primaryKey: true, default: pgm.func("gen_random_uuid()") },
-    organization_id: { type: "uuid", notNull: true, references: "organizations", onDelete: "cascade" },
+    organization_id: {
+      type: "uuid",
+      notNull: true,
+      references: "organizations",
+      onDelete: "cascade",
+    },
     assistant_id: { type: "uuid", notNull: true, references: "assistants", onDelete: "cascade" },
     question_normalized: { type: "text", notNull: true },
     frequency: { type: "integer", notNull: true, default: 1 },

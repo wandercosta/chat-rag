@@ -64,7 +64,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-chatrag}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-chatrag123}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"   # API S3
+      - "${MINIO_API_PORT:-9000}:9000" # API S3
       - "${MINIO_CONSOLE_PORT:-9001}:9001" # painel web do MinIO
     volumes:
       - chatrag_minio_data:/data

@@ -4,21 +4,21 @@ Todas as tabelas de dominio multi-tenant devem ter `organization_id` e consultas
 
 ## Entidades principais
 
-| Entidade | Responsabilidade |
-|---|---|
-| organizations | Tenant, status, limites e configuracoes padrao |
-| tenant_ai_credentials | Credencial OpenAI criptografada, ambiente/reuso, metadados mascarados e estado de validacao |
-| ai_model_catalog, tenant_allowed_models | Catalogo Master de modelos e permissao de escolha por tenant |
-| users, memberships | Identidade global e acesso ao painel; papel do tenant e uma coluna em `memberships` (implementacao inicial simplificada — normalizar em tabela `roles` se permissoes granulares exigirem) |
-| platform_roles | Papel global de Master, sem herdar acesso de tenant |
-| assistants | Comportamento e identidade do chat |
-| knowledge_collections, topics, sources, source_chunks | Base e vetores |
-| embed_keys, allowed_domains | Integracao por ambiente e origem permitida |
-| visitors, conversations, messages | Identidade e historico de chat |
-| feedbacks, knowledge_gaps | Qualidade e melhoria da base; a lacuna guarda a chave de agrupamento, a pergunta original e um trecho da conversa (ver `workflows/rag-e-conhecimento.md` - Lacunas) |
-| handoff_configs | Encaminhamento para WhatsApp por organizacao/assistente/setor |
-| audit_events, usage_events | Seguranca, rastreabilidade e metricas |
-| support_access_sessions | Acesso temporario do Master a tenant, com justificativa e expiracao |
+| Entidade                                              | Responsabilidade                                                                                                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| organizations                                         | Tenant, status, limites e configuracoes padrao                                                                                                                                            |
+| tenant_ai_credentials                                 | Credencial OpenAI criptografada, ambiente/reuso, metadados mascarados e estado de validacao                                                                                               |
+| ai_model_catalog, tenant_allowed_models               | Catalogo Master de modelos e permissao de escolha por tenant                                                                                                                              |
+| users, memberships                                    | Identidade global e acesso ao painel; papel do tenant e uma coluna em `memberships` (implementacao inicial simplificada — normalizar em tabela `roles` se permissoes granulares exigirem) |
+| platform_roles                                        | Papel global de Master, sem herdar acesso de tenant                                                                                                                                       |
+| assistants                                            | Comportamento e identidade do chat                                                                                                                                                        |
+| knowledge_collections, topics, sources, source_chunks | Base e vetores                                                                                                                                                                            |
+| embed_keys, allowed_domains                           | Integracao por ambiente e origem permitida                                                                                                                                                |
+| visitors, conversations, messages                     | Identidade e historico de chat                                                                                                                                                            |
+| feedbacks, knowledge_gaps                             | Qualidade e melhoria da base; a lacuna guarda a chave de agrupamento, a pergunta original e um trecho da conversa (ver `workflows/rag-e-conhecimento.md` - Lacunas)                       |
+| handoff_configs                                       | Encaminhamento para WhatsApp por organizacao/assistente/setor                                                                                                                             |
+| audit_events, usage_events                            | Seguranca, rastreabilidade e metricas                                                                                                                                                     |
+| support_access_sessions                               | Acesso temporario do Master a tenant, com justificativa e expiracao                                                                                                                       |
 
 Todas as entidades acima ja existem em `backend/migrations/` (ver `docs/README.md` - Estado atual para o que cada modulo cobre de fato).
 

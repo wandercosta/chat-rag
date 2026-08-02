@@ -55,7 +55,10 @@ export function SupportModeBanner() {
         {new Date(active.session.expires_at).toLocaleTimeString("pt-BR")}
       </AlertTitle>
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-        <span>Justificativa registrada: “{active.session.justification}”. Todas as ações ficam auditadas.</span>
+        <span>
+          Justificativa registrada: “{active.session.justification}”. Todas as ações ficam
+          auditadas.
+        </span>
         <Button asChild size="sm" variant="outline">
           <Link to="/tenants/$tenantId" params={{ tenantId: active.tenant.id }}>
             Gerenciar acesso

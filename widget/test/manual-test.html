@@ -4,10 +4,31 @@
     <meta charset="utf-8" />
     <title>ChatRAG widget - teste manual</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 0; padding: 40px; background: #f5f5f7; }
-      h1 { font-size: 18px; }
-      #embed-target { width: 380px; height: 480px; margin-top: 24px; border: 1px dashed #999; }
-      #log { margin-top: 24px; font: 12px/1.5 monospace; white-space: pre-wrap; background: #111; color: #0f0; padding: 12px; max-height: 200px; overflow: auto; }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 40px;
+        background: #f5f5f7;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      #embed-target {
+        width: 380px;
+        height: 480px;
+        margin-top: 24px;
+        border: 1px dashed #999;
+      }
+      #log {
+        margin-top: 24px;
+        font: 12px/1.5 monospace;
+        white-space: pre-wrap;
+        background: #111;
+        color: #0f0;
+        padding: 12px;
+        max-height: 200px;
+        overflow: auto;
+      }
     </style>
   </head>
   <body>
@@ -34,7 +55,10 @@
         record("fetch", url, JSON.stringify(body));
 
         const json = (data, status = 200) =>
-          new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+          new Response(JSON.stringify(data), {
+            status,
+            headers: { "Content-Type": "application/json" },
+          });
 
         if (url.endsWith("/widget/config")) {
           return json({ assistantId: "assistant-fake", environment: "producao" });
@@ -51,9 +75,19 @@
         if (url.includes("/handoff")) {
           if (!body.sectorId && !sectorsOffered) {
             sectorsOffered = true;
-            return json({ needsSectorSelection: true, sectors: [{ id: "s1", name: "Vendas" }, { id: "s2", name: "Suporte" }] });
+            return json({
+              needsSectorSelection: true,
+              sectors: [
+                { id: "s1", name: "Vendas" },
+                { id: "s2", name: "Suporte" },
+              ],
+            });
           }
-          return json({ needsSectorSelection: false, whatsappUrl: "https://wa.me/5511999999999?text=teste", sectorName: "Vendas" });
+          return json({
+            needsSectorSelection: false,
+            whatsappUrl: "https://wa.me/5511999999999?text=teste",
+            sectorName: "Vendas",
+          });
         }
         return realFetch(url, init);
       };

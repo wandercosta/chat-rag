@@ -37,11 +37,18 @@ export async function gapsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = answerSchema.parse(request.body);
       try {
-        const source = await gapsService.answer(request.auth!.userId, request.params.organizationId, request.params.gapId, body);
+        const source = await gapsService.answer(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.gapId,
+          body,
+        );
         return reply.code(201).send(source);
       } catch (err) {
-        if (err instanceof GapNotFoundError) return reply.code(404).send({ error: "lacuna nao encontrada" });
-        if (err instanceof TopicNotFoundError) return reply.code(404).send({ error: "topico nao encontrado" });
+        if (err instanceof GapNotFoundError)
+          return reply.code(404).send({ error: "lacuna nao encontrada" });
+        if (err instanceof TopicNotFoundError)
+          return reply.code(404).send({ error: "topico nao encontrado" });
         throw err;
       }
     },

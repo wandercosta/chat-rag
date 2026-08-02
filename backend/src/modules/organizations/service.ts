@@ -17,9 +17,22 @@ export const organizationsService = {
    */
   async createTenant(masterUserId: string, input: CreateTenantInput) {
     return db.transaction().execute(async (trx) => {
-      const organization = await organizationsRepository.insertOrganization(trx, input.name, input.slug);
-      const adminUser = await identityService.createUser(trx, input.adminEmail, input.adminPassword);
-      await organizationsRepository.insertMembership(trx, adminUser.id, organization.id, "Administrador");
+      const organization = await organizationsRepository.insertOrganization(
+        trx,
+        input.name,
+        input.slug,
+      );
+      const adminUser = await identityService.createUser(
+        trx,
+        input.adminEmail,
+        input.adminPassword,
+      );
+      await organizationsRepository.insertMembership(
+        trx,
+        adminUser.id,
+        organization.id,
+        "Administrador",
+      );
 
       await auditService.record(
         {

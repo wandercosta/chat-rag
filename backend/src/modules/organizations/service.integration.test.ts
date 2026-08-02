@@ -57,7 +57,11 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("organizationsService (integration)", ()
       organizationsService.createTenant(master.id, { ...input, adminEmail: "outro@acme.com" }),
     ).rejects.toThrow();
 
-    const users = await db.selectFrom("users").selectAll().where("email", "=", "outro@acme.com").execute();
+    const users = await db
+      .selectFrom("users")
+      .selectAll()
+      .where("email", "=", "outro@acme.com")
+      .execute();
     expect(users).toHaveLength(0);
   });
 });

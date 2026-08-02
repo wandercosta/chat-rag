@@ -41,7 +41,11 @@ export async function aiCredentialsRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(["Administrador"]) },
     async (request) => {
       const { environment } = environmentParamSchema.parse(request.params);
-      await aiCredentialsService.remove(request.auth!.userId, request.params.organizationId, environment);
+      await aiCredentialsService.remove(
+        request.auth!.userId,
+        request.params.organizationId,
+        environment,
+      );
       return { ok: true };
     },
   );
@@ -61,7 +65,11 @@ export async function aiCredentialsRoutes(app: FastifyInstance) {
     { preHandler: requireMasterSupportSession },
     async (request) => {
       const { environment } = environmentParamSchema.parse(request.params);
-      await aiCredentialsService.remove(request.auth!.userId, request.params.organizationId, environment);
+      await aiCredentialsService.remove(
+        request.auth!.userId,
+        request.params.organizationId,
+        environment,
+      );
       return { ok: true };
     },
   );

@@ -25,7 +25,8 @@ export function ActivationBanner({ context }: { context?: string }) {
       <AlertTitle>Base aguardando ativação</AlertTitle>
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
         <span>
-          Indexação de fontes, playground e widget ficam indisponíveis até existir uma chave de IA válida
+          Indexação de fontes, playground e widget ficam indisponíveis até existir uma chave de IA
+          válida
           {context ? ` (${context})` : ""}.
         </span>
         {can("settings") && (

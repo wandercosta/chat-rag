@@ -13,9 +13,15 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Visão geral da organização — ChatRAG" },
-      { name: "description", content: "Resumo de assistentes, base de conhecimento, conversas e lacunas da organização." },
+      {
+        name: "description",
+        content: "Resumo de assistentes, base de conhecimento, conversas e lacunas da organização.",
+      },
       { property: "og:title", content: "Visão geral da organização — ChatRAG" },
-      { property: "og:description", content: "Resumo operacional dos assistentes de IA da sua organização." },
+      {
+        property: "og:description",
+        content: "Resumo operacional dos assistentes de IA da sua organização.",
+      },
     ],
   }),
   component: TenantOverview,
@@ -62,10 +68,26 @@ function TenantOverview() {
   const gaps = gapsQuery.data ?? [];
 
   const metrics = [
-    { label: "Assistentes publicados", value: assistants.filter((a) => a.status === "publicado").length, icon: Bot },
-    { label: "Fontes indexadas", value: allSources.filter((s) => s.status === "pronta").length, icon: Library },
-    { label: "Conversas registradas", value: conversationsQuery.data?.length ?? 0, icon: MessageSquare },
-    { label: "Lacunas pendentes", value: gaps.filter((g) => g.status === "pendente").length, icon: SearchX },
+    {
+      label: "Assistentes publicados",
+      value: assistants.filter((a) => a.status === "publicado").length,
+      icon: Bot,
+    },
+    {
+      label: "Fontes indexadas",
+      value: allSources.filter((s) => s.status === "pronta").length,
+      icon: Library,
+    },
+    {
+      label: "Conversas registradas",
+      value: conversationsQuery.data?.length ?? 0,
+      icon: MessageSquare,
+    },
+    {
+      label: "Lacunas pendentes",
+      value: gaps.filter((g) => g.status === "pendente").length,
+      icon: SearchX,
+    },
   ];
 
   const recentAssistants = assistants.slice(0, 4);
@@ -102,7 +124,9 @@ function TenantOverview() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {assistantsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+            {assistantsQuery.isLoading && (
+              <p className="text-sm text-muted-foreground">Carregando…</p>
+            )}
             {assistantsQuery.isSuccess && recentAssistants.length === 0 && (
               <p className="text-sm text-muted-foreground">Nenhum assistente ainda.</p>
             )}
@@ -116,7 +140,8 @@ function TenantOverview() {
                 <div>
                   <p className="text-sm font-medium">{a.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {a.model_id} · atualizado em {new Date(a.updated_at).toLocaleDateString("pt-BR")}
+                    {a.model_id} · atualizado em{" "}
+                    {new Date(a.updated_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <StatusBadge status={a.status} />

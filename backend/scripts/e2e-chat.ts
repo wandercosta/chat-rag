@@ -40,7 +40,9 @@ const widgetKey = args.get("widget-key");
 const origin = args.get("origin") ?? "http://localhost:4174";
 
 if (!email || !password) {
-  console.error("Uso: tsx scripts/e2e-chat.ts --email <admin do tenant> --password <senha> [--widget-key pk_...]");
+  console.error(
+    "Uso: tsx scripts/e2e-chat.ts --email <admin do tenant> --password <senha> [--widget-key pk_...]",
+  );
   process.exit(1);
 }
 
@@ -73,8 +75,11 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${apiBase}${path}`, { ...init, headers });
   const set = res.headers.get("set-cookie");
   if (set) cookie = set.split(";")[0];
-  const body = res.headers.get("content-type")?.includes("application/json") ? await res.json() : null;
-  if (!res.ok) throw new Error(`${init.method ?? "GET"} ${path} -> ${res.status}: ${JSON.stringify(body)}`);
+  const body = res.headers.get("content-type")?.includes("application/json")
+    ? await res.json()
+    : null;
+  if (!res.ok)
+    throw new Error(`${init.method ?? "GET"} ${path} -> ${res.status}: ${JSON.stringify(body)}`);
   return body as T;
 }
 
@@ -117,7 +122,11 @@ async function ask(
 ): Promise<Answer> {
   return api<Answer>(`/organizations/${orgId}/assistants/${assistantId}/playground-messages`, {
     method: "POST",
-    body: JSON.stringify({ message, environment: "teste", ...(conversationId ? { conversationId } : {}) }),
+    body: JSON.stringify({
+      message,
+      environment: "teste",
+      ...(conversationId ? { conversationId } : {}),
+    }),
   });
 }
 
@@ -139,9 +148,14 @@ async function main() {
   const orgId = auth.memberships[0]?.organizationId;
   if (!orgId) throw new Error("este usuario nao pertence a nenhuma organizacao");
 
-  const assistants = await api<{ id: string; name: string }[]>(`/organizations/${orgId}/assistants`);
-  const assistant = assistantName ? assistants.find((a) => a.name === assistantName) : assistants[0];
-  if (!assistant) throw new Error(`assistente nao encontrado (${assistantName ?? "primeiro da lista"})`);
+  const assistants = await api<{ id: string; name: string }[]>(
+    `/organizations/${orgId}/assistants`,
+  );
+  const assistant = assistantName
+    ? assistants.find((a) => a.name === assistantName)
+    : assistants[0];
+  if (!assistant)
+    throw new Error(`assistente nao encontrado (${assistantName ?? "primeiro da lista"})`);
 
   const topics = await api<{ id: string; name: string }[]>(`/organizations/${orgId}/topics`);
   const topic = topics[0];
@@ -161,23 +175,40 @@ async function main() {
   console.log("\n2. Cadastra a fonte que responde");
   const source = await api<Source>(`/organizations/${orgId}/sources`, {
     method: "POST",
-    body: JSON.stringify({ topicId: topic.id, title: `Rastreio ${UNIT}`, kind: "texto", content: SECRET_FACT }),
+    body: JSON.stringify({
+      topicId: topic.id,
+      title: `Rastreio ${UNIT}`,
+      kind: "texto",
+      content: SECRET_FACT,
+    }),
   });
   if (source.status === "aguardando_ativacao") {
-    throw new Error("fonte ficou em aguardando_ativacao: configure uma chave OpenAI valida no tenant antes de rodar");
+    throw new Error(
+      "fonte ficou em aguardando_ativacao: configure uma chave OpenAI valida no tenant antes de rodar",
+    );
   }
   const indexed = await waitIndexed(orgId, topic.id, source.id);
-  check("fonte indexada", indexed.status === "pronta", `status=${indexed.status} chunks=${indexed.chunk_count}`);
+  check(
+    "fonte indexada",
+    indexed.status === "pronta",
+    `status=${indexed.status} chunks=${indexed.chunk_count}`,
+  );
 
   console.log("\n3. Mesma pergunta, agora com a base (deve responder)");
   const after = await ask(orgId, assistant.id, QUESTION);
   check("respondeu usando a base", after.usedContext === true);
-  check("resposta traz o dado da fonte", after.answer.includes(`ZK-${run}`), after.answer.slice(0, 80));
+  check(
+    "resposta traz o dado da fonte",
+    after.answer.includes(`ZK-${run}`),
+    after.answer.slice(0, 80),
+  );
 
   console.log("\n4. Responder uma lacuna cria fonte de conhecimento");
   await ask(orgId, assistant.id, GAP_QUESTION); // gera a lacuna
   const gaps = await api<Gap[]>(`/organizations/${orgId}/gaps`);
-  const gap = gaps.find((g) => g.question_normalized.includes(run) && g.question_normalized.includes("garantia"));
+  const gap = gaps.find(
+    (g) => g.question_normalized.includes(run) && g.question_normalized.includes("garantia"),
+  );
   if (!gap) throw new Error("lacuna da pergunta de garantia nao foi registrada");
 
   const fromGap = await api<Source>(`/organizations/${orgId}/gaps/${gap.id}/answer`, {
@@ -187,38 +218,62 @@ async function main() {
   const gapIndexed = await waitIndexed(orgId, topic.id, fromGap.id);
   check("resposta da lacuna virou fonte indexada", gapIndexed.status === "pronta");
   const gapsNow = await api<Gap[]>(`/organizations/${orgId}/gaps`);
-  check("lacuna marcada como resolvida", gapsNow.find((g) => g.id === gap.id)?.status === "resolvida");
+  check(
+    "lacuna marcada como resolvida",
+    gapsNow.find((g) => g.id === gap.id)?.status === "resolvida",
+  );
 
   console.log("\n5. Pergunta o que foi respondido na lacuna (deve responder)");
   const gapAnswer = await ask(orgId, assistant.id, GAP_QUESTION);
   check("respondeu usando a base", gapAnswer.usedContext === true);
-  check("resposta traz o prazo informado", gapAnswer.answer.includes("730"), gapAnswer.answer.slice(0, 80));
+  check(
+    "resposta traz o prazo informado",
+    gapAnswer.answer.includes("730"),
+    gapAnswer.answer.slice(0, 80),
+  );
 
   console.log("\n6. Pergunta fora do escopo (deve recusar, sem alucinar)");
   const off = await ask(orgId, assistant.id, OFF_TOPIC);
   check("recusou pergunta fora da base", off.usedContext === false);
-  check("nao respondeu 'Paris'", !off.answer.toLowerCase().includes("paris"), off.answer.slice(0, 60));
+  check(
+    "nao respondeu 'Paris'",
+    !off.answer.toLowerCase().includes("paris"),
+    off.answer.slice(0, 60),
+  );
 
   console.log("\n7. Saudacao nao consulta a base nem vira lacuna");
   const gapsBeforeHello = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).length;
   const hello = await ask(orgId, assistant.id, "bom dia");
-  check("respondeu com cortesia", !hello.answer.includes("Não consigo responder"), hello.answer.slice(0, 50));
+  check(
+    "respondeu com cortesia",
+    !hello.answer.includes("Não consigo responder"),
+    hello.answer.slice(0, 50),
+  );
   const gapsAfterHello = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).length;
   check("nao criou lacuna para a saudacao", gapsAfterHello === gapsBeforeHello);
 
   console.log("\n8. Conversa tem memoria e a lacuna guarda contexto");
   const turn1 = await ask(orgId, assistant.id, QUESTION);
-  const orphan = await ask(orgId, assistant.id, "quem assinou esse documento?", turn1.conversationId);
+  const orphan = await ask(
+    orgId,
+    assistant.id,
+    "quem assinou esse documento?",
+    turn1.conversationId,
+  );
   check("continuidade sem resposta na base e recusada", orphan.usedContext === false);
 
   // A pergunta de continuidade e curta de proposito (so assim herda a
   // anterior), entao ela se repete entre execucoes. Casar tambem pelo marcador
   // do run evita pegar a lacuna de uma rodada passada.
   const orphanGap = (await api<Gap[]>(`/organizations/${orgId}/gaps`)).find(
-    (g) => g.original_question === "quem assinou esse documento?" && g.question_normalized.includes(run),
+    (g) =>
+      g.original_question === "quem assinou esse documento?" && g.question_normalized.includes(run),
   );
   check("lacuna guarda a pergunta original", !!orphanGap);
-  check("lacuna guarda o contexto da conversa", !!orphanGap?.context_snippet?.includes("Visitante:"));
+  check(
+    "lacuna guarda o contexto da conversa",
+    !!orphanGap?.context_snippet?.includes("Visitante:"),
+  );
   check(
     "chave de agrupamento carrega a pergunta anterior",
     !!orphanGap?.question_normalized.includes(run),
@@ -238,12 +293,21 @@ async function main() {
       `/widget/conversations/${conv.conversationId}/messages`,
       { key: widgetKey, message: QUESTION },
     );
-    check("widget respondeu a partir da base", widgetAnswer.answer.includes(`ZK-${run}`), widgetAnswer.answer.slice(0, 80));
+    check(
+      "widget respondeu a partir da base",
+      widgetAnswer.answer.includes(`ZK-${run}`),
+      widgetAnswer.answer.slice(0, 80),
+    );
 
-    await widget(`/widget/conversations/${conv.conversationId}/feedback`, { key: widgetKey, rating: "positivo" });
+    await widget(`/widget/conversations/${conv.conversationId}/feedback`, {
+      key: widgetKey,
+      rating: "positivo",
+    });
     check("widget registrou feedback", true);
 
-    const conversations = await api<{ id: string; channel: string }[]>(`/organizations/${orgId}/conversations`);
+    const conversations = await api<{ id: string; channel: string }[]>(
+      `/organizations/${orgId}/conversations`,
+    );
     check(
       "conversa do widget aparece no painel",
       conversations.some((c) => c.id === conv.conversationId && c.channel === "widget"),

@@ -172,7 +172,12 @@ function AssistantsList() {
           <p className="text-sm text-muted-foreground">Carregando...</p>
         )}
         {assistantsQuery.data?.map((a) => (
-          <Link key={a.id} to="/assistentes/$assistantId" params={{ assistantId: a.id }} className="block">
+          <Link
+            key={a.id}
+            to="/assistentes/$assistantId"
+            params={{ assistantId: a.id }}
+            className="block"
+          >
             <Card className="h-full transition-colors hover:border-primary/40">
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div>

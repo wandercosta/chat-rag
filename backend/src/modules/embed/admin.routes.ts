@@ -51,7 +51,11 @@ export async function embedAdminRoutes(app: FastifyInstance) {
     "/organizations/:organizationId/widget-keys/:keyId/revoke",
     { preHandler: requireOrgRole(roles) },
     async (request) => {
-      await keysService.revoke(request.auth!.userId, request.params.organizationId, request.params.keyId);
+      await keysService.revoke(
+        request.auth!.userId,
+        request.params.organizationId,
+        request.params.keyId,
+      );
       return { ok: true };
     },
   );

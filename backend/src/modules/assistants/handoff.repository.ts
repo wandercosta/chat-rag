@@ -22,12 +22,21 @@ export const handoffRepository = {
   insert(organizationId: string, assistantId: string, sectorName: string, phoneNumber: string) {
     return db
       .insertInto("handoff_configs")
-      .values({ organization_id: organizationId, assistant_id: assistantId, sector_name: sectorName, phone_number: phoneNumber })
+      .values({
+        organization_id: organizationId,
+        assistant_id: assistantId,
+        sector_name: sectorName,
+        phone_number: phoneNumber,
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
   },
 
   remove(assistantId: string, id: string) {
-    return db.deleteFrom("handoff_configs").where("assistant_id", "=", assistantId).where("id", "=", id).execute();
+    return db
+      .deleteFrom("handoff_configs")
+      .where("assistant_id", "=", assistantId)
+      .where("id", "=", id)
+      .execute();
   },
 };

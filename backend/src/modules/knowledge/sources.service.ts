@@ -48,7 +48,9 @@ export const sourcesService = {
     }
 
     const requiresReview = await collectionsRepository.requiresReview(topic.collection_id);
-    const status: SourceStatus = requiresReview ? "aguardando_revisao" : await nextStatusAfterReviewGate(organizationId);
+    const status: SourceStatus = requiresReview
+      ? "aguardando_revisao"
+      : await nextStatusAfterReviewGate(organizationId);
 
     const source = await sourcesRepository.insert({
       organizationId,
@@ -75,13 +77,20 @@ export const sourcesService = {
   async createFileSource(
     actorUserId: string,
     organizationId: string,
-    input: { topicId: string; title: string; kind: Extract<SourceKind, "PDF" | "DOCX">; storageKey: string },
+    input: {
+      topicId: string;
+      title: string;
+      kind: Extract<SourceKind, "PDF" | "DOCX">;
+      storageKey: string;
+    },
   ) {
     const topic = await topicsRepository.findById(organizationId, input.topicId);
     if (!topic) throw new TopicNotFoundError();
 
     const requiresReview = await collectionsRepository.requiresReview(topic.collection_id);
-    const status: SourceStatus = requiresReview ? "aguardando_revisao" : await nextStatusAfterReviewGate(organizationId);
+    const status: SourceStatus = requiresReview
+      ? "aguardando_revisao"
+      : await nextStatusAfterReviewGate(organizationId);
 
     const source = await sourcesRepository.insert({
       organizationId,

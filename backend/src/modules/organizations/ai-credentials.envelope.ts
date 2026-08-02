@@ -39,7 +39,15 @@ export function encryptSecret(plaintext: string): Envelope {
   const wrappedDek = Buffer.concat([dekCipher.update(dek), dekCipher.final()]);
   const dekAuthTag = dekCipher.getAuthTag();
 
-  return { ciphertext, iv, authTag, wrappedDek, dekIv, dekAuthTag, kekVersion: CURRENT_KEK_VERSION };
+  return {
+    ciphertext,
+    iv,
+    authTag,
+    wrappedDek,
+    dekIv,
+    dekAuthTag,
+    kekVersion: CURRENT_KEK_VERSION,
+  };
 }
 
 export function decryptSecret(envelope: Envelope): string {

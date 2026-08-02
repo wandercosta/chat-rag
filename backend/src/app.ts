@@ -4,7 +4,11 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { registerCors } from "./cors.js";
 import { registerTenantStatusGuard } from "./tenant-status.js";
 import { identityPlugin, membersRoutes } from "./modules/identity/index.js";
-import { organizationsRoutes, aiCredentialsRoutes, supportSessionsRoutes } from "./modules/organizations/index.js";
+import {
+  organizationsRoutes,
+  aiCredentialsRoutes,
+  supportSessionsRoutes,
+} from "./modules/organizations/index.js";
 import { auditRoutes } from "./modules/audit/index.js";
 import { assistantsRoutes, modelCatalogRoutes, handoffRoutes } from "./modules/assistants/index.js";
 import { collectionsRoutes, topicsRoutes, sourcesRoutes } from "./modules/knowledge/index.js";

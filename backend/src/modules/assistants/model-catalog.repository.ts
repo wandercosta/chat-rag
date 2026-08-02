@@ -54,7 +54,10 @@ export const modelCatalogRepository = {
   },
 
   async replaceAllowedForTenant(organizationId: string, modelIds: string[]) {
-    await db.deleteFrom("tenant_allowed_models").where("organization_id", "=", organizationId).execute();
+    await db
+      .deleteFrom("tenant_allowed_models")
+      .where("organization_id", "=", organizationId)
+      .execute();
     if (modelIds.length === 0) return;
     await db
       .insertInto("tenant_allowed_models")

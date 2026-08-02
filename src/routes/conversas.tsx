@@ -5,9 +5,28 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { assistantsApi, conversationsApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -15,7 +34,10 @@ export const Route = createFileRoute("/conversas")({
   head: () => ({
     meta: [
       { title: "Conversas — ChatRAG" },
-      { name: "description", content: "Histórico filtrável de conversas do widget e do WhatsApp com feedbacks." },
+      {
+        name: "description",
+        content: "Histórico filtrável de conversas do widget e do WhatsApp com feedbacks.",
+      },
       { property: "og:title", content: "Conversas — ChatRAG" },
       { property: "og:description", content: "Consulte transcrições e feedbacks das conversas." },
     ],
@@ -42,7 +64,8 @@ function ConversationsPage() {
 
   const assistantNames = new Map((assistantsQuery.data ?? []).map((a) => [a.id, a.name]));
   const all = conversationsQuery.data ?? [];
-  const rows = assistantFilter === "todos" ? all : all.filter((c) => c.assistant_id === assistantFilter);
+  const rows =
+    assistantFilter === "todos" ? all : all.filter((c) => c.assistant_id === assistantFilter);
 
   return (
     <>
@@ -65,7 +88,9 @@ function ConversationsPage() {
       </div>
 
       <Card className="overflow-hidden p-0">
-        {conversationsQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
+        {conversationsQuery.isLoading && (
+          <p className="p-6 text-sm text-muted-foreground">Carregando…</p>
+        )}
         {conversationsQuery.isSuccess && rows.length === 0 && (
           <p className="p-6 text-sm text-muted-foreground">Nenhuma conversa registrada ainda.</p>
         )}
@@ -105,7 +130,11 @@ function ConversationsPage() {
         )}
       </Card>
 
-      <TranscriptSheet tenantId={tenantId} conversationId={openId} onClose={() => setOpenId(null)} />
+      <TranscriptSheet
+        tenantId={tenantId}
+        conversationId={openId}
+        onClose={() => setOpenId(null)}
+      />
     </>
   );
 }

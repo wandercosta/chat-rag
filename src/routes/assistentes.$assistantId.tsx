@@ -11,10 +11,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ApiError, assistantsApi, collectionsApi, modelsApi, type Assistant } from "@/lib/api-client";
+import {
+  ApiError,
+  assistantsApi,
+  collectionsApi,
+  modelsApi,
+  type Assistant,
+} from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/assistentes/$assistantId")({
@@ -23,7 +35,10 @@ export const Route = createFileRoute("/assistentes/$assistantId")({
       { title: "Assistente — ChatRAG" },
       { name: "description", content: "Identidade, modelo e retenção do assistente." },
       { property: "og:title", content: "Configuração do assistente — ChatRAG" },
-      { property: "og:description", content: "Edite nome, modelo, instruções e retenção do assistente." },
+      {
+        property: "og:description",
+        content: "Edite nome, modelo, instruções e retenção do assistente.",
+      },
     ],
   }),
   component: AssistantDetail,
@@ -132,7 +147,12 @@ function AssistantDetail() {
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="a-name">Nome</Label>
-              <Input id="a-name" value={name} disabled={readOnly} onChange={(e) => setName(e.target.value)} />
+              <Input
+                id="a-name"
+                value={name}
+                disabled={readOnly}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="a-model">Modelo</Label>
@@ -151,7 +171,11 @@ function AssistantDetail() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="a-status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as Assistant["status"])} disabled={readOnly}>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as Assistant["status"])}
+                disabled={readOnly}
+              >
                 <SelectTrigger id="a-status">
                   <SelectValue />
                 </SelectTrigger>
@@ -181,7 +205,9 @@ function AssistantDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
-            <CardDescription>Por quanto tempo o histórico de conversas deste assistente fica guardado.</CardDescription>
+            <CardDescription>
+              Por quanto tempo o histórico de conversas deste assistente fica guardado.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
@@ -246,7 +272,8 @@ function KnowledgeScopeCard({
       queryClient.invalidateQueries({ queryKey: ["assistant-collections", tenantId, assistantId] });
       toast.success("Escopo de conhecimento atualizado");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível atualizar o escopo"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível atualizar o escopo"),
   });
 
   const collections = collectionsQuery.data ?? [];
@@ -266,8 +293,8 @@ function KnowledgeScopeCard({
               Sem restrição
             </Badge>
             <p className="text-xs text-muted-foreground">
-              Nenhuma coleção marcada — o assistente consulta toda a base da organização. Marque uma ou mais para
-              restringir.
+              Nenhuma coleção marcada — o assistente consulta toda a base da organização. Marque uma
+              ou mais para restringir.
             </p>
           </div>
         )}
@@ -275,7 +302,8 @@ function KnowledgeScopeCard({
         {collectionsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {collectionsQuery.isSuccess && collections.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhuma coleção cadastrada. Crie coleções em Base de conhecimento para poder restringir o escopo.
+            Nenhuma coleção cadastrada. Crie coleções em Base de conhecimento para poder restringir
+            o escopo.
           </p>
         )}
 
@@ -289,7 +317,9 @@ function KnowledgeScopeCard({
               />
               <span className="text-sm">
                 <span className="font-medium">{c.name}</span>
-                {c.description && <span className="block text-xs text-muted-foreground">{c.description}</span>}
+                {c.description && (
+                  <span className="block text-xs text-muted-foreground">{c.description}</span>
+                )}
               </span>
             </label>
           ))}

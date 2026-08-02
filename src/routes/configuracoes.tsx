@@ -10,7 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSession } from "@/lib/session";
 import {
   ApiError,
@@ -26,9 +32,15 @@ export const Route = createFileRoute("/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações — ChatRAG" },
-      { name: "description", content: "Estado das chaves de IA por ambiente, modelos permitidos e retenção." },
+      {
+        name: "description",
+        content: "Estado das chaves de IA por ambiente, modelos permitidos e retenção.",
+      },
       { property: "og:title", content: "Configurações — ChatRAG" },
-      { property: "og:description", content: "Configure a organização sem nunca exibir valores de chave." },
+      {
+        property: "og:description",
+        content: "Configure a organização sem nunca exibir valores de chave.",
+      },
     ],
   }),
   component: SettingsPage,
@@ -45,8 +57,16 @@ const statusLabel: Record<CredentialStatus["status"], string> = {
 // "ambos" cobre teste e produção com a mesma credencial; o backend resolve a
 // precedência (ambiente específico primeiro, depois 'ambos').
 const environments: { value: CredentialEnvironment; label: string; hint: string }[] = [
-  { value: "ambos", label: "Compartilhada (teste e produção)", hint: "Uma única chave atende os dois ambientes." },
-  { value: "teste", label: "Teste", hint: "Usada pelo playground e por chaves de widget de teste." },
+  {
+    value: "ambos",
+    label: "Compartilhada (teste e produção)",
+    hint: "Uma única chave atende os dois ambientes.",
+  },
+  {
+    value: "teste",
+    label: "Teste",
+    hint: "Usada pelo playground e por chaves de widget de teste.",
+  },
   { value: "producao", label: "Produção", hint: "Usada pelo widget publicado." },
 ];
 
@@ -61,7 +81,11 @@ function SettingsPage() {
   const { can, tenantId } = useSession();
 
   if (!can("settings")) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">Seu perfil não acessa configurações.</Card>;
+    return (
+      <Card className="p-8 text-center text-sm text-muted-foreground">
+        Seu perfil não acessa configurações.
+      </Card>
+    );
   }
 
   return (
@@ -117,7 +141,8 @@ function AiCredentialsCard({ tenantId }: { tenantId: string | null }) {
           : `Chave validada e salva (${result.masked})`,
       );
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a chave"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a chave"),
   });
 
   const remove = useMutation({
@@ -126,32 +151,42 @@ function AiCredentialsCard({ tenantId }: { tenantId: string | null }) {
       invalidate();
       toast.success("Chave removida");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível remover a chave"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível remover a chave"),
   });
 
-  const configured = (statusQuery.data ?? []).filter((c) => c.status !== "ausente" && c.status !== "removida");
+  const configured = (statusQuery.data ?? []).filter(
+    (c) => c.status !== "ausente" && c.status !== "removida",
+  );
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Chave de IA (OpenAI)</CardTitle>
         <CardDescription>
-          O valor salvo nunca é exibido novamente — apenas o estado e o final mascarado. Cole um novo valor para
-          substituir.
+          O valor salvo nunca é exibido novamente — apenas o estado e o final mascarado. Cole um
+          novo valor para substituir.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="space-y-2">
-          {statusQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando estado…</p>}
+          {statusQuery.isLoading && (
+            <p className="text-sm text-muted-foreground">Carregando estado…</p>
+          )}
           {statusQuery.isSuccess && configured.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhuma chave configurada ainda.</p>
           )}
           {configured.map((c) => (
-            <div key={c.environment} className="flex items-center justify-between rounded-md border px-3 py-2">
+            <div
+              key={c.environment}
+              className="flex items-center justify-between rounded-md border px-3 py-2"
+            >
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium capitalize">{c.environment}</span>
                 <StatusBadge status={statusLabel[c.status]} />
-                {c.masked && <span className="font-mono text-xs text-muted-foreground">{c.masked}</span>}
+                {c.masked && (
+                  <span className="font-mono text-xs text-muted-foreground">{c.masked}</span>
+                )}
               </div>
               <Button
                 size="sm"
@@ -174,7 +209,10 @@ function AiCredentialsCard({ tenantId }: { tenantId: string | null }) {
         >
           <div className="grid gap-2">
             <Label htmlFor="k-env">Ambiente</Label>
-            <Select value={environment} onValueChange={(v) => setEnvironment(v as CredentialEnvironment)}>
+            <Select
+              value={environment}
+              onValueChange={(v) => setEnvironment(v as CredentialEnvironment)}
+            >
               <SelectTrigger id="k-env">
                 <SelectValue />
               </SelectTrigger>
@@ -236,7 +274,10 @@ function AllowedModelsCard({ tenantId }: { tenantId: string | null }) {
           </p>
         )}
         {modelsQuery.data?.map((m) => (
-          <div key={m.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+          <div
+            key={m.id}
+            className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+          >
             <span className="font-mono text-xs">{m.label}</span>
             {m.note && <Badge variant="outline">{m.note}</Badge>}
           </div>
@@ -266,7 +307,8 @@ function RetentionCard({ tenantId }: { tenantId: string | null }) {
       queryClient.invalidateQueries({ queryKey: ["organization", tenantId] });
       toast.success("Retenção atualizada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a retenção"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a retenção"),
   });
 
   return (
@@ -291,7 +333,8 @@ function RetentionCard({ tenantId }: { tenantId: string | null }) {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            "Não reter" deixa a organização sem política própria — vale o padrão da plataforma (90 dias).
+            "Não reter" deixa a organização sem política própria — vale o padrão da plataforma (90
+            dias).
           </p>
         </div>
         <Button disabled={save.isPending} onClick={() => save.mutate()}>

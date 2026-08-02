@@ -21,7 +21,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError, masterApi, type SupportSession } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -29,9 +36,15 @@ export const Route = createFileRoute("/tenants/$tenantId")({
   head: () => ({
     meta: [
       { title: "Organização — ChatRAG Master" },
-      { name: "description", content: "Status, acesso de suporte auditado e chave de IA da organização." },
+      {
+        name: "description",
+        content: "Status, acesso de suporte auditado e chave de IA da organização.",
+      },
       { property: "og:title", content: "Detalhe da organização — ChatRAG" },
-      { property: "og:description", content: "Suspensão, reativação e acesso de suporte auditado." },
+      {
+        property: "og:description",
+        content: "Suspensão, reativação e acesso de suporte auditado.",
+      },
     ],
   }),
   component: TenantDetail,
@@ -64,7 +77,8 @@ function TenantDetail() {
       queryClient.invalidateQueries({ queryKey: ["master-tenants"] });
       toast.success(status === "suspenso" ? "Organização suspensa" : "Organização reativada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível alterar o status"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível alterar o status"),
   });
 
   const endSession = useMutation({
@@ -73,11 +87,16 @@ function TenantDetail() {
       queryClient.invalidateQueries({ queryKey: ["support-sessions", tenantId] });
       toast.success("Acesso de suporte encerrado");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível encerrar o acesso"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível encerrar o acesso"),
   });
 
   if (scope !== "master") {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">Área exclusiva do Master.</Card>;
+    return (
+      <Card className="p-8 text-center text-sm text-muted-foreground">
+        Área exclusiva do Master.
+      </Card>
+    );
   }
 
   const tenant = tenantsQuery.data?.find((t) => t.id === tenantId);
@@ -126,7 +145,8 @@ function TenantDetail() {
               <CardTitle className="text-base">Acesso de suporte ativo</CardTitle>
             </div>
             <CardDescription>
-              Expira em {new Date(active.expires_at).toLocaleString("pt-BR")} · {active.justification}
+              Expira em {new Date(active.expires_at).toLocaleString("pt-BR")} ·{" "}
+              {active.justification}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -149,11 +169,14 @@ function TenantDetail() {
         <CardHeader>
           <CardTitle className="text-base">Histórico de acessos de suporte</CardTitle>
           <CardDescription>
-            Todo acesso do Master a dados deste tenant exige uma sessão justificada e expira sozinho.
+            Todo acesso do Master a dados deste tenant exige uma sessão justificada e expira
+            sozinho.
           </CardDescription>
         </CardHeader>
         {sessionsQuery.isSuccess && sessions.length === 0 && (
-          <p className="px-6 pb-6 text-sm text-muted-foreground">Nenhum acesso de suporte registrado.</p>
+          <p className="px-6 pb-6 text-sm text-muted-foreground">
+            Nenhum acesso de suporte registrado.
+          </p>
         )}
         {sessions.length > 0 && (
           <Table>
@@ -172,7 +195,9 @@ function TenantDetail() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={isActive(s) ? "border-success/30 text-success" : "text-muted-foreground"}
+                      className={
+                        isActive(s) ? "border-success/30 text-success" : "text-muted-foreground"
+                      }
                     >
                       {isActive(s) ? "ativa" : s.ended_at ? "encerrada" : "expirada"}
                     </Badge>
@@ -195,7 +220,13 @@ function TenantDetail() {
 
 /** O Master só enxerga o estado da chave do tenant (nunca o valor) e só com
  * uma sessão de suporte ativa — sem ela a API responde 403 de propósito. */
-function TenantCredentialsCard({ tenantId, hasActiveSupport }: { tenantId: string; hasActiveSupport: boolean }) {
+function TenantCredentialsCard({
+  tenantId,
+  hasActiveSupport,
+}: {
+  tenantId: string;
+  hasActiveSupport: boolean;
+}) {
   const credentialsQuery = useQuery({
     queryKey: ["master-tenant-credentials", tenantId],
     queryFn: () => masterApi.getTenantCredentials(tenantId),
@@ -227,10 +258,15 @@ function TenantCredentialsCard({ tenantId, hasActiveSupport }: { tenantId: strin
         ) : (
           <div className="space-y-2">
             {configured.map((c) => (
-              <div key={c.environment} className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+              <div
+                key={c.environment}
+                className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm"
+              >
                 <span className="font-medium capitalize">{c.environment}</span>
                 <StatusBadge status={c.status} />
-                {c.masked && <span className="font-mono text-xs text-muted-foreground">{c.masked}</span>}
+                {c.masked && (
+                  <span className="font-mono text-xs text-muted-foreground">{c.masked}</span>
+                )}
               </div>
             ))}
           </div>
@@ -248,7 +284,10 @@ function TenantCredentialsCard({ tenantId, hasActiveSupport }: { tenantId: strin
 function TenantModelsCard({ tenantId }: { tenantId: string }) {
   const queryClient = useQueryClient();
 
-  const catalogQuery = useQuery({ queryKey: ["model-catalog"], queryFn: () => masterApi.listModelCatalog() });
+  const catalogQuery = useQuery({
+    queryKey: ["model-catalog"],
+    queryFn: () => masterApi.listModelCatalog(),
+  });
   const allowedQuery = useQuery({
     queryKey: ["tenant-models", tenantId],
     queryFn: () => masterApi.listTenantModels(tenantId),
@@ -260,7 +299,8 @@ function TenantModelsCard({ tenantId }: { tenantId: string }) {
       queryClient.invalidateQueries({ queryKey: ["tenant-models", tenantId] });
       toast.success("Modelos do tenant atualizados");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar os modelos"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar os modelos"),
   });
 
   const catalog = (catalogQuery.data ?? []).filter((m) => m.enabled);
@@ -281,8 +321,8 @@ function TenantModelsCard({ tenantId }: { tenantId: string }) {
       <CardHeader>
         <CardTitle className="text-base">Modelos liberados</CardTitle>
         <CardDescription>
-          O tenant só escolhe modelos desta lista ao criar assistentes. Sem restrição, valem todos os modelos
-          ativos do catálogo.
+          O tenant só escolhe modelos desta lista ao criar assistentes. Sem restrição, valem todos
+          os modelos ativos do catálogo.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -327,7 +367,8 @@ function StartSupportDialog({ tenantId, hasActive }: { tenantId: string; hasActi
       setJustification("");
       toast.success("Acesso de suporte iniciado — a ação foi auditada");
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível iniciar o acesso"),
+    onError: (err) =>
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível iniciar o acesso"),
   });
 
   return (
@@ -341,8 +382,8 @@ function StartSupportDialog({ tenantId, hasActive }: { tenantId: string; hasActi
         <DialogHeader>
           <DialogTitle>Iniciar acesso de suporte</DialogTitle>
           <DialogDescription>
-            Concede acesso temporário aos dados operacionais deste tenant. A justificativa fica registrada na
-            auditoria e o acesso expira sozinho.
+            Concede acesso temporário aos dados operacionais deste tenant. A justificativa fica
+            registrada na auditoria e o acesso expira sozinho.
           </DialogDescription>
         </DialogHeader>
         <form

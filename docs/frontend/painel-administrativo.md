@@ -34,12 +34,12 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 ## Perfis iniciais
 
-| Perfil | Alcance |
-|---|---|
-| Master | Todas as organizacoes, usuarios, auditoria e configuracoes globais |
-| Administrador | Todos os recursos da propria organizacao |
-| Editor de base | Topicos e fontes autorizados; nao gerencia chaves ou usuarios |
-| Analista | Consulta conversas, feedbacks, lacunas e metricas |
+| Perfil         | Alcance                                                            |
+| -------------- | ------------------------------------------------------------------ |
+| Master         | Todas as organizacoes, usuarios, auditoria e configuracoes globais |
+| Administrador  | Todos os recursos da propria organizacao                           |
+| Editor de base | Topicos e fontes autorizados; nao gerencia chaves ou usuarios      |
+| Analista       | Consulta conversas, feedbacks, lacunas e metricas                  |
 
 Permissoes granulares poderao evoluir depois; nenhuma verificacao de seguranca pode depender apenas do frontend.
 

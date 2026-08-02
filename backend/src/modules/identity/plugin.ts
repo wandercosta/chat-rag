@@ -51,7 +51,10 @@ export async function requireMaster(request: FastifyRequest, reply: FastifyReply
  * (ADR-001 #14) — sem isso, cai no mesmo 403 de quem nao tem membership.
  */
 export function requireOrgRole(minRoles: readonly TenantRole[]) {
-  return async function (request: FastifyRequest<{ Params: { organizationId?: string } }>, reply: FastifyReply) {
+  return async function (
+    request: FastifyRequest<{ Params: { organizationId?: string } }>,
+    reply: FastifyReply,
+  ) {
     const organizationId = request.params?.organizationId;
     const membership = request.auth?.memberships.find((m) => m.organizationId === organizationId);
 

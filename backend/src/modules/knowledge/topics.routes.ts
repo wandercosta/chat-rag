@@ -48,7 +48,11 @@ export async function topicsRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(roles) },
     async (request, reply) => {
       const body = updateSchema.parse(request.body);
-      const topic = await topicsRepository.update(request.params.organizationId, request.params.topicId, body);
+      const topic = await topicsRepository.update(
+        request.params.organizationId,
+        request.params.topicId,
+        body,
+      );
       if (!topic) return reply.code(404).send({ error: "topico nao encontrado" });
       return topic;
     },

@@ -2,7 +2,11 @@ import { db } from "../../db/client.js";
 
 export const domainsRepository = {
   listForKey(embedKeyId: string) {
-    return db.selectFrom("allowed_domains").selectAll().where("embed_key_id", "=", embedKeyId).execute();
+    return db
+      .selectFrom("allowed_domains")
+      .selectAll()
+      .where("embed_key_id", "=", embedKeyId)
+      .execute();
   },
 
   add(embedKeyId: string, domain: string) {

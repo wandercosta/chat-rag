@@ -24,13 +24,13 @@
 
 ## Evolucao
 
-| Fase | Entrega |
-|---|---|
-| 0 | Documentacao, Docker local, painel Master, fundacao multi-tenant e autenticacao propria |
-| 1 | Base de conhecimento, RAG e chat de teste interno |
-| 2 | Widget externo, chaves, dominios e identificacao opcional |
-| 3 | Governanca SaaS: planos, limites, autoatendimento e SSO |
-| 4 | Canais, acoes autorizadas e conectores de dados |
+| Fase | Entrega                                                                                 |
+| ---- | --------------------------------------------------------------------------------------- |
+| 0    | Documentacao, Docker local, painel Master, fundacao multi-tenant e autenticacao propria |
+| 1    | Base de conhecimento, RAG e chat de teste interno                                       |
+| 2    | Widget externo, chaves, dominios e identificacao opcional                               |
+| 3    | Governanca SaaS: planos, limites, autoatendimento e SSO                                 |
+| 4    | Canais, acoes autorizadas e conectores de dados                                         |
 
 ## Criterio de sucesso do MVP
 

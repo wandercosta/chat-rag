@@ -58,7 +58,12 @@ export const sourcesRepository = {
       .executeTakeFirstOrThrow();
   },
 
-  setStatus(organizationId: string, id: string, status: SourceStatus, errorMessage?: string | null) {
+  setStatus(
+    organizationId: string,
+    id: string,
+    status: SourceStatus,
+    errorMessage?: string | null,
+  ) {
     return db
       .updateTable("sources")
       .set({ status, error_message: errorMessage ?? null, updated_at: new Date().toISOString() })

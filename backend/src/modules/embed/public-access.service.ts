@@ -26,7 +26,10 @@ function hostnameFrom(originOrReferer: string | undefined): string | null {
 export const publicAccessService = {
   /** Toda rota publica do widget passa por aqui: chave valida + origem
    * autorizada, nunca uma das duas isoladamente (docs/security). */
-  async resolveAndAuthorize(plaintextKey: string, originHeader: string | undefined): Promise<ResolvedEmbedKey> {
+  async resolveAndAuthorize(
+    plaintextKey: string,
+    originHeader: string | undefined,
+  ): Promise<ResolvedEmbedKey> {
     const row = await keysRepository.findActiveByHash(hashEmbedKey(plaintextKey));
     if (!row) throw new InvalidKeyError();
 

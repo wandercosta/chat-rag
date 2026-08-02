@@ -7,10 +7,12 @@ O widget deve ser instalado em qualquer site com um script no footer ou montado 
 O widget monta sua interface em Shadow DOM (`mode: 'open'`, para permitir depuracao), evitando colisao de CSS com o site hospedeiro e reduzindo risco de quebra por CSP restritivo do hospedeiro. Customizacao visual (cores, tema, logo) e aplicada via CSS custom properties que atravessam a fronteira do shadow root (ver ADR-002).
 
 ```html
-<script src="https://cdn.exemplo.com/chat-widget.js"
+<script
+  src="https://cdn.exemplo.com/chat-widget.js"
   data-key="pk_live_..."
   data-mode="floating"
-  async></script>
+  async
+></script>
 ```
 
 ## Chaves e ambientes
@@ -30,13 +32,15 @@ Prioridade: configuracao do assistente, depois padrao da organizacao. Inclui tit
 O widget aceita, via atributos `data-*` no `<script>`, dados que o sistema hospedeiro conhece sobre o atendimento em curso:
 
 ```html
-<script src="https://cdn.exemplo.com/chat-widget.js"
+<script
+  src="https://cdn.exemplo.com/chat-widget.js"
   data-key="pk_live_..."
   data-external-user-id="pedido-4821"
   data-visitor-name="Maria Souza"
   data-visitor-email="maria@exemplo.com"
   data-context='{"pedido":"4821","plano":"Pro"}'
-  async></script>
+  async
+></script>
 ```
 
 - `data-external-user-id`: identificador estavel do atendimento/cliente no sistema hospedeiro (ex.: id do pedido, id do chat interno). Mantido entre recargas da pagina, cria/atualiza um unico registro em `visitors` (unico por `organization_id` + `external_user_id`) e cada carregamento do widget continua abrindo uma conversa nova (`conversations`) — o ponto e permitir que o painel encontre e distinga o atendimento certo entre varias conversas, nao reaproveitar o historico de mensagens.

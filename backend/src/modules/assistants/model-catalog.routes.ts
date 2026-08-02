@@ -48,7 +48,10 @@ export async function modelCatalogRoutes(app: FastifyInstance) {
     { preHandler: requireMaster },
     async (request) => {
       const body = allowedModelsSchema.parse(request.body);
-      await modelCatalogRepository.replaceAllowedForTenant(request.params.organizationId, body.modelIds);
+      await modelCatalogRepository.replaceAllowedForTenant(
+        request.params.organizationId,
+        body.modelIds,
+      );
       return { ok: true };
     },
   );

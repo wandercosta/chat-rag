@@ -22,7 +22,8 @@ function handleError(err: unknown, reply: import("fastify").FastifyReply) {
   if (err instanceof EmailAlreadyInOrganizationError) {
     return reply.code(409).send({ error: "este e-mail ja tem acesso a esta organizacao" });
   }
-  if (err instanceof MemberNotFoundError) return reply.code(404).send({ error: "membro nao encontrado" });
+  if (err instanceof MemberNotFoundError)
+    return reply.code(404).send({ error: "membro nao encontrado" });
   if (err instanceof LastAdminError) {
     return reply.code(409).send({ error: "a organizacao precisa de ao menos um administrador" });
   }
@@ -46,7 +47,11 @@ export async function membersRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = createSchema.parse(request.body);
       try {
-        const member = await membersService.create(request.auth!.userId, request.params.organizationId, body);
+        const member = await membersService.create(
+          request.auth!.userId,
+          request.params.organizationId,
+          body,
+        );
         return reply.code(201).send(member);
       } catch (err) {
         return handleError(err, reply);
