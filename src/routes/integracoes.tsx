@@ -417,27 +417,103 @@ type Theme = "light" | "dark" | "sync";
 
 interface ScriptOptions {
   key: string;
+  apiBaseUrl: string;
   mode: Mode;
   position: Position;
+  mountSelector: string;
   theme: Theme;
   title: string;
   greeting: string;
   accentColor: string;
   avatarUrl: string;
   showOnlineBadge: boolean;
+  externalUserId: string;
+  visitorName: string;
+  visitorEmail: string;
+  contextJson: string;
+  showAllOptional: boolean;
 }
 
 function buildFullSnippet(opts: ScriptOptions): string {
+  const keyVal = opts.key.trim() || "(preencha_sua_chave)";
   const lines = [`<script src="${getWidgetScriptUrl()}"`];
-  lines.push(`  data-key="${opts.key}"`);
+  lines.push(`  data-key="${keyVal}"`);
+
+  if (opts.apiBaseUrl.trim()) {
+    lines.push(`  data-api="${opts.apiBaseUrl.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-api="http://localhost:3333"`);
+  }
+
   lines.push(`  data-mode="${opts.mode}"`);
-  if (opts.mode === "floating") lines.push(`  data-position="${opts.position}"`);
+
+  if (opts.mode === "floating") {
+    lines.push(`  data-position="${opts.position}"`);
+  } else if (opts.mode === "embedded") {
+    if (opts.mountSelector.trim()) {
+      lines.push(`  data-mount="${opts.mountSelector.trim()}"`);
+    } else if (opts.showAllOptional) {
+      lines.push(`  data-mount="#meu-chat-container"`);
+    }
+  }
+
   lines.push(`  data-theme="${opts.theme}"`);
-  if (opts.accentColor.trim()) lines.push(`  data-accent="${opts.accentColor.trim()}"`);
-  if (opts.avatarUrl.trim()) lines.push(`  data-avatar="${opts.avatarUrl.trim()}"`);
-  if (!opts.showOnlineBadge) lines.push(`  data-online="false"`);
-  if (opts.title.trim()) lines.push(`  data-title="${opts.title.trim()}"`);
-  if (opts.greeting.trim()) lines.push(`  data-greeting="${opts.greeting.trim()}"`);
+
+  if (opts.accentColor.trim()) {
+    lines.push(`  data-accent="${opts.accentColor.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-accent="#5B4FE9"`);
+  }
+
+  if (opts.avatarUrl.trim()) {
+    lines.push(`  data-avatar="${opts.avatarUrl.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-avatar="https://seusite.com/foto-assistente.png"`);
+  }
+
+  if (!opts.showOnlineBadge) {
+    lines.push(`  data-online="false"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-online="true"`);
+  }
+
+  if (opts.title.trim()) {
+    lines.push(`  data-title="${opts.title.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-title="Suporte Virtual"`);
+  }
+
+  if (opts.greeting.trim()) {
+    lines.push(`  data-greeting="${opts.greeting.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-greeting="Olá! Como posso te ajudar?"`);
+  }
+
+  // Atributos de Identificação do Usuário e Retomada de Histórico
+  if (opts.externalUserId.trim()) {
+    lines.push(`  data-external-user-id="${opts.externalUserId.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-external-user-id="iduser12"`);
+  }
+
+  if (opts.visitorName.trim()) {
+    lines.push(`  data-visitor-name="${opts.visitorName.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-visitor-name="João Silva"`);
+  }
+
+  if (opts.visitorEmail.trim()) {
+    lines.push(`  data-visitor-email="${opts.visitorEmail.trim()}"`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-visitor-email="joao@exemplo.com"`);
+  }
+
+  if (opts.contextJson.trim()) {
+    lines.push(`  data-context='${opts.contextJson.trim()}'`);
+  } else if (opts.showAllOptional) {
+    lines.push(`  data-context='{"plano":"Pro","empresa":"ACME"}'`);
+  }
+
   lines.push("  async");
   lines.push("></script>");
   return lines.join("\n");
@@ -449,14 +525,21 @@ function ScriptBuilderCard({
   freshKey: { masked: string; plaintext: string } | null;
 }) {
   const [key, setKey] = useState(freshKey?.plaintext ?? "");
+  const [apiBaseUrl, setApiBaseUrl] = useState("");
   const [mode, setMode] = useState<Mode>("floating");
   const [position, setPosition] = useState<Position>("bottom-right");
+  const [mountSelector, setMountSelector] = useState("");
   const [theme, setTheme] = useState<Theme>("sync");
   const [accentColor, setAccentColor] = useState("#5B4FE9");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showOnlineBadge, setShowOnlineBadge] = useState(true);
   const [title, setTitle] = useState("Fale com a gente");
   const [greeting, setGreeting] = useState("Olá! Como posso ajudar?");
+  const [externalUserId, setExternalUserId] = useState("");
+  const [visitorName, setVisitorName] = useState("");
+  const [visitorEmail, setVisitorEmail] = useState("");
+  const [contextJson, setContextJson] = useState("");
+  const [showAllOptional, setShowAllOptional] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Quando uma nova chave é criada, preenche automaticamente o campo
@@ -468,16 +551,40 @@ function ScriptBuilderCard({
     () =>
       buildFullSnippet({
         key,
+        apiBaseUrl,
         mode,
         position,
+        mountSelector,
         theme,
         accentColor,
         avatarUrl,
         showOnlineBadge,
         title,
         greeting,
+        externalUserId,
+        visitorName,
+        visitorEmail,
+        contextJson,
+        showAllOptional,
       }),
-    [key, mode, position, theme, accentColor, avatarUrl, showOnlineBadge, title, greeting],
+    [
+      key,
+      apiBaseUrl,
+      mode,
+      position,
+      mountSelector,
+      theme,
+      accentColor,
+      avatarUrl,
+      showOnlineBadge,
+      title,
+      greeting,
+      externalUserId,
+      visitorName,
+      visitorEmail,
+      contextJson,
+      showAllOptional,
+    ],
   );
 
   function handleCopy() {
@@ -496,29 +603,65 @@ function ScriptBuilderCard({
             <Code2 className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-base">Construtor de script</CardTitle>
+            <CardTitle className="text-base">Construtor visual de script</CardTitle>
             <CardDescription>
-              Personalize as opções abaixo e copie o código pronto para colar no seu site.
+              Personalize as opções abaixo e copie o código pronto com todos os atributos para colar no seu site.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Passo 1 — Chave */}
-        <div className="space-y-2">
+        {/* Toggle para exibir todos os atributos opcionais no código */}
+        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3.5">
+          <div className="space-y-0.5">
+            <Label htmlFor="sb-show-all" className="text-xs font-semibold text-primary">
+              Exibir Todos os Atributos Opcionais no Script Gerado
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Exibe todos os atributos configuráveis (cor, avatar, ID de usuário, e-mail, contexto, etc.) com valores de exemplo no código para fácil orientação.
+            </p>
+          </div>
+          <Switch
+            id="sb-show-all"
+            checked={showAllOptional}
+            onCheckedChange={setShowAllOptional}
+          />
+        </div>
+
+        {/* Passo 1 — Chave & Servidor */}
+        <div className="space-y-3">
           <div className="flex items-center gap-1.5">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               1
             </span>
-            <Label className="font-medium">Chave do widget</Label>
+            <Label className="font-medium">Chave do widget e Servidor</Label>
           </div>
-          <Input
-            id="sb-key"
-            placeholder="pk_live_... (gerada ao criar uma nova chave acima)"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            className="font-mono text-xs"
-          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-key" className="text-xs text-muted-foreground">
+                Chave do Widget (data-key) *
+              </Label>
+              <Input
+                id="sb-key"
+                placeholder="pk_live_... (gerada ao criar uma nova chave acima)"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-api" className="text-xs text-muted-foreground">
+                URL da API Backend (data-api) [opcional]
+              </Label>
+              <Input
+                id="sb-api"
+                placeholder="http://localhost:3333 ou https://api.seudominio.com"
+                value={apiBaseUrl}
+                onChange={(e) => setApiBaseUrl(e.target.value)}
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
           {!key && (
             <p className="flex items-center gap-1 text-xs text-amber-600">
               <Sparkles className="h-3 w-3" />
@@ -527,18 +670,18 @@ function ScriptBuilderCard({
           )}
         </div>
 
-        {/* Passo 2 — Aparência */}
+        {/* Passo 2 — Aparência e Cores */}
         <div className="space-y-3">
           <div className="flex items-center gap-1.5">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               2
             </span>
-            <Label className="font-medium">Aparência</Label>
+            <Label className="font-medium">Aparência e Personalização Visual</Label>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="sb-mode" className="text-xs text-muted-foreground">
-                Modo
+                Modo de Exibição (data-mode)
               </Label>
               <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
                 <SelectTrigger id="sb-mode">
@@ -550,10 +693,10 @@ function ScriptBuilderCard({
                 </SelectContent>
               </Select>
             </div>
-            {mode === "floating" && (
+            {mode === "floating" ? (
               <div className="space-y-1.5">
                 <Label htmlFor="sb-position" className="text-xs text-muted-foreground">
-                  Posição
+                  Posição (data-position)
                 </Label>
                 <Select value={position} onValueChange={(v) => setPosition(v as Position)}>
                   <SelectTrigger id="sb-position">
@@ -565,10 +708,23 @@ function ScriptBuilderCard({
                   </SelectContent>
                 </Select>
               </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="sb-mount" className="text-xs text-muted-foreground">
+                  Seletor do Container (data-mount)
+                </Label>
+                <Input
+                  id="sb-mount"
+                  placeholder="#meu-chat-container"
+                  value={mountSelector}
+                  onChange={(e) => setMountSelector(e.target.value)}
+                  className="font-mono text-xs"
+                />
+              </div>
             )}
             <div className="space-y-1.5">
               <Label htmlFor="sb-theme" className="text-xs text-muted-foreground">
-                Tema de cor
+                Tema de Cor (data-theme)
               </Label>
               <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
                 <SelectTrigger id="sb-theme">
@@ -583,11 +739,10 @@ function ScriptBuilderCard({
             </div>
           </div>
 
-          {/* Personalização Visual */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
             <div className="space-y-1.5">
               <Label htmlFor="sb-accent" className="text-xs text-muted-foreground">
-                Cor Principal do Chat
+                Cor Principal do Chat (data-accent)
               </Label>
               <div className="flex items-center gap-2">
                 <input
@@ -608,13 +763,13 @@ function ScriptBuilderCard({
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="sb-avatar" className="text-xs text-muted-foreground">
-                URL da Foto / Avatar do Assistente
+                URL da Foto / Avatar do Assistente (data-avatar)
               </Label>
               <Input
                 id="sb-avatar"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://exemplo.com/foto-assistente.png"
+                placeholder="https://seusite.com/foto-assistente.png"
                 className="text-xs"
               />
             </div>
@@ -623,10 +778,10 @@ function ScriptBuilderCard({
           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <div className="space-y-0.5">
               <Label htmlFor="sb-online" className="text-xs font-medium">
-                Indicador de Status Online (● Online)
+                Indicador de Status Online (data-online)
               </Label>
               <p className="text-[11px] text-muted-foreground">
-                Exibe um ponto verde brilhante com &quot;Online&quot; no topo do chat
+                Exibe um ponto verde brilhante com &quot;Online&quot; no cabeçalho do chat
               </p>
             </div>
             <Switch
@@ -643,12 +798,12 @@ function ScriptBuilderCard({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               3
             </span>
-            <Label className="font-medium">Textos (opcional)</Label>
+            <Label className="font-medium">Textos e Mensagens de Boas-Vindas</Label>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="sb-title" className="text-xs text-muted-foreground">
-                Título do chat
+                Título do Chat (data-title)
               </Label>
               <Input
                 id="sb-title"
@@ -659,7 +814,7 @@ function ScriptBuilderCard({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sb-greeting" className="text-xs text-muted-foreground">
-                Mensagem de boas-vindas
+                Mensagem de Boas-Vindas (data-greeting)
               </Label>
               <Input
                 id="sb-greeting"
@@ -668,6 +823,69 @@ function ScriptBuilderCard({
                 onChange={(e) => setGreeting(e.target.value)}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Passo 4 — Identificação de Usuário & Retomada de Histórico */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              4
+            </span>
+            <Label className="font-medium">Identificação de Usuário & Retomada de Conversa (opcional)</Label>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-ext-user" className="text-xs text-muted-foreground">
+                ID do Usuário no seu Sistema (data-external-user-id)
+              </Label>
+              <Input
+                id="sb-ext-user"
+                placeholder="ex: iduser12 ou usr_123"
+                value={externalUserId}
+                onChange={(e) => setExternalUserId(e.target.value)}
+                className="font-mono text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Retoma a mesma conversa e histórico entre recarregamentos.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-vis-name" className="text-xs text-muted-foreground">
+                Nome do Visitante (data-visitor-name)
+              </Label>
+              <Input
+                id="sb-vis-name"
+                placeholder="ex: João Silva"
+                value={visitorName}
+                onChange={(e) => setVisitorName(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-vis-email" className="text-xs text-muted-foreground">
+                E-mail do Visitante (data-visitor-email)
+              </Label>
+              <Input
+                id="sb-vis-email"
+                placeholder="ex: joao@exemplo.com"
+                value={visitorEmail}
+                onChange={(e) => setVisitorEmail(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sb-context" className="text-xs text-muted-foreground">
+              Contexto Adicional em JSON (data-context)
+            </Label>
+            <Input
+              id="sb-context"
+              placeholder='ex: {"plano":"Pro","empresa":"ACME Corp"}'
+              value={contextJson}
+              onChange={(e) => setContextJson(e.target.value)}
+              className="font-mono text-xs"
+            />
           </div>
         </div>
 
@@ -697,13 +915,11 @@ function ScriptBuilderCard({
             </Button>
           </div>
           <pre className="overflow-x-auto rounded-md border bg-background p-3 font-mono text-xs leading-relaxed text-foreground">
-            {key
-              ? snippet
-              : `<script src="${getWidgetScriptUrl()}"\n  data-key="(preencha a chave acima)"\n  ...\n></script>`}
+            {snippet}
           </pre>
           {!key && (
             <p className="text-center text-xs text-muted-foreground">
-              Preencha a chave no passo 1 para ativar o código.
+              Preencha a chave no passo 1 para personalizar o código com sua credencial ativa.
             </p>
           )}
         </div>
