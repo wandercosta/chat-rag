@@ -19,6 +19,7 @@ import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as TesteWidgetRouteImport } from './routes/teste-widget'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
@@ -72,6 +73,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TesteWidgetRoute = TesteWidgetRouteImport.update({
+  id: '/teste-widget',
+  path: '/teste-widget',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssistentesIndexRoute = AssistentesIndexRouteImport.update({
@@ -326,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlataformaRoute: PlataformaRoute,
   PlaygroundRoute: PlaygroundRoute,
   UsuariosRoute: UsuariosRoute,
+  TesteWidgetRoute: TesteWidgetRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,

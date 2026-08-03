@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Página de Teste - Widget ChatRAG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #5b4fe9;
+        --bg: #0f172a;
+        --card-bg: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --border: #334155;
+        --success: #10b981;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 20px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        font-size: 1.2rem;
+      }
+
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--primary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 900;
+      }
+
+      .badge {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      main {
+        max-width: 900px;
+        margin: 60px auto;
+        padding: 0 20px;
+        width: 100%;
+      }
+
+      .hero {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero p {
+        color: var(--muted);
+        font-size: 1.1rem;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .card h2 {
+        font-size: 1.25rem;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .step-number {
+        width: 28px;
+        height: 28px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .code-box {
+        background: #090d16;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        overflow-x: auto;
+        line-height: 1.6;
+        margin-top: 16px;
+      }
+
+      .code-box .tag { color: #f43f5e; }
+      .code-box .attr { color: #38bdf8; }
+      .code-box .val { color: #a3e635; }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 24px 40px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .callout {
+        background: rgba(91, 79, 233, 0.1);
+        border-left: 4px solid var(--primary);
+        padding: 16px 20px;
+        border-radius: 0 8px 8px 0;
+        margin-top: 20px;
+        font-size: 0.95rem;
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+        <div class="logo-icon">C</div>
+        <span>ChatRAG Suite</span>
+      </div>
+      <div class="badge">● Servidor Ativo (Localhost)</div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <h1>Demonstração do Widget Embarcado</h1>
+        <p>Página de teste simulando um site externo carregando o script do rodapé</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-number">1</span> Script carregado no rodapé HTML</h2>
+        <p style="color: var(--muted)">
+          O código abaixo foi adicionado ao final desta página (antes do fechamento da tag <code>&lt;/body&gt;</code>):
+        </p>
+
+        <div class="code-box">
+          <span class="tag">&lt;script</span><br />
+          &nbsp;&nbsp;<span class="attr">src</span>=<span class="val">"http://localhost:3000/chat-widget.js"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-key</span>=<span class="val">"pk_test_55042fddd1e4f2fbe30c89b67bd20821830a1c89bb3c9ba2"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-api</span>=<span class="val">"http://localhost:3333"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-mode</span>=<span class="val">"floating"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-position</span>=<span class="val">"bottom-right"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-theme</span>=<span class="val">"sync"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-title</span>=<span class="val">"Suporte ChatRAG (Teste)"</span><br />
+          &nbsp;&nbsp;<span class="attr">data-greeting</span>=<span class="val">"Olá! Este é um teste do widget no rodapé. Como posso te ajudar?"</span><br />
+          &nbsp;&nbsp;<span class="attr">async</span><br />
+          <span class="tag">&gt;&lt;/script&gt;</span>
+        </div>
+
+        <div class="callout">
+          👉 <strong>Como testar:</strong> Observe o canto inferior direito desta tela! Clique no ícone de balão de conversa para abrir o widget e interagir com o assistente em tempo real.
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>© 2026 ChatRAG Suite — Rodapé da página fictícia de teste.</p>
+    </footer>
+
+    <!-- ================================================================= -->
+    <!-- SCRIPT DO CHATRAG WIDGET NO RODAPÉ DA PÁGINA (FOOTER)              -->
+    <!-- ================================================================= -->
+    <script
+      src="/chat-widget.js"
+      data-key="pk_test_55042fddd1e4f2fbe30c89b67bd20821830a1c89bb3c9ba2"
+      data-api="http://localhost:3333"
+      data-mode="floating"
+      data-position="bottom-right"
+      data-theme="sync"
+      data-title="Suporte ChatRAG (Teste)"
+      data-greeting="Olá! Este é um teste do widget no rodapé. Como posso te ajudar?"
+      async
+    ></script>
+  </body>
+</html>
