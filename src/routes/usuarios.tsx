@@ -97,6 +97,20 @@ function UsersPage() {
     );
   }
 
+  if (!tenantId) {
+    return (
+      <>
+        <PageHeader
+          title="Usuários e permissões"
+          description="Todo acesso é criado por um administrador — o produto não possui cadastro público."
+        />
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Selecione uma organização no menu superior para visualizar ou gerenciar os usuários dela.
+        </Card>
+      </>
+    );
+  }
+
   const members = membersQuery.data ?? [];
 
   return (
@@ -191,7 +205,12 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
   const [role, setRole] = useState<TenantRole>("Analista");
 
   const create = useMutation({
-    mutationFn: () => membersApi.create(tenantId!, { email, password, role }),
+    mutationFn: () => {
+      if (!tenantId) {
+        throw new ApiError(400, "Selecione uma organização no menu superior antes de criar um acesso.");
+      }
+      return membersApi.create(tenantId, { email, password, role });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members", tenantId] });
       setOpen(false);
@@ -207,7 +226,7 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={!tenantId}>
           <UserPlus /> Criar acesso
         </Button>
       </DialogTrigger>
@@ -220,6 +239,11 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
             reaproveitado e só ganha acesso a esta organização.
           </DialogDescription>
         </DialogHeader>
+        {!tenantId && (
+          <p className="rounded bg-amber-500/10 p-2.5 text-xs font-medium text-amber-700 dark:text-amber-500">
+            Selecione uma organização no menu superior para criar um novo usuário.
+          </p>
+        )}
         <form
           className="grid gap-4"
           onSubmit={(e) => {
@@ -268,7 +292,7 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={create.isPending || password.length < 8 || !email}>
+            <Button type="submit" disabled={!tenantId || create.isPending || password.length < 8 || !email}>
               {create.isPending ? "Criando..." : "Criar acesso"}
             </Button>
           </DialogFooter>

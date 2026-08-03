@@ -17,6 +17,9 @@ export const supportSessionsService = {
   },
 
   async hasActive(masterUserId: string, organizationId: string): Promise<boolean> {
+    if (!organizationId || organizationId === "null" || organizationId === "undefined") {
+      return false;
+    }
     const row = await supportSessionsRepository.findActive(masterUserId, organizationId);
     return Boolean(row);
   },

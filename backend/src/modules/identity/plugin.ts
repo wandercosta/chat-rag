@@ -56,6 +56,10 @@ export function requireOrgRole(minRoles: readonly TenantRole[]) {
     reply: FastifyReply,
   ) {
     const organizationId = request.params?.organizationId;
+    if (!organizationId || organizationId === "null" || organizationId === "undefined") {
+      return reply.code(400).send({ error: "organizationId inválido ou não informado" });
+    }
+
     const membership = request.auth?.memberships.find((m) => m.organizationId === organizationId);
 
     if (!membership) {
@@ -79,7 +83,7 @@ export async function requireMasterSupportSession(
   reply: FastifyReply,
 ) {
   const organizationId = request.params?.organizationId;
-  if (!request.auth?.isPlatform || !organizationId) {
+  if (!request.auth?.isPlatform || !organizationId || organizationId === "null" || organizationId === "undefined") {
     return reply.code(403).send({ error: "acesso restrito ao Master" });
   }
   const active = await supportSessionsService.hasActive(request.auth.userId, organizationId);
