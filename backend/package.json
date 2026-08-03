@@ -29,6 +29,7 @@
     "ioredis": "^5.4.1",
     "kysely": "^0.27.4",
     "mammoth": "^1.8.0",
+    "node-pg-migrate": "^7.9.1",
     "openai": "^4.104.0",
     "pdf-parse": "^1.1.1",
     "pg": "^8.13.1",
@@ -40,7 +41,6 @@
     "@types/pg": "^8.11.10",
     "cross-env": "^7.0.3",
     "dependency-cruiser": "^16.7.0",
-    "node-pg-migrate": "^7.9.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
