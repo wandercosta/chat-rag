@@ -62,6 +62,9 @@ export class ChatRagWidget {
   private async preflight() {
     try {
       await this.api.getConfig(this.options.key);
+      if (this.options.externalUserId) {
+        void this.ensureConversation();
+      }
     } catch (err) {
       this.messages = [{ role: "assistente", content: this.describeError(err) }];
       this.sendBtn.disabled = true;
@@ -157,14 +160,21 @@ export class ChatRagWidget {
 
   private async ensureConversation(): Promise<string> {
     if (this.conversationId) return this.conversationId;
-    const { conversationId } = await this.api.startConversation(this.options.key, {
+    const res = await this.api.startConversation(this.options.key, {
       externalUserId: this.options.externalUserId,
       visitorName: this.options.visitorName,
       visitorEmail: this.options.visitorEmail,
       context: this.options.context,
     });
-    this.conversationId = conversationId;
-    return conversationId;
+    this.conversationId = res.conversationId;
+    if (res.isResumed && res.messages && res.messages.length > 0) {
+      this.messages = res.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      this.renderMessages();
+    }
+    return res.conversationId;
   }
 
   private async handleSend() {

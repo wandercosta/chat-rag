@@ -26,6 +26,32 @@ export const conversationsService = {
     return conversationsRepository.start(organizationId, assistantId, channel, visitorId);
   },
 
+  async startOrResume(
+    organizationId: string,
+    assistantId: string,
+    channel: ConversationChannel,
+    visitorId: string | null = null,
+  ) {
+    if (visitorId) {
+      const existing = await conversationsRepository.findActiveForVisitor(
+        organizationId,
+        assistantId,
+        visitorId,
+      );
+      if (existing) {
+        const messages = await conversationsRepository.messagesFor(existing.id);
+        return { conversation: existing, isResumed: true, messages };
+      }
+    }
+    const newConv = await conversationsRepository.start(
+      organizationId,
+      assistantId,
+      channel,
+      visitorId,
+    );
+    return { conversation: newConv, isResumed: false, messages: [] };
+  },
+
   addVisitorMessage(conversationId: string, content: string) {
     return conversationsRepository.addMessage(conversationId, "visitante", content);
   },

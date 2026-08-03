@@ -89,13 +89,20 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         context: body.context,
       });
 
-      const conversation = await conversationsService.start(
+      const { conversation, isResumed, messages } = await conversationsService.startOrResume(
         resolved.organizationId,
         resolved.assistantId,
         "widget",
         visitor?.id ?? null,
       );
-      return reply.code(201).send({ conversationId: conversation.id });
+      return reply.code(isResumed ? 200 : 201).send({
+        conversationId: conversation.id,
+        isResumed,
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      });
     } catch (err) {
       return handlePublicError(err, reply);
     }

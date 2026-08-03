@@ -43,6 +43,17 @@ export const conversationsRepository = {
       .execute();
   },
 
+  findActiveForVisitor(organizationId: string, assistantId: string, visitorId: string) {
+    return db
+      .selectFrom("conversations")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("assistant_id", "=", assistantId)
+      .where("visitor_id", "=", visitorId)
+      .orderBy("started_at", "desc")
+      .executeTakeFirst();
+  },
+
   start(
     organizationId: string,
     assistantId: string,

@@ -86,7 +86,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-chatrag-sources}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_FORCE_PATH_STYLE: "true"
-      APP_MASTER_KEY: ${APP_MASTER_KEY:-dev-master-key-32-chars-long-secret!}
+      APP_MASTER_KEY: ${APP_MASTER_KEY:-dev-only-change-me-32-bytes-minimum}
       SESSION_COOKIE_NAME: chatrag_session
       SESSION_TTL_HOURS: 12
       # CORS libera o painel web (ajuste se usar domínio próprio)

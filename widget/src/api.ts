@@ -47,7 +47,11 @@ export function createApiClient(baseUrl: string) {
         context?: Record<string, unknown> | null;
       },
     ) {
-      return postJson<{ conversationId: string }>(baseUrl, "/widget/conversations", {
+      return postJson<{
+        conversationId: string;
+        isResumed?: boolean;
+        messages?: Array<{ role: "visitante" | "assistente"; content: string }>;
+      }>(baseUrl, "/widget/conversations", {
         key,
         ...(visitor?.externalUserId ? { externalUserId: visitor.externalUserId } : {}),
         ...(visitor?.visitorName ? { visitorName: visitor.visitorName } : {}),
