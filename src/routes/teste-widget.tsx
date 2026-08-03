@@ -18,8 +18,11 @@ function TesteWidgetPage() {
       script.setAttribute("data-mode", "floating");
       script.setAttribute("data-position", "bottom-right");
       script.setAttribute("data-theme", "sync");
-      script.setAttribute("data-title", "Suporte ChatRAG (Teste)");
-      script.setAttribute("data-greeting", "Olá! Este é um teste do widget no rodapé. Como posso te ajudar?");
+      script.setAttribute("data-accent", "#6366f1");
+      script.setAttribute("data-avatar", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80");
+      script.setAttribute("data-online", "true");
+      script.setAttribute("data-title", "Suporte Virtual IA");
+      script.setAttribute("data-greeting", "Olá! Sou a assistente de demonstração. Como posso te ajudar?");
       script.async = true;
 
       document.body.appendChild(script);

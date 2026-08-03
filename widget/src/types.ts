@@ -10,6 +10,9 @@ export interface WidgetOptions {
   theme: Theme;
   title: string;
   greeting: string;
+  accentColor: string | null;
+  avatarUrl: string | null;
+  showOnlineBadge: boolean;
   mountSelector: string | null;
   identityToken: string | null;
   /** Id estavel do atendimento/cliente no sistema hospedeiro (ex.:

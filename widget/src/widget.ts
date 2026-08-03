@@ -30,7 +30,7 @@ export class ChatRagWidget {
     const shadow = host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = buildStyles(this.options.position);
+    style.textContent = buildStyles(this.options);
     shadow.append(style);
 
     this.root = el("div", { class: "chatrag-root", "data-theme": this.options.theme });
@@ -88,7 +88,31 @@ export class ChatRagWidget {
     });
     closeBtn.addEventListener("click", () => this.toggle());
 
-    const headerChildren: (Node | string)[] = [el("h1", {}, [this.options.title])];
+    const titleEl = el("h1", {}, [this.options.title]);
+    const textChildren: (Node | string)[] = [titleEl];
+
+    if (this.options.showOnlineBadge) {
+      const dot = el("span", { class: "chatrag-online-dot" });
+      const onlineText = el("span", {}, ["Online"]);
+      textChildren.push(el("div", { class: "chatrag-online-badge" }, [dot, onlineText]));
+    }
+
+    const headerText = el("div", { class: "chatrag-header-text" }, textChildren);
+    const infoChildren: (Node | string)[] = [];
+
+    if (this.options.avatarUrl) {
+      infoChildren.push(
+        el("img", {
+          src: this.options.avatarUrl,
+          class: "chatrag-avatar-img",
+          alt: this.options.title,
+        }),
+      );
+    }
+    infoChildren.push(headerText);
+
+    const headerInfo = el("div", { class: "chatrag-header-info" }, infoChildren);
+    const headerChildren: (Node | string)[] = [headerInfo];
     if (this.options.mode === "floating") headerChildren.push(closeBtn);
 
     const header = el("div", { class: "chatrag-header" }, headerChildren);
@@ -249,14 +273,32 @@ export class ChatRagWidget {
     this.messagesEl.innerHTML = "";
     this.messages.forEach((msg, index) => {
       const bubble = el("div", { class: `chatrag-msg ${msg.role}` }, [msg.content]);
-      this.messagesEl.append(bubble);
 
-      if (msg.role === "assistente" && index > 0) {
-        const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
-        up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
-        const down = el("button", { "data-active": String(msg.feedback === "negativo") }, ["👎"]);
-        down.addEventListener("click", () => this.handleFeedback(index, "negativo"));
-        this.messagesEl.append(el("div", { class: "chatrag-feedback" }, [up, down]));
+      if (msg.role === "assistente" && this.options.avatarUrl) {
+        const avatar = el("img", {
+          src: this.options.avatarUrl,
+          class: "chatrag-msg-avatar",
+          alt: "Avatar",
+        });
+        const msgContainer = el("div", { style: "display: flex; flex-direction: column; max-width: 82%;" }, [bubble]);
+        if (index > 0) {
+          const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
+          up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
+          const down = el("button", { "data-active": String(msg.feedback === "negativo") }, ["👎"]);
+          down.addEventListener("click", () => this.handleFeedback(index, "negativo"));
+          msgContainer.append(el("div", { class: "chatrag-feedback" }, [up, down]));
+        }
+        const row = el("div", { class: "chatrag-msg-row assistente" }, [avatar, msgContainer]);
+        this.messagesEl.append(row);
+      } else {
+        this.messagesEl.append(bubble);
+        if (msg.role === "assistente" && index > 0) {
+          const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
+          up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
+          const down = el("button", { "data-active": String(msg.feedback === "negativo") }, ["👎"]);
+          down.addEventListener("click", () => this.handleFeedback(index, "negativo"));
+          this.messagesEl.append(el("div", { class: "chatrag-feedback" }, [up, down]));
+        }
       }
     });
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;

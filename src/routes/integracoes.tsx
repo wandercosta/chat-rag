@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -421,6 +422,9 @@ interface ScriptOptions {
   theme: Theme;
   title: string;
   greeting: string;
+  accentColor: string;
+  avatarUrl: string;
+  showOnlineBadge: boolean;
 }
 
 function buildFullSnippet(opts: ScriptOptions): string {
@@ -429,6 +433,9 @@ function buildFullSnippet(opts: ScriptOptions): string {
   lines.push(`  data-mode="${opts.mode}"`);
   if (opts.mode === "floating") lines.push(`  data-position="${opts.position}"`);
   lines.push(`  data-theme="${opts.theme}"`);
+  if (opts.accentColor.trim()) lines.push(`  data-accent="${opts.accentColor.trim()}"`);
+  if (opts.avatarUrl.trim()) lines.push(`  data-avatar="${opts.avatarUrl.trim()}"`);
+  if (!opts.showOnlineBadge) lines.push(`  data-online="false"`);
   if (opts.title.trim()) lines.push(`  data-title="${opts.title.trim()}"`);
   if (opts.greeting.trim()) lines.push(`  data-greeting="${opts.greeting.trim()}"`);
   lines.push("  async");
@@ -445,6 +452,9 @@ function ScriptBuilderCard({
   const [mode, setMode] = useState<Mode>("floating");
   const [position, setPosition] = useState<Position>("bottom-right");
   const [theme, setTheme] = useState<Theme>("sync");
+  const [accentColor, setAccentColor] = useState("#5B4FE9");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [showOnlineBadge, setShowOnlineBadge] = useState(true);
   const [title, setTitle] = useState("Fale com a gente");
   const [greeting, setGreeting] = useState("Olá! Como posso ajudar?");
   const [copied, setCopied] = useState(false);
@@ -455,8 +465,19 @@ function ScriptBuilderCard({
   }, [freshKey?.plaintext]);
 
   const snippet = useMemo(
-    () => buildFullSnippet({ key, mode, position, theme, title, greeting }),
-    [key, mode, position, theme, title, greeting],
+    () =>
+      buildFullSnippet({
+        key,
+        mode,
+        position,
+        theme,
+        accentColor,
+        avatarUrl,
+        showOnlineBadge,
+        title,
+        greeting,
+      }),
+    [key, mode, position, theme, accentColor, avatarUrl, showOnlineBadge, title, greeting],
   );
 
   function handleCopy() {
@@ -560,6 +581,59 @@ function ScriptBuilderCard({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Personalização Visual */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-accent" className="text-xs text-muted-foreground">
+                Cor Principal do Chat
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  id="sb-accent-color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-9 w-9 rounded border border-input bg-transparent p-0.5 cursor-pointer"
+                />
+                <Input
+                  id="sb-accent"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="font-mono text-xs uppercase"
+                  placeholder="#5B4FE9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sb-avatar" className="text-xs text-muted-foreground">
+                URL da Foto / Avatar do Assistente
+              </Label>
+              <Input
+                id="sb-avatar"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://exemplo.com/foto-assistente.png"
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <Label htmlFor="sb-online" className="text-xs font-medium">
+                Indicador de Status Online (● Online)
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Exibe um ponto verde brilhante com &quot;Online&quot; no topo do chat
+              </p>
+            </div>
+            <Switch
+              id="sb-online"
+              checked={showOnlineBadge}
+              onCheckedChange={setShowOnlineBadge}
+            />
           </div>
         </div>
 
