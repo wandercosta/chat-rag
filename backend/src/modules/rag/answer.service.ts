@@ -3,7 +3,7 @@ import { conversationsService, gapsService, visitorsService } from "../conversat
 import { usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
 import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
-import { resolveProviderForTenant } from "./provider-resolver.js";
+import { NoActiveCredentialError, resolveProviderForTenant } from "./provider-resolver.js";
 import type { ChatMessage } from "./provider.types.js";
 
 export class AssistantNotFoundError extends Error {}
@@ -174,12 +174,20 @@ export const answerService = {
       return { conversationId, answer, usedContext: false };
     };
 
-    const retrieval = await retrievalService.retrieve(
-      organizationId,
-      assistantId,
-      retrievalQuery,
-      environment,
-    );
+    let retrieval;
+    try {
+      retrieval = await retrievalService.retrieve(
+        organizationId,
+        assistantId,
+        retrievalQuery,
+        environment,
+      );
+    } catch (err) {
+      if (err instanceof NoActiveCredentialError) {
+        return recordNoAnswer("sem_recuperacao");
+      }
+      throw err;
+    }
 
     if (!retrieval.sufficientContext) return recordNoAnswer("sem_recuperacao");
 

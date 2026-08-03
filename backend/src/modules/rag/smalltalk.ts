@@ -45,23 +45,29 @@ export function detectSmalltalk(message: string): SmalltalkKind | null {
   if (THANKS.test(text)) return "agradecimento";
   if (FAREWELL.test(text)) return "despedida";
 
-  // Combinacoes curtas do tipo "oi bom dia" / "ola tudo bem": toda palavra
-  // (ou par de palavras) precisa ser cortesia para a mensagem contar como tal.
+  // Combinacoes curtas do tipo "oi bom dia", "tchau ate logo", "muito obrigado valeu"
   const parts = text.split(" ");
   if (parts.length <= 4) {
     let i = 0;
+    let detectedKind: SmalltalkKind | null = null;
     while (i < parts.length) {
-      if (GREETING.test(parts[i])) {
-        i += 1;
-        continue;
+      let matched = false;
+      // Checar par de palavras primeiro (ex.: "bom dia", "ate logo", "muito obrigado")
+      if (i + 1 < parts.length) {
+        const pair = `${parts[i]} ${parts[i + 1]}`;
+        if (GREETING.test(pair)) { detectedKind = detectedKind ?? "saudacao"; i += 2; matched = true; continue; }
+        if (THANKS.test(pair)) { detectedKind = detectedKind ?? "agradecimento"; i += 2; matched = true; continue; }
+        if (FAREWELL.test(pair)) { detectedKind = detectedKind ?? "despedida"; i += 2; matched = true; continue; }
       }
-      if (i + 1 < parts.length && GREETING.test(`${parts[i]} ${parts[i + 1]}`)) {
-        i += 2;
-        continue;
-      }
-      return null;
+      // Checar palavra individual
+      const single = parts[i];
+      if (GREETING.test(single)) { detectedKind = detectedKind ?? "saudacao"; i += 1; matched = true; continue; }
+      if (THANKS.test(single)) { detectedKind = detectedKind ?? "agradecimento"; i += 1; matched = true; continue; }
+      if (FAREWELL.test(single)) { detectedKind = detectedKind ?? "despedida"; i += 1; matched = true; continue; }
+
+      if (!matched) return null;
     }
-    return "saudacao";
+    return detectedKind;
   }
 
   return null;
