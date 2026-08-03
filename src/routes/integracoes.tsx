@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Code2, Copy, Plus, ShieldOff, Sparkles } from "lucide-react";
+import { BookOpen, CheckCircle2, Code2, Copy, FileCode2, KeyRound, MonitorSmartphone, Plus, ShieldOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
@@ -91,6 +91,8 @@ function IntegrationsPage() {
         actions={writable && <NewKeyDialog tenantId={tenantId} onCreated={setFreshKey} />}
       />
       <ActivationBanner context="widget publicado" />
+
+      <InstallGuideCard />
 
       {freshKey && (
         <Card className="border-success/40 bg-success/5">
@@ -184,6 +186,95 @@ function IntegrationsPage() {
         )}
       </Card>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Guia de instalação — passo a passo visual para quem não é programador
+// ---------------------------------------------------------------------------
+
+function InstallGuideCard() {
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+            <BookOpen className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Como instalar o widget no seu site</CardTitle>
+            <CardDescription>
+              Siga os 3 passos abaixo para colocar o chat no ar. Não precisa de programador.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Passo 1 */}
+          <div className="flex gap-3 rounded-lg border bg-background p-4">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+              1
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-primary" />
+                <p className="text-sm font-semibold">Crie uma chave</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Clique em <strong>Nova chave</strong> no topo desta página. Escolha o assistente e
+                informe o domínio do seu site (ex.: <code className="rounded bg-muted px-1">meusite.com.br</code>).
+              </p>
+            </div>
+          </div>
+
+          {/* Passo 2 */}
+          <div className="flex gap-3 rounded-lg border bg-background p-4">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+              2
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Code2 className="h-3.5 w-3.5 text-primary" />
+                <p className="text-sm font-semibold">Gere o código</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use o <strong>Construtor de script</strong> abaixo para personalizar a aparência.
+                O código é gerado automaticamente enquanto você preenche.
+              </p>
+            </div>
+          </div>
+
+          {/* Passo 3 */}
+          <div className="flex gap-3 rounded-lg border bg-background p-4">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+              3
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <FileCode2 className="h-3.5 w-3.5 text-primary" />
+                <p className="text-sm font-semibold">Cole no seu site</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Copie o código gerado e cole no HTML do seu site, logo antes de{" "}
+                <code className="rounded bg-muted px-1">&lt;/body&gt;</code>. O chat aparece
+                automaticamente para seus visitantes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Nota sobre segurança */}
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+          <MonitorSmartphone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <p className="text-xs text-amber-700 dark:text-amber-500">
+            <strong>Importante:</strong> O widget só funciona nos domínios informados ao criar a
+            chave. Se precisar usar em outro site, crie uma nova chave para ele. Nunca compartilhe
+            sua chave — quem tiver acesso a ela pode usar o seu assistente em qualquer página.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
