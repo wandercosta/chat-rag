@@ -109,15 +109,35 @@ Após subir os contêineres de infraestrutura, siga a sequência padrão de inic
 
 Para subir **todos** os componentes em contêineres Docker (incluindo API, Worker e Frontend):
 
-### Imagens Docker Disponíveis:
+### Setup Automático na Inicialização
 
-- **Backend Dockerfile** (`backend/Dockerfile`): Imagem Node.js multi-estágio. Pode rodar tanto como API (`npm start`) quanto como Worker (`npm run worker`).
-- **Frontend Dockerfile** (`Dockerfile` na raiz): Imagem Node.js multi-estágio compilando o aplicativo React / TanStack Start com Vite.
+Ao subir o `backend-api`, o `entrypoint.sh` roda automaticamente **na primeira execução e em toda reinicialização**:
+
+1. **Migrações do banco** — `node-pg-migrate up` (idempotente: pula o que já foi executado)
+2. **Bucket do MinIO** — cria o bucket de armazenamento de arquivos (idempotente: ignora se já existe)
+3. **Usuário Master** — cria o usuário administrador da plataforma (idempotente: ignora se o email já está cadastrado)
+
+### Credenciais do Master (configuráveis via variáveis de ambiente ou `.env`)
+
+| Variável | Valor padrão |
+| :--- | :--- |
+| `MASTER_EMAIL` | `admin@chatrag.local` |
+| `MASTER_PASSWORD` | `Admin@2025!` |
+
+Para personalizar, crie um arquivo `.env` na raiz do projeto:
+```dotenv
+MASTER_EMAIL=seuemail@empresa.com
+MASTER_PASSWORD=SuaSenhaSegura123!
+```
 
 ### Executando a Stack Completa:
-
 ```bash
 docker compose -f docker-compose.full.yml up -d --build
+```
+
+Acompanhe os logs do setup:
+```bash
+docker compose -f docker-compose.full.yml logs -f backend-api
 ```
 
 ---

@@ -2,6 +2,16 @@
 #
 # Para rodar toda a aplicação em contêineres:
 #   docker compose -f docker-compose.full.yml up -d --build
+#
+# Na PRIMEIRA execução (ou após docker compose down -v) o serviço backend-api
+# roda automaticamente, em ordem:
+#   1. Migrações do banco (idempotente)
+#   2. Criação do bucket MinIO (idempotente)
+#   3. Criação do usuário Master (idempotente — ignora se já existe)
+#
+# Credenciais do Master são definidas nas variáveis abaixo (ou no .env):
+#   MASTER_EMAIL    (default: admin@chatrag.local)
+#   MASTER_PASSWORD (default: Admin@2025!)
 
 services:
   db:
@@ -53,13 +63,14 @@ services:
       timeout: 5s
       retries: 10
 
+  # API principal — roda o entrypoint.sh que executa setup na inicialização
   backend-api:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3333:3333"
+      - "${BACKEND_PORT:-3333}:3333"
     environment:
       NODE_ENV: production
       PORT: 3333
@@ -68,8 +79,16 @@ services:
       S3_ENDPOINT: http://minio:9000
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-chatrag}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-chatrag123}
-      S3_BUCKET: chatrag-knowledge
+      S3_BUCKET: ${S3_BUCKET:-chatrag-sources}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: "true"
       APP_MASTER_KEY: ${APP_MASTER_KEY:-dev-master-key-32-chars-long-secret!}
+      SESSION_COOKIE_NAME: chatrag_session
+      SESSION_TTL_HOURS: 12
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      # Credenciais do usuário Master criado automaticamente na primeira inicialização
+      MASTER_EMAIL: ${MASTER_EMAIL:-admin@chatrag.local}
+      MASTER_PASSWORD: ${MASTER_PASSWORD:-Admin@2025!}
     depends_on:
       db:
         condition: service_healthy
@@ -78,11 +97,13 @@ services:
       minio:
         condition: service_healthy
 
+  # Worker de indexação e expurgo — não precisa rodar o setup
   backend-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: ["node", "dist/worker.js"]
+    # Sobrescreve o entrypoint: worker não faz setup, só processa filas
+    entrypoint: ["node", "dist/worker.js"]
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -91,7 +112,9 @@ services:
       S3_ENDPOINT: http://minio:9000
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-chatrag}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-chatrag123}
-      S3_BUCKET: chatrag-knowledge
+      S3_BUCKET: ${S3_BUCKET:-chatrag-sources}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: "true"
       APP_MASTER_KEY: ${APP_MASTER_KEY:-dev-master-key-32-chars-long-secret!}
     depends_on:
       db:

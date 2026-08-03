@@ -3,7 +3,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copiar manifests de dependência e instalar
+# Copiar manifests de dependência e instalar (inclui devDeps para build e migrations)
 COPY package*.json ./
 RUN npm ci
 
@@ -25,14 +25,21 @@ ENV NODE_ENV=production
 
 # Copiar dependências de produção
 COPY package*.json ./
-RUN npm ci --only=production
+# node-pg-migrate precisa de tsx para ler migrations em TypeScript
+RUN npm ci --only=production && \
+    npm install --no-save tsx node-pg-migrate
 
 # Copiar artefatos compilados do estágio builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts ./scripts
 
+# Copiar e tornar o entrypoint executável
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
 EXPOSE 3333
 
-# Por padrão inicia a API Fastify. Pode ser sobrescrito para `node dist/worker.js`
+# O entrypoint roda migrações + setup antes de iniciar o processo principal
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["node", "dist/server.js"]
