@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Plus, ShieldOff } from "lucide-react";
+import { CheckCircle2, Code2, Copy, Plus, ShieldOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
@@ -95,7 +95,7 @@ function IntegrationsPage() {
       {freshKey && (
         <Card className="border-success/40 bg-success/5">
           <CardHeader>
-            <CardTitle className="text-base">Script de instalação</CardTitle>
+            <CardTitle className="text-base">Script de instalação gerado</CardTitle>
             <CardDescription>
               Esta é a única vez que a chave aparece por extenso — copie agora. Cole antes do
               fechamento de &lt;/body&gt; no site hospedeiro.
@@ -123,6 +123,8 @@ function IntegrationsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ScriptBuilderCard freshKey={freshKey} />
 
       <Card className="overflow-hidden p-0">
         {keysQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
@@ -302,5 +304,238 @@ function NewKeyDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Construtor visual de script — permite montar e copiar o snippet sem precisar
+// editar código. Preencha os campos e o script é gerado automaticamente.
+// ---------------------------------------------------------------------------
+
+type Mode = "floating" | "embedded";
+type Position = "bottom-right" | "bottom-left";
+type Theme = "light" | "dark" | "sync";
+
+interface ScriptOptions {
+  key: string;
+  mode: Mode;
+  position: Position;
+  theme: Theme;
+  title: string;
+  greeting: string;
+}
+
+function buildFullSnippet(opts: ScriptOptions): string {
+  const lines = [`<script src="https://cdn.chatrag.io/chat-widget.js"`];
+  lines.push(`  data-key="${opts.key}"`);
+  lines.push(`  data-mode="${opts.mode}"`);
+  if (opts.mode === "floating") lines.push(`  data-position="${opts.position}"`);
+  lines.push(`  data-theme="${opts.theme}"`);
+  if (opts.title.trim()) lines.push(`  data-title="${opts.title.trim()}"`);
+  if (opts.greeting.trim()) lines.push(`  data-greeting="${opts.greeting.trim()}"`);
+  lines.push("  async");
+  lines.push("></script>");
+  return lines.join("\n");
+}
+
+function ScriptBuilderCard({
+  freshKey,
+}: {
+  freshKey: { masked: string; plaintext: string } | null;
+}) {
+  const [key, setKey] = useState(freshKey?.plaintext ?? "");
+  const [mode, setMode] = useState<Mode>("floating");
+  const [position, setPosition] = useState<Position>("bottom-right");
+  const [theme, setTheme] = useState<Theme>("sync");
+  const [title, setTitle] = useState("Fale com a gente");
+  const [greeting, setGreeting] = useState("Olá! Como posso ajudar?");
+  const [copied, setCopied] = useState(false);
+
+  // Quando uma nova chave é criada, preenche automaticamente o campo
+  useEffect(() => {
+    if (freshKey?.plaintext) setKey(freshKey.plaintext);
+  }, [freshKey?.plaintext]);
+
+  const snippet = useMemo(
+    () => buildFullSnippet({ key, mode, position, theme, title, greeting }),
+    [key, mode, position, theme, title, greeting],
+  );
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(snippet).then(() => {
+      setCopied(true);
+      toast.success("Script copiado! Cole antes do </body> no seu site.");
+      setTimeout(() => setCopied(false), 3000);
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <Code2 className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Construtor de script</CardTitle>
+            <CardDescription>
+              Personalize as opções abaixo e copie o código pronto para colar no seu site.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Passo 1 — Chave */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              1
+            </span>
+            <Label className="font-medium">Chave do widget</Label>
+          </div>
+          <Input
+            id="sb-key"
+            placeholder="pk_live_... (gerada ao criar uma nova chave acima)"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            className="font-mono text-xs"
+          />
+          {!key && (
+            <p className="flex items-center gap-1 text-xs text-amber-600">
+              <Sparkles className="h-3 w-3" />
+              Crie uma chave de widget acima — ela será preenchida automaticamente aqui.
+            </p>
+          )}
+        </div>
+
+        {/* Passo 2 — Aparência */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              2
+            </span>
+            <Label className="font-medium">Aparência</Label>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-mode" className="text-xs text-muted-foreground">
+                Modo
+              </Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
+                <SelectTrigger id="sb-mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="floating">Flutuante (botão no canto)</SelectItem>
+                  <SelectItem value="embedded">Embutido (dentro da página)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {mode === "floating" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="sb-position" className="text-xs text-muted-foreground">
+                  Posição
+                </Label>
+                <Select value={position} onValueChange={(v) => setPosition(v as Position)}>
+                  <SelectTrigger id="sb-position">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+                    <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-theme" className="text-xs text-muted-foreground">
+                Tema de cor
+              </Label>
+              <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+                <SelectTrigger id="sb-theme">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sync">Igual ao site (automático)</SelectItem>
+                  <SelectItem value="light">Claro</SelectItem>
+                  <SelectItem value="dark">Escuro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Passo 3 — Textos */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              3
+            </span>
+            <Label className="font-medium">Textos (opcional)</Label>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-title" className="text-xs text-muted-foreground">
+                Título do chat
+              </Label>
+              <Input
+                id="sb-title"
+                placeholder="Fale com a gente"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sb-greeting" className="text-xs text-muted-foreground">
+                Mensagem de boas-vindas
+              </Label>
+              <Input
+                id="sb-greeting"
+                placeholder="Olá! Como posso ajudar?"
+                value={greeting}
+                onChange={(e) => setGreeting(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Resultado */}
+        <div className="space-y-2 rounded-lg border bg-muted/40 p-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Código gerado — cole antes do{" "}
+              <code className="rounded bg-muted px-1">&lt;/body&gt;</code> no seu site
+            </Label>
+            <Button
+              size="sm"
+              variant={copied ? "default" : "outline"}
+              onClick={handleCopy}
+              disabled={!key}
+              className="gap-1.5"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Copiado!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" /> Copiar código
+                </>
+              )}
+            </Button>
+          </div>
+          <pre className="overflow-x-auto rounded-md border bg-background p-3 font-mono text-xs leading-relaxed text-foreground">
+            {key
+              ? snippet
+              : '<script src="https://cdn.chatrag.io/chat-widget.js"\n  data-key="(preencha a chave acima)"\n  ...\n></script>'}
+          </pre>
+          {!key && (
+            <p className="text-center text-xs text-muted-foreground">
+              Preencha a chave no passo 1 para ativar o código.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
