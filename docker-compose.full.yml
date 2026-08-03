@@ -1,19 +1,20 @@
-# Docker Compose da Stack Completa do ChatRAG (Infraestrutura + Aplicação)
+# Docker Compose da Stack Completa do ChatRAG
 #
-# Para rodar toda a aplicação em contêineres:
+# Sobe TUDO em contêiner — infra + backend + worker + painel web:
 #   docker compose -f docker-compose.full.yml up -d --build
 #
-# Na PRIMEIRA execução (ou após docker compose down -v) o serviço backend-api
-# roda automaticamente, em ordem:
+# Na primeira execução o backend-api roda automaticamente via entrypoint.sh:
 #   1. Migrações do banco (idempotente)
 #   2. Criação do bucket MinIO (idempotente)
-#   3. Criação do usuário Master (idempotente — ignora se já existe)
+#   3. Criação do usuário Master (idempotente)
 #
-# Credenciais do Master são definidas nas variáveis abaixo (ou no .env):
-#   MASTER_EMAIL    (default: admin@chatrag.local)
-#   MASTER_PASSWORD (default: Admin@2025!)
+# Customize copiando .env.example para .env e ajustando as variáveis.
 
 services:
+  # ---------------------------------------------------------------------------
+  # Infraestrutura
+  # ---------------------------------------------------------------------------
+
   db:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
@@ -63,7 +64,10 @@ services:
       timeout: 5s
       retries: 10
 
-  # API principal — roda o entrypoint.sh que executa setup na inicialização
+  # ---------------------------------------------------------------------------
+  # Backend API (roda migrações + setup no entrypoint antes de abrir a porta)
+  # ---------------------------------------------------------------------------
+
   backend-api:
     build:
       context: ./backend
@@ -85,8 +89,9 @@ services:
       APP_MASTER_KEY: ${APP_MASTER_KEY:-dev-master-key-32-chars-long-secret!}
       SESSION_COOKIE_NAME: chatrag_session
       SESSION_TTL_HOURS: 12
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
-      # Credenciais do usuário Master criado automaticamente na primeira inicialização
+      # CORS libera o painel web (ajuste se usar domínio próprio)
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # Credenciais do Master — criado automaticamente se ainda não existir
       MASTER_EMAIL: ${MASTER_EMAIL:-admin@chatrag.local}
       MASTER_PASSWORD: ${MASTER_PASSWORD:-Admin@2025!}
     depends_on:
@@ -96,13 +101,21 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
-  # Worker de indexação e expurgo — não precisa rodar o setup
+  # ---------------------------------------------------------------------------
+  # Worker de indexação (não roda setup — apenas processa filas BullMQ)
+  # ---------------------------------------------------------------------------
+
   backend-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # Sobrescreve o entrypoint: worker não faz setup, só processa filas
     entrypoint: ["node", "dist/worker.js"]
     restart: unless-stopped
     environment:
@@ -120,6 +133,31 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Painel Web (frontend — TanStack Start + Nitro)
+  # ---------------------------------------------------------------------------
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # URL pública da API — o navegador do usuário precisa alcançar este endereço
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3333}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      NITRO_HOST: "0.0.0.0"
+      NITRO_PORT: "3000"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend-api:
         condition: service_healthy
 
 volumes:

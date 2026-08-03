@@ -12,14 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    preset: "node-server",
+  },
   vite: {
     server: {
-      // true = aceita qualquer host (Vite so valida o header Host contra uma
-      // lista, dev-only). Sem isso, um site malicioso poderia enganar o
-      // navegador da vitima a mandar requests pro dev server local via DNS
-      // rebinding. So faz sentido com esse risco aceito propositalmente
-      // (ex.: acessando via qualquer tunel, sem saber o dominio antes).
       allowedHosts: true,
     },
   },
 });
+
