@@ -26,7 +26,7 @@ const startConversationSchema = keySchema.extend({
   visitorEmail: z.string().email().optional(),
   context: z.record(z.unknown()).optional(),
 });
-const messageSchema = keySchema.extend({ message: z.string().min(1) });
+const messageSchema = keySchema.extend({ message: z.string().min(1).max(4000) });
 const feedbackSchema = keySchema.extend({ rating: z.enum(["positivo", "negativo"]) });
 const handoffSchema = keySchema.extend({ sectorId: z.string().uuid().optional() });
 
