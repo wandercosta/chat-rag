@@ -53,8 +53,15 @@ export const Route = createFileRoute("/integracoes")({
   component: IntegrationsPage,
 });
 
+function getWidgetScriptUrl(): string {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/chat-widget.js`;
+  }
+  return "http://localhost:3000/chat-widget.js";
+}
+
 function buildSnippet(key: string) {
-  return `<script src="https://cdn.chatrag.io/chat-widget.js"\n  data-key="${key}"\n  data-mode="floating"\n  async></script>`;
+  return `<script src="${getWidgetScriptUrl()}"\n  data-key="${key}"\n  data-mode="floating"\n  async></script>`;
 }
 
 function IntegrationsPage() {
@@ -417,7 +424,7 @@ interface ScriptOptions {
 }
 
 function buildFullSnippet(opts: ScriptOptions): string {
-  const lines = [`<script src="https://cdn.chatrag.io/chat-widget.js"`];
+  const lines = [`<script src="${getWidgetScriptUrl()}"`];
   lines.push(`  data-key="${opts.key}"`);
   lines.push(`  data-mode="${opts.mode}"`);
   if (opts.mode === "floating") lines.push(`  data-position="${opts.position}"`);
@@ -618,7 +625,7 @@ function ScriptBuilderCard({
           <pre className="overflow-x-auto rounded-md border bg-background p-3 font-mono text-xs leading-relaxed text-foreground">
             {key
               ? snippet
-              : '<script src="https://cdn.chatrag.io/chat-widget.js"\n  data-key="(preencha a chave acima)"\n  ...\n></script>'}
+              : `<script src="${getWidgetScriptUrl()}"\n  data-key="(preencha a chave acima)"\n  ...\n></script>`}
           </pre>
           {!key && (
             <p className="text-center text-xs text-muted-foreground">

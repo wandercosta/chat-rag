@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
@@ -15,6 +17,7 @@ import {
   publicAccessService,
 } from "./public-access.service.js";
 import { rateLimits } from "./rate-limit.js";
+import { WIDGET_SCRIPT_CONTENT } from "./widget-code.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
 const startConversationSchema = keySchema.extend({
@@ -35,6 +38,14 @@ function originOf(request: import("fastify").FastifyRequest): string | undefined
 }
 
 export async function embedPublicRoutes(app: FastifyInstance) {
+  app.get("/chat-widget.js", async (_request, reply) => {
+    return reply
+      .header("Content-Type", "application/javascript; charset=utf-8")
+      .header("Access-Control-Allow-Origin", "*")
+      .header("Cache-Control", "public, max-age=3600")
+      .send(WIDGET_SCRIPT_CONTENT);
+  });
+
   app.post("/widget/config", async (request, reply) => {
     const body = keySchema.parse(request.body);
     try {

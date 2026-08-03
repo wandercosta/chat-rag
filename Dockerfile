@@ -15,7 +15,10 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # NITRO_PRESET=node-server para gerar servidor Node.js HTTP nativo em vez de Cloudflare Worker
 ENV NITRO_PRESET=node-server
 
-RUN bun run build
+# Build do widget embarcável para gerar public/chat-widget.js e garantir em .output/public
+RUN cd widget && bun install && bun run build && cp dist/chat-widget.js ../public/chat-widget.js
+
+RUN bun run build && cp widget/dist/chat-widget.js .output/public/chat-widget.js
 
 # --- Estágio de Execução ---
 FROM node:22-alpine AS runner
