@@ -136,6 +136,8 @@ function IntegrationsPage() {
 
       <ScriptBuilderCard freshKey={freshKey} />
 
+      <WidgetVariablesReferenceTable />
+
       <Card className="overflow-hidden p-0">
         {keysQuery.isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando…</p>}
         {keysQuery.isSuccess && keys.length === 0 && (
@@ -611,21 +613,90 @@ function ScriptBuilderCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Toggle para exibir todos os atributos opcionais no código */}
-        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3.5">
-          <div className="space-y-0.5">
-            <Label htmlFor="sb-show-all" className="text-xs font-semibold text-primary">
-              Exibir Todos os Atributos Opcionais no Script Gerado
-            </Label>
-            <p className="text-[11px] text-muted-foreground">
-              Exibe todos os atributos configuráveis (cor, avatar, ID de usuário, e-mail, contexto, etc.) com valores de exemplo no código para fácil orientação.
-            </p>
+        {/* Toggle para exibir todos os atributos opcionais no código + Presets Prontos */}
+        <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="sb-show-all" className="text-xs font-semibold text-primary">
+                Exibir Todos os Atributos Opcionais no Script Gerado
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Exibe todos os 14+ atributos configuráveis no código HTML para orientar futuros desenvolvedores.
+              </p>
+            </div>
+            <Switch
+              id="sb-show-all"
+              checked={showAllOptional}
+              onCheckedChange={setShowAllOptional}
+            />
           </div>
-          <Switch
-            id="sb-show-all"
-            checked={showAllOptional}
-            onCheckedChange={setShowAllOptional}
-          />
+
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-primary/10">
+            <span className="text-[11px] font-medium text-muted-foreground">Preencher com Exemplos:</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs bg-background"
+              onClick={() => {
+                setExternalUserId("usr_12345");
+                setVisitorName("João Silva");
+                setVisitorEmail("joao@empresa.com");
+                setContextJson('{"plano":"Enterprise","segmento":"Tech"}');
+                setAccentColor("#6366f1");
+                setAvatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80");
+                setTitle("Suporte Premium");
+                setGreeting("Olá João! Sou seu assistente dedicado. Como posso ajudar seu time hoje?");
+                setShowOnlineBadge(true);
+                toast.success("Exemplo de Usuário Logado + SaaS aplicado no formulário!");
+              }}
+            >
+              <Sparkles className="mr-1 h-3 w-3 text-indigo-500" />
+              SaaS / Usuário Logado
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs bg-background"
+              onClick={() => {
+                setExternalUserId("");
+                setVisitorName("");
+                setVisitorEmail("");
+                setContextJson("");
+                setAccentColor("#10b981");
+                setAvatarUrl("");
+                setTitle("Atendimento Comercial");
+                setGreeting("Olá! Seja bem-vindo à nossa loja. Em que posso te ajudar?");
+                setShowOnlineBadge(true);
+                toast.success("Exemplo de Loja / E-commerce aplicado no formulário!");
+              }}
+            >
+              E-commerce / Vendas
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => {
+                setApiBaseUrl("");
+                setExternalUserId("");
+                setVisitorName("");
+                setVisitorEmail("");
+                setContextJson("");
+                setAccentColor("#5B4FE9");
+                setAvatarUrl("");
+                setTitle("Fale com a gente");
+                setGreeting("Olá! Como posso ajudar?");
+                setShowOnlineBadge(true);
+                setShowAllOptional(false);
+                toast.info("Formulário resetado para o padrão básico.");
+              }}
+            >
+              Resetar Padrão
+            </Button>
+          </div>
         </div>
 
         {/* Passo 1 — Chave & Servidor */}
@@ -923,6 +994,182 @@ function ScriptBuilderCard({
             </p>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tabela Guia de Referência Completa das Variáveis e Atributos do Widget
+// ---------------------------------------------------------------------------
+
+function WidgetVariablesReferenceTable() {
+  const variables = [
+    {
+      attr: "data-key",
+      type: "string",
+      required: true,
+      desc: "Chave pública do widget vinculada ao assistente e domínio.",
+      example: 'pk_live_55042f...',
+    },
+    {
+      attr: "data-external-user-id",
+      alias: "data-user-id",
+      type: "string",
+      required: false,
+      desc: "ID único do usuário no seu sistema (ex: ID da conta ou usuário logado). Retoma a mesma conversa e todo o histórico existente entre reloads.",
+      example: 'iduser12 / usr_9981',
+    },
+    {
+      attr: "data-accent",
+      alias: "data-color",
+      type: "hex string",
+      required: false,
+      desc: "Cor principal do tema do chat em Hexadecimal. Altera cabeçalho, botão flutuante e mensagens.",
+      example: '#5B4FE9 ou #6366f1',
+    },
+    {
+      attr: "data-avatar",
+      type: "url string",
+      required: false,
+      desc: "URL da foto / avatar de perfil do assistente exibida no cabeçalho e nas respostas.",
+      example: 'https://site.com/foto.png',
+    },
+    {
+      attr: "data-online",
+      type: "boolean",
+      required: false,
+      desc: "Exibe ponto verde piscante de status online no cabeçalho.",
+      example: 'true (padrão) ou false',
+    },
+    {
+      attr: "data-title",
+      type: "string",
+      required: false,
+      desc: "Título exibido no topo da janela do chat.",
+      example: 'Suporte Virtual IA',
+    },
+    {
+      attr: "data-greeting",
+      type: "string",
+      required: false,
+      desc: "Mensagem automática de boas-vindas exibida na abertura.",
+      example: 'Olá! Como posso te ajudar?',
+    },
+    {
+      attr: "data-mode",
+      type: "string",
+      required: false,
+      desc: 'Modo de exibição do widget: "floating" (botão no canto) ou "embedded" (embutido no HTML).',
+      example: 'floating (padrão) / embedded',
+    },
+    {
+      attr: "data-position",
+      type: "string",
+      required: false,
+      desc: 'Posição da bolha no modo flutuante: "bottom-right" ou "bottom-left".',
+      example: 'bottom-right (padrão)',
+    },
+    {
+      attr: "data-mount",
+      type: "string",
+      required: false,
+      desc: 'Seletor CSS do elemento HTML container onde montar o chat no modo "embedded".',
+      example: '#meu-chat-container',
+    },
+    {
+      attr: "data-theme",
+      type: "string",
+      required: false,
+      desc: 'Tema de cor da janela: "sync" (auto com o sistema), "light" ou "dark".',
+      example: 'sync / light / dark',
+    },
+    {
+      attr: "data-visitor-name",
+      type: "string",
+      required: false,
+      desc: "Nome do cliente/visitante logado no seu sistema.",
+      example: 'João Silva',
+    },
+    {
+      attr: "data-visitor-email",
+      type: "string",
+      required: false,
+      desc: "E-mail do cliente/visitante logado no seu sistema.",
+      example: 'joao@exemplo.com',
+    },
+    {
+      attr: "data-context",
+      type: "json string",
+      required: false,
+      desc: "Objeto JSON contendo contexto adicional da sessão (plano, segmento, etc.).",
+      example: '\'{"plano":"Pro","empresa":"ACME"}\'',
+    },
+    {
+      attr: "data-api",
+      type: "url string",
+      required: false,
+      desc: "URL base da API backend do ChatRAG.",
+      example: 'http://localhost:3333',
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
+            <FileCode2 className="h-4 w-4 text-indigo-500" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Guia &amp; Dicionário de Variáveis do Widget</CardTitle>
+            <CardDescription>
+              Referência completa de todos os atributos que podem ser configurados no script HTML do chat.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Atributo HTML</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Descrição &amp; Uso</TableHead>
+              <TableHead>Exemplo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {variables.map((v) => (
+              <TableRow key={v.attr}>
+                <TableCell className="font-mono text-xs font-semibold text-primary">
+                  {v.attr}
+                  {v.alias && (
+                    <span className="block text-[10px] font-normal text-muted-foreground">
+                      ou <code className="text-primary">{v.alias}</code>
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {v.type}
+                  </Badge>
+                  {v.required ? (
+                    <Badge variant="default" className="ml-1 text-[9px] bg-amber-600">
+                      Obrigatório
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="ml-1 text-[9px]">
+                      Opcional
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{v.desc}</TableCell>
+                <TableCell className="font-mono text-[11px] text-foreground">{v.example}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
