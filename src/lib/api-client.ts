@@ -198,6 +198,38 @@ export const modelsApi = {
     get<AllowedModel[]>(`/organizations/${organizationId}/allowed-models`),
 };
 
+// --- handoff: whatsapp ------------------------------------------------
+
+export interface HandoffConfig {
+  id: string;
+  organization_id: string;
+  assistant_id: string;
+  sector_name: string;
+  phone_number: string;
+  created_at: string;
+}
+
+export const handoffApi = {
+  list: (organizationId: string, assistantId: string) =>
+    get<HandoffConfig[]>(
+      `/organizations/${organizationId}/assistants/${assistantId}/handoff-configs`,
+    ),
+  create: (
+    organizationId: string,
+    assistantId: string,
+    input: { sectorName: string; phoneNumber: string },
+  ) =>
+    post<HandoffConfig>(
+      `/organizations/${organizationId}/assistants/${assistantId}/handoff-configs`,
+      input,
+    ),
+  remove: (organizationId: string, assistantId: string, configId: string) =>
+    apiFetch<{ ok: true }>(
+      `/organizations/${organizationId}/assistants/${assistantId}/handoff-configs/${configId}`,
+      { method: "DELETE" },
+    ),
+};
+
 // --- rag: playground ------------------------------------------------
 
 export interface PlaygroundAnswer {

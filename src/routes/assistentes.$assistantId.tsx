@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquare, Phone, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
@@ -21,9 +21,19 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ApiError,
   assistantsApi,
   collectionsApi,
+  handoffApi,
   modelsApi,
   type Assistant,
 } from "@/lib/api-client";
@@ -202,6 +212,8 @@ function AssistantDetail() {
 
         <KnowledgeScopeCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
 
+        <HandoffConfigCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
@@ -324,6 +336,220 @@ function KnowledgeScopeCard({
             </label>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Configuração dos setores e números de WhatsApp para encaminhamento a atendente humano.
+ */
+function HandoffConfigCard({
+  tenantId,
+  assistantId,
+  readOnly,
+}: {
+  tenantId: string | null;
+  assistantId: string;
+  readOnly: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [sectorName, setSectorName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const configsQuery = useQuery({
+    queryKey: ["handoff-configs", tenantId, assistantId],
+    queryFn: () => handoffApi.list(tenantId!, assistantId),
+    enabled: !!tenantId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      handoffApi.create(tenantId!, assistantId, {
+        sectorName,
+        phoneNumber,
+      }),
+    onSuccess: () => {
+      toast.success("Setor de WhatsApp adicionado!");
+      setSectorName("");
+      setPhoneNumber("");
+      setIsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["handoff-configs", tenantId, assistantId] });
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível cadastrar o número de WhatsApp",
+      );
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (configId: string) => handoffApi.remove(tenantId!, assistantId, configId),
+    onSuccess: () => {
+      toast.success("Setor removido");
+      queryClient.invalidateQueries({ queryKey: ["handoff-configs", tenantId, assistantId] });
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível remover o setor de WhatsApp",
+      );
+    },
+  });
+
+  const configs = configsQuery.data ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-emerald-500" />
+            Atendimento Humano no WhatsApp
+          </CardTitle>
+          <CardDescription>
+            Cadastre os setores e números de WhatsApp para os visitantes falarem direto com atendentes humanos.
+          </CardDescription>
+        </div>
+        {!readOnly && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1 text-xs">
+                <Plus className="h-3.5 w-3.5" /> Adicionar Setor
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Número de WhatsApp</DialogTitle>
+                <DialogDescription>
+                  Informe o nome do setor/departamento e o número do WhatsApp com DDD.
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (sectorName.trim() && phoneNumber.trim()) {
+                    createMutation.mutate();
+                  }
+                }}
+                className="space-y-4 pt-2"
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="h-sector">Nome do Setor / Departamento</Label>
+                  <Input
+                    id="h-sector"
+                    placeholder="ex: Suporte Técnico, Comercial, Financeiro"
+                    value={sectorName}
+                    onChange={(e) => setSectorName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="h-phone">Número de WhatsApp (com DDD)</Label>
+                  <Input
+                    id="h-phone"
+                    placeholder="ex: 5511999998888 ou (11) 99999-8888"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Link gerado automaticamente: <code className="rounded bg-muted px-1">https://wa.me/5511...</code>
+                  </p>
+                </div>
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!sectorName.trim() || !phoneNumber.trim() || createMutation.isPending}
+                  >
+                    {createMutation.isPending ? "Cadastrando..." : "Cadastrar WhatsApp"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {configsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando setores…</p>}
+        {configsQuery.isSuccess && configs.length === 0 && (
+          <div className="rounded-lg border border-dashed p-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Nenhum número de WhatsApp cadastrado para este assistente.
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Sem setores aqui, o botão de atendimento humano no widget ficará desativado.
+            </p>
+          </div>
+        )}
+
+        {configs.length > 0 && (
+          <div className="space-y-2">
+            {configs.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between rounded-lg border p-3 bg-card"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{c.sector_name}</span>
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[10px]">
+                      WhatsApp Web
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    {c.phone_number}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                    title="Testar link do WhatsApp"
+                    onClick={() => {
+                      const digits = c.phone_number.replace(/[^\d]/g, "");
+                      window.open(`https://wa.me/${digits}?text=${encodeURIComponent("Olá! Vim através do site.")}`, "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                  {!readOnly && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      disabled={removeMutation.isPending}
+                      onClick={() => removeMutation.mutate(c.id)}
+                      title="Remover setor"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {configs.length > 1 && (
+          <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+            👉 <strong>Múltiplos setores cadastrados:</strong> Ao clicar no botão de WhatsApp no chat, o widget mostrará automaticamente os botões para o visitante escolher com qual setor deseja falar ({configs.map((c) => `"${c.sector_name}"`).join(", ")}).
+          </div>
+        )}
+        {configs.length === 1 && (
+          <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+            👉 <strong>Setor único cadastrado:</strong> Ao clicar em WhatsApp no chat, o visitante será redirecionado direto para o WhatsApp Web do setor <strong>&quot;{configs[0].sector_name}&quot;</strong>.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
