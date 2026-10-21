@@ -43,6 +43,31 @@ export const keysService = {
     return { id: row.id, environment: row.environment, masked: row.masked, plaintext };
   },
 
+  /**
+   * Chave com valor conhecido, so para o seed de demonstracao (DEMO_WIDGET_KEY).
+   * Idempotente: se a chave ja existe, nao cria outra. Continua guardando so o
+   * hash, como qualquer chave.
+   */
+  async ensureDemoKey(
+    organizationId: string,
+    assistantId: string,
+    plaintext: string,
+    domains: string[],
+  ) {
+    const existing = await keysRepository.findActiveByHash(hashEmbedKey(plaintext));
+    if (existing) return { id: existing.id, created: false };
+
+    const row = await keysRepository.insert(
+      organizationId,
+      assistantId,
+      "teste",
+      hashEmbedKey(plaintext),
+      maskEmbedKey(plaintext),
+    );
+    await Promise.all(domains.map((domain) => domainsRepository.add(row.id, domain)));
+    return { id: row.id, created: true };
+  },
+
   async revoke(actorUserId: string, organizationId: string, id: string) {
     await keysRepository.revoke(organizationId, id);
     await auditService.record({
