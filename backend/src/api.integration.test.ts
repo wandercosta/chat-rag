@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 
@@ -17,28 +18,8 @@ const { extractionService, sourcesService } = await import("./modules/knowledge/
 const { indexingService } = await import("./modules/rag/index.js");
 const { RUN_INTEGRATION_TESTS, resetDatabase } = await import("./test/integration-helpers.js");
 
-/** PDF minimo valido com uma frase, gerado na mao (sem dependencia extra). */
-function tinyPdf(text: string): Buffer {
-  const stream = `BT /F1 12 Tf 40 760 Td (${text}) Tj ET`;
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-  ];
-  let pdf = "%PDF-1.4\n";
-  const offsets: number[] = [];
-  objects.forEach((body, i) => {
-    offsets.push(pdf.length);
-    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
-  });
-  const xref = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  pdf += offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("");
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return Buffer.from(pdf, "latin1");
-}
+/** O mesmo PDF publico usado pelo seed (Codigo de Defesa do Consumidor). */
+const CDC_PDF = readFileSync(new URL("../seed/codigo-defesa-consumidor.pdf", import.meta.url));
 
 function cookieFrom(response: { cookies: Array<{ name: string; value: string }> }) {
   return response.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
@@ -131,12 +112,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("API: auth, upload e pergunta", () => {
     const topicId = topic.json().id;
 
     const boundary = "----chatragtest";
-    const pdf = tinyPdf("O prazo para desistir de compra feita pela internet e de sete dias.");
+    const pdf = CDC_PDF;
     const body = Buffer.concat([
       Buffer.from(
         `--${boundary}\r\nContent-Disposition: form-data; name="topicId"\r\n\r\n${topicId}\r\n` +
-          `--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nPolitica de Trocas\r\n` +
-          `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="trocas.pdf"\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nCodigo de Defesa do Consumidor\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cdc.pdf"\r\n` +
           `Content-Type: application/pdf\r\n\r\n`,
       ),
       pdf,
@@ -158,20 +139,37 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("API: auth, upload e pergunta", () => {
     const { chunks } = await extractionService.extractAndChunk(organizationId, source.id);
     const count = await indexingService.embedAndStoreChunks(organizationId, source.id, topicId, chunks);
     await sourcesService.markReady(organizationId, source.id, count);
-    expect(count).toBeGreaterThan(0);
+    // A lei inteira (~130 artigos) vira dezenas de trechos.
+    expect(count).toBeGreaterThan(50);
 
+    // Os testes usam embeddings por hashing (sem rede): o que se verifica aqui
+    // e o pipeline, nao a qualidade da busca — essa foi calibrada com o modelo
+    // real (local-embeddings.ts) e tem testes unitarios proprios.
     const answer = await app.inject({
       method: "POST",
       url: `/organizations/${organizationId}/assistants/${assistant.json().id}/playground-messages`,
       headers,
-      payload: { message: "Qual o prazo para desistir de uma compra feita pela internet?" },
+      payload: { message: "Em quantos dias o consumidor pode desistir do contrato?" },
     });
     expect(answer.statusCode).toBe(200);
     const result = answer.json();
     expect(result.usedContext).toBe(true);
-    expect(result.answer).toContain("sete dias");
-    expect(result.citations[0]).toMatchObject({ index: 1, sourceTitle: "Politica de Trocas" });
-    expect(result.citations[0].excerpt).toContain("sete dias");
+    expect(result.answer).toContain("[1]");
+    expect(result.citations[0]).toMatchObject({
+      index: 1,
+      sourceId: source.id,
+      sourceTitle: "Codigo de Defesa do Consumidor",
+    });
+    expect(result.citations[0].excerpt.length).toBeGreaterThan(20);
+
+    // A citacao fica gravada na mensagem e aparece na transcricao do painel.
+    const transcript = await app.inject({
+      method: "GET",
+      url: `/organizations/${organizationId}/conversations/${result.conversationId}`,
+      headers,
+    });
+    const saved = transcript.json().messages.at(-1);
+    expect(saved.citations).toEqual(result.citations);
   });
 
   it("does not answer from outside the knowledge base", async () => {
