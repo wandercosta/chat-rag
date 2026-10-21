@@ -25,7 +25,7 @@ Isso vale tanto para código quanto para decisões de arquitetura discutidas ape
 
 - Isolamento por organização (`organization_id`) é fronteira de segurança, não filtro visual.
 - Resposta do assistente é ancorada na base por padrão (sem conhecimento geral, salvo config futura).
-- Produto é desacoplado do PAIM; login e dados são próprios.
+- Produto independente: login, dados e deploy próprios.
 - Comportamento por cliente/assistente é configuração, não fork de código.
 - Master (control plane) e Tenant (painel) são escopos de administração distintos e não podem se misturar.
 - Chave OpenAI é BYOK por tenant, nunca devolvida por API/log/auditoria.

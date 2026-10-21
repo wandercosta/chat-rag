@@ -34,3 +34,8 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Metadados de ferramentas (nao fazem parte do codigo do projeto)
+.lovable/
+.claude/
+AGENTS.md

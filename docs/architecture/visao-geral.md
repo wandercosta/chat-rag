@@ -8,7 +8,7 @@ O ChatRAG fornece assistentes de IA baseados em conhecimento privado. Cada assis
 
 1. **Isolamento por organizacao**: dados nunca atravessam o limite do tenant.
 2. **Resposta ancorada**: por padrao, o assistente responde somente com conhecimento recuperado da base.
-3. **Desacoplamento do PAIM**: o produto possui login, dados e deploy proprios; PAIM e apenas uma futura integracao.
+3. **Produto independente**: o produto possui login, dados e deploy proprios; integracoes com outros sistemas sao opcionais e posteriores.
 4. **Configuracao, nao bifurcacao**: comportamento por cliente/assistente deve ser configuravel no painel.
 5. **Processamento assincrono**: upload e indexacao nao bloqueiam o painel.
 6. **Evolucao SaaS**: cobranca nao entra no MVP, mas tenant, uso, limites e auditoria nascem prontos para isso.
