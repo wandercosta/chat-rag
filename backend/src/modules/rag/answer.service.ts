@@ -1,7 +1,7 @@
 import { assistantsService, handoffService } from "../assistants/index.js";
 import { conversationsService, gapsService, visitorsService } from "../conversations/index.js";
 import { usageService } from "../analytics/index.js";
-import { retrievalService } from "./retrieval.service.js";
+import { lexicalOverlap, queryTerms, retrievalService } from "./retrieval.service.js";
 import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
 import type { MessageCitation } from "../../db/types.js";
 import type { RetrievedChunk } from "./chunks.repository.js";
@@ -12,17 +12,66 @@ export class AssistantNotFoundError extends Error {}
 
 export type Citation = MessageCitation;
 
-/** Quantos caracteres do trecho acompanham a citacao (o trecho inteiro vai no
- * prompt; para o visitante basta o suficiente para conferir a origem). */
-const EXCERPT_CHARS = 320;
+/** Tamanho maximo do trecho mostrado ao visitante (o trecho inteiro vai no
+ * prompt; para conferir a origem bastam as frases que respondem). */
+const EXCERPT_CHARS = 420;
 
-function toCitations(chunks: RetrievedChunk[]): Citation[] {
+/** Rotulos curtos ("Art. 49.", "Paragrafo unico.", "§ 1°") nao sao frases:
+ * ficam colados ao texto que vem depois deles. */
+const MIN_SENTENCE_CHARS = 25;
+
+/** Quebra em frases: corta depois de ".", ";" ou ":" seguido de maiuscula ou "§". */
+function splitSentences(text: string): string[] {
+  const parts = text.split(/(?<=[.;:])\s+(?=[A-ZÀ-Ú§])/u).filter((s) => s.trim().length > 0);
+  const sentences: string[] = [];
+  let pending = "";
+  for (const part of parts) {
+    pending = pending ? `${pending} ${part}` : part;
+    if (pending.length >= MIN_SENTENCE_CHARS) {
+      sentences.push(pending);
+      pending = "";
+    }
+  }
+  if (pending) sentences.push(pending);
+  return sentences;
+}
+
+/**
+ * As frases do trecho que mais casam com a pergunta, a partir da melhor e
+ * seguindo o texto ate EXCERPT_CHARS. Sem isso, a citacao mostrava o comeco do
+ * trecho, que nem sempre e a parte que responde (no CDC, o art. 48 aparecia
+ * antes do art. 49 numa pergunta sobre arrependimento).
+ */
+export function bestExcerpt(content: string, question: string): string {
+  const sentences = splitSentences(content.trim());
+  if (sentences.length === 0) return content;
+
+  const terms = queryTerms(question);
+  let best = 0;
+  let bestScore = -1;
+  sentences.forEach((sentence, i) => {
+    const score = lexicalOverlap(terms, sentence);
+    if (score > bestScore) {
+      best = i;
+      bestScore = score;
+    }
+  });
+
+  let excerpt = "";
+  for (const sentence of sentences.slice(best)) {
+    if (excerpt && excerpt.length + sentence.length > EXCERPT_CHARS) break;
+    excerpt = excerpt ? `${excerpt} ${sentence}` : sentence;
+  }
+  if (excerpt.length > EXCERPT_CHARS) excerpt = `${excerpt.slice(0, EXCERPT_CHARS).trim()}…`;
+  return best > 0 ? `… ${excerpt}` : excerpt;
+}
+
+function toCitations(chunks: RetrievedChunk[], question: string): Citation[] {
   return chunks.map((c, i) => ({
     index: i + 1,
     sourceId: c.source_id,
     sourceTitle: c.source_title,
-    excerpt:
-      c.content.length > EXCERPT_CHARS ? `${c.content.slice(0, EXCERPT_CHARS).trim()}…` : c.content,
+    excerpt: bestExcerpt(c.content, question),
   }));
 }
 
@@ -36,8 +85,8 @@ export function citationsUsed(reply: string, citations: Citation[]): Citation[] 
 
 /** Modo sem LLM (AI_PROVIDER=local): devolve o trecho mais relevante com a
  * referencia. Demonstra o fluxo inteiro sem nenhuma chave de API. */
-function extractiveReply(chunks: RetrievedChunk[]): string {
-  return `Encontrei isto em "${chunks[0].source_title}" [1]:\n\n${chunks[0].content.trim()}`;
+function extractiveReply(citations: Citation[]): string {
+  return `Encontrei isto em "${citations[0].sourceTitle}" [1]:\n\n${citations[0].excerpt}`;
 }
 
 /**
@@ -261,12 +310,12 @@ export const answerService = {
       throw err;
     }
 
-    const allCitations = toCitations(retrieval.chunks);
+    const allCitations = toCitations(retrieval.chunks, question);
     let reply: string;
     let citations: Citation[];
 
     if (provider.kind === "extractive") {
-      reply = extractiveReply(retrieval.chunks);
+      reply = extractiveReply(allCitations);
       citations = allCitations.slice(0, 1);
     } else {
       const visitorContext = await loadVisitorContext(organizationId, options.conversationId);

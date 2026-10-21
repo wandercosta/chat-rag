@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toAnthropicMessages } from "./anthropic-adapter.js";
-import { citationsUsed, type Citation } from "./answer.service.js";
+import { bestExcerpt, citationsUsed, type Citation } from "./answer.service.js";
 import { lexicalOverlap, queryTerms, rerank } from "./retrieval.service.js";
 import { createHashEmbeddings } from "./local-embeddings.js";
 import { EMBEDDING_DIMENSIONS, padEmbedding } from "./provider.types.js";
@@ -96,5 +96,22 @@ describe("hybrid rerank", () => {
   it("matches accent-free stems", () => {
     expect(queryTerms("desistência da compra")).toEqual(["desis", "compr"]);
     expect(lexicalOverlap(["desis"], "pode DESISTIR do contrato")).toBe(1);
+  });
+});
+
+describe("bestExcerpt", () => {
+  const content =
+    "Art. 48. As declaracoes de vontade constantes de escritos particulares vinculam o fornecedor. " +
+    "Art. 49. O consumidor pode desistir do contrato, no prazo de 7 dias a contar de sua assinatura. " +
+    "Paragrafo unico. Se o consumidor exercer o direito de arrependimento, os valores serao devolvidos.";
+
+  it("starts at the sentence that best matches the question", () => {
+    const excerpt = bestExcerpt(content, "Em quantos dias posso desistir da compra?");
+    expect(excerpt).toMatch(/^… Art\. 49\./);
+    expect(excerpt).toContain("7 dias");
+  });
+
+  it("keeps the beginning when the first sentence is the best one", () => {
+    expect(bestExcerpt(content, "declaracoes de vontade em escritos particulares")).toMatch(/^Art\. 48\./);
   });
 });
