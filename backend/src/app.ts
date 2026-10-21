@@ -3,7 +3,8 @@ import multipart from "@fastify/multipart";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerCors } from "./cors.js";
 import { registerTenantStatusGuard } from "./tenant-status.js";
-import { identityPlugin, membersRoutes } from "./modules/identity/index.js";
+import { platformAiSummary } from "./config/ai.js";
+import { identityPlugin, membersRoutes, requireSession } from "./modules/identity/index.js";
 import {
   organizationsRoutes,
   aiCredentialsRoutes,
@@ -14,7 +15,7 @@ import { assistantsRoutes, modelCatalogRoutes, handoffRoutes } from "./modules/a
 import { collectionsRoutes, topicsRoutes, sourcesRoutes } from "./modules/knowledge/index.js";
 import { conversationsRoutes, gapsRoutes } from "./modules/conversations/index.js";
 import { ragRoutes } from "./modules/rag/index.js";
-import { embedAdminRoutes, embedPublicRoutes } from "./modules/embed/index.js";
+import { demoRoutes, embedAdminRoutes, embedPublicRoutes } from "./modules/embed/index.js";
 import { analyticsRoutes } from "./modules/analytics/index.js";
 
 /** Fabrica da app, separada de server.ts (que so faz `listen`), para poder
@@ -46,8 +47,13 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(embedAdminRoutes);
   await app.register(embedPublicRoutes);
   await app.register(analyticsRoutes);
+  await app.register(demoRoutes);
 
   app.get("/health", async () => ({ ok: true }));
+
+  // Qual IA a plataforma oferece sem chave do tenant (ADR-005). O painel usa
+  // isso para nao pedir chave BYOK quando o .env ja resolve.
+  app.get("/platform/ai", { preHandler: requireSession }, async () => platformAiSummary());
 
   return app;
 }

@@ -533,6 +533,18 @@ export interface CredentialStatus {
   updatedAt: string | null;
 }
 
+/** IA oferecida pela plataforma via .env, sem chave do tenant (ADR-005). */
+export interface PlatformAi {
+  chatProvider: "openai" | "anthropic" | "local";
+  chatModel: string | null;
+  embeddingProvider: "openai" | "local" | "hash";
+  available: boolean;
+}
+
+export const platformApi = {
+  ai: () => get<PlatformAi>("/platform/ai"),
+};
+
 export const aiCredentialsApi = {
   getStatus: (organizationId: string) =>
     get<CredentialStatus[]>(`/organizations/${organizationId}/ai-credentials`),
