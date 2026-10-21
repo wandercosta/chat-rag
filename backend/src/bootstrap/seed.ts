@@ -216,4 +216,9 @@ main()
     console.error(`✗ Seed falhou: ${err instanceof Error ? err.message : err}`);
     process.exitCode = 1;
   })
-  .finally(() => db.destroy());
+  .finally(async () => {
+    await db.destroy();
+    // Os modulos importados abrem conexoes com o Redis (filas, rate limit) que
+    // manteriam o processo vivo; o container do seed precisa terminar.
+    process.exit();
+  });
