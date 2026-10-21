@@ -1,100 +1,125 @@
-# ChatRAG Admin Hub
+# ChatRAG
 
-> Este arquivo e o prompt original que gerou o protótipo no Lovable — mantido como histórico. Para o estado real do projeto (o que já está ligado ao backend, o que ainda é mockado, como rodar tudo), ver `docs/README.md`, `backend/README.md` e `widget/README.md`.
->
-> Resumo rápido: login/logout/sessão, lista+criação de tenants (Master) e lista+criação de assistentes (tenant) já falam com a API real em `backend/` (precisa de `docker compose up -d` na raiz — ver `backend/README.md`). O resto das telas abaixo ainda usa `src/lib/mock-data.ts`. `.env` na raiz define `VITE_API_BASE_URL` (padrão `http://localhost:3333`).
+Plataforma multi-tenant de chatbots com RAG: você envia documentos, e um widget embutido no seu site responde perguntas com base neles — citando o trecho e o documento de origem.
 
-Crie um painel administrativo web em React + TypeScript para um produto SaaS multi-tenant chamado ChatRAG, que fornece assistentes de IA baseados em base de conhecimento privada, integraveis a sites externos via widget.
+![Widget respondendo com base no Código de Defesa do Consumidor](docs/assets/widget.gif)
 
-Este e apenas o frontend visual. Nao implemente logica de RAG, nao gere nem manipule segredos/chaves administrativas, e nao tome nenhuma decisao de autorizacao no cliente — todo acesso e permissao vem de uma API que ainda sera integrada depois. Use dados mockados/estaticos por enquanto, deixando claro nos comentarios onde cada tela consumira a API real.
+## Por que fiz
 
-Dois escopos de acesso
+Trabalho com IA aplicada ao jurídico, onde uma resposta sem fonte não vale nada. Quis construir de ponta a ponta um RAG que só responde com base nos documentos do cliente, mostra de onde tirou cada resposta e isola os dados de cada empresa.
 
-Master (plataforma): enxerga todas as organizacoes/tenants, usuarios, auditoria e configuracoes globais. Nao pertence a nenhuma organizacao especifica.
+## Funcionalidades
 
-Tenant (organizacao): cada usuario de tenant esta associado a uma unica organizacao na sessao ativa e so vê recursos dela.
+- **Upload → indexação → resposta com fonte:** PDF, DOCX, texto ou URL viram trechos com embeddings (pgvector + HNSW). Cada resposta cita o trecho e o documento usados.
+- **Modo estrito:** sem contexto relevante, o assistente não inventa. A pergunta vira uma "lacuna", que o time responde no painel criando uma nova fonte.
+- **Multi-tenant de verdade:** toda consulta filtra por organização. O Master só vê dados de um tenant abrindo uma sessão de suporte justificada e auditada.
+- **Provedor de IA configurável por `.env`:** OpenAI, Anthropic (Claude) ou modo local sem chave. Embeddings via OpenAI ou com um modelo multilíngue rodando no próprio container.
+- **Widget embutível:** um `<script>` de ~17 kB, sem dependências e isolado em Shadow DOM. A aparência (título, cor, posição, tema) é configurada no painel, e só domínios autorizados podem usá-lo.
+- **Painel administrativo:** assistentes, base de conhecimento, playground, conversas, lacunas, chaves do widget, usuários, auditoria e uso.
+- **Segurança:** chaves BYOK dos tenants com envelope encryption, chaves do widget guardadas só como hash, rate limit e proteção contra prompt injection no prompt do sistema.
 
-Simule um seletor/estado de "sessao atual" que alterna entre "Master" e um tenant de exemplo, so para navegar o protótipo — isso nao existe no produto final (o escopo vem do login real).
+| Playground com fontes | Aparência do widget no painel |
+| --- | --- |
+| ![Playground](docs/assets/painel-playground.png) | ![Configuração do widget](docs/assets/painel-widget.png) |
 
-Navegacao principal (sidebar)
+| Base de conhecimento | Conversas com as fontes de cada resposta |
+| --- | --- |
+| ![Base de conhecimento](docs/assets/painel-conhecimento.png) | ![Conversas](docs/assets/painel-conversas.png) |
 
-Visao geral do tenant
+## Como rodar
 
-Organizacoes/tenants (visivel somente para Master)
+Requisito: Docker. Não precisa de nenhuma chave de API.
 
-Visao geral da plataforma (visivel somente para Master)
-
-Assistentes
-
-Base de conhecimento (topicos e fontes)
-
-Conversas
-
-Lacunas e feedbacks
-
-Integracoes e widget
-
-Usuarios e permissoes
-
-Configuracoes
-
-Auditoria e uso
-
-Telas a construir
-
-Master - lista de tenants: tabela com nome, status (ativo/suspenso), limites e data de criacao. Botao "Criar tenant" abrindo formulario com nome, identificacao, status inicial, configuracoes padrao e dados do usuario administrador inicial (nome, e-mail).
-
-Master - detalhe do tenant: abas para uso/consumo, auditoria, e uma acao de "Acesso de suporte" que exige preencher justificativa e mostra um aviso permanente de "Modo de suporte ativo" com tempo restante enquanto simulado como ativo. Botoes de suspender/reativar tenant.
-
-Lista de assistentes: cards ou tabela com nome, status, modelo selecionado. Botao "Novo assistente".
-
-Detalhe do assistente: formulario com identidade (nome, avatar), instrucoes opcionais em texto livre, selecao de colecoes de conhecimento, modo de resposta (estrita vs. permite conhecimento geral - mockar como toggle desabilitado com nota "disponivel em fase futura"), privacidade do visitante, retencao de historico, configuracao de encaminhamento WhatsApp e aparencia do widget (cor, tema claro/escuro/sincronizado, logo, posicao, modo flutuante/embutido).
-
-Base de conhecimento: lista de topicos, e dentro de cada topico lista de fontes com tipo (texto/PDF/DOCX/URL), status (rascunho, aguardando revisao, na fila, processando, pronta, erro, arquivada) e acao de reindexar. Exiba um aviso quando a fonte estiver como "aguardando ativacao" (sem chave de IA configurada).
-
-Playground de conversa: interface de chat simples para testar um assistente sem expor publicamente, com indicador visual de "modo teste".
-
-Integracoes e widget: exibe o script de instalacao (<script src="..." data-key="..." data-mode="floating" async>), lista de chaves por ambiente (teste/producao) com dominios permitidos, botao de revogar chave, e preview da aparencia do widget.
-
-Conversas: tabela filtravel por assistente, visitante e periodo; ao abrir uma conversa, mostra historico de mensagens e feedback recebido.
-
-Lacunas: tabela com pergunta sem resposta, frequencia, assistente de origem e status (pendente/resolvida), com acao de marcar como resolvida.
-
-Configuracoes do tenant: formulario para chave OpenAI de teste e producao (ou reutilizada entre ambientes), exibindo apenas estado da conexao (nao configurada / valida / invalida / substituida) — o valor da chave nunca aparece apos salvo, so um campo para colar um novo valor. Lista de modelos permitidos (somente leitura, vem do Master). Secao de privacidade/retencao e configuracao de WhatsApp.
-
-Estado de ativacao da base: um banner/alerta reutilizavel, mostrado em varias telas, avisando que indexacao, playground e widget ficam indisponiveis ate existir uma chave de IA valida.
-
-Usuarios e permissoes: lista de usuarios do tenant com perfil (Administrador, Editor de base, Analista), botao de convidar usuario por e-mail ou por senha provisoria com troca obrigatoria no primeiro acesso. Nenhuma tela de cadastro publico deve existir em lugar nenhum do produto.
-
-Auditoria e uso: tabela de eventos administrativos e de seguranca (quem, o que, quando), com filtro por tipo de evento e periodo.
-
-Perfis e visibilidade condicional
-
-PerfilO que veMasterTudo: todas as organizacoes, usuarios, auditoria e configuracoes globaisAdministrador (tenant)Todos os recursos da propria organizacaoEditor de base (tenant)Somente topicos e fontes; sem acesso a chaves ou usuariosAnalista (tenant)Somente conversas, feedbacks, lacunas e metricas, em modo leitura
-
-Ajuste a sidebar e os botoes de acao visiveis conforme o perfil simulado selecionado no protótipo.
-
-Estilo visual
-
-Painel de SaaS B2B, limpo e profissional, tons neutros com um accent color, boa hierarquia tipografica, componentes de tabela/formulario consistentes, suporte a tema claro e escuro. Priorize clareza sobre densidade — os usuarios sao administradores configurando um produto, nao consumidores finais.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/c2a120e5-06c0-417c-a38d-62ce99e6b8e4).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+git clone https://github.com/wandercosta/chat-rag.git && cd chat-rag
+cp .env.example .env
+docker compose up --build
 ```
+
+O primeiro build leva alguns minutos, porque baixa o modelo de embeddings (~120 MB). Depois disso, o serviço `seed` cria um tenant de demonstração e indexa o [Código de Defesa do Consumidor](backend/seed/) (Lei 8.078/1990, domínio público). Quando o log mostrar `✓ Seed concluido`:
+
+- **Widget:** <http://localhost:3333/demo> — pergunte, por exemplo, "Comprei pela internet. Em quantos dias posso desistir?"
+- **Painel:** <http://localhost:3000> — entre com `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` do `.env`
+
+Sem chave, o assistente roda em **modo local**: ele responde com o trecho mais relevante da lei e cita a fonte. Para respostas geradas por um LLM, preencha no `.env` `AI_PROVIDER=anthropic` e `ANTHROPIC_API_KEY` (ou `AI_PROVIDER=openai` e `OPENAI_API_KEY`) e rode `docker compose up -d` de novo.
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+  subgraph Site["Site do cliente"]
+    W["Widget<br/>(script + Shadow DOM)"]
+  end
+  P["Painel admin<br/>React + TanStack Start"]
+
+  subgraph Backend["Backend (Fastify + TypeScript)"]
+    API["API<br/>auth · tenants · knowledge · rag · embed"]
+    WK["Worker<br/>BullMQ"]
+  end
+
+  DB[("Postgres + pgvector")]
+  R[("Redis<br/>sessões · fila · rate limit")]
+  S3[("Storage S3<br/>PDF / DOCX")]
+  AI["Provedor de IA<br/>OpenAI · Anthropic · local"]
+
+  W -- "pergunta (chave pública + domínio)" --> API
+  P -- "sessão por cookie" --> API
+  API --> DB
+  API --> R
+  API -- "upload" --> S3
+  API -- "enfileira indexação" --> R
+  R --> WK
+  WK -- "extrai e divide" --> S3
+  WK -- "embeddings" --> AI
+  WK -- "trechos + vetores" --> DB
+  API -- "busca vetorial por tenant<br/>+ resposta com citações" --> AI
+```
+
+**Fluxo de uma pergunta:** o widget envia a pergunta com a chave pública. A API valida a chave e o domínio de origem, gera o embedding da pergunta e busca no pgvector só os trechos que aquele assistente pode ver. Se nenhum trecho passar do limiar de relevância, a pergunta vira lacuna. Se passar, os trechos vão numerados para o modelo, que responde citando `[n]`, e a resposta volta com as citações (documento + trecho).
+
+## Tecnologias
+
+| Camada | Stack |
+| --- | --- |
+| Painel | React 19, TanStack Start/Router/Query, Tailwind CSS 4, Radix/shadcn |
+| API e worker | Node 22, Fastify 5, TypeScript, Kysely, Zod, BullMQ, argon2 |
+| Dados | PostgreSQL 16 + pgvector (HNSW), Redis 7, storage S3 (SeaweedFS no Docker) |
+| IA | OpenAI SDK, Anthropic SDK, transformers.js (`multilingual-e5-small`, ONNX) |
+| Widget | TypeScript sem framework, Vite (bundle IIFE), Shadow DOM |
+| Qualidade | Vitest (unitário + integração com Postgres/Redis reais), dependency-cruiser (fronteiras de módulo), GitHub Actions |
+| Infra | Docker Compose |
+
+## Estrutura de pastas
+
+```text
+.
+├── src/                  # Painel admin (rotas, componentes, cliente da API)
+├── widget/               # Widget embutível (bundle único, sem dependências)
+├── backend/
+│   ├── src/modules/      # identity, organizations, assistants, knowledge, rag,
+│   │                     # conversations, embed, audit, analytics
+│   ├── src/bootstrap/    # migrations no boot, bucket, usuário Master, seed
+│   ├── migrations/       # schema do Postgres (node-pg-migrate)
+│   └── seed/             # PDF do CDC usado na demonstração
+├── docs/                 # arquitetura, ADRs, contratos, segurança, roadmap
+├── infra/                # init do Postgres (extensão pgvector)
+└── docker-compose.yml    # stack completa; docker-compose.infra.yml = só infra
+```
+
+Os módulos do backend só conversam pelo `index.ts` de cada um, regra checada no CI pelo dependency-cruiser. As decisões de arquitetura estão em [`docs/decisions/`](docs/decisions/).
+
+## Testes
+
+```bash
+cd backend && npm ci && npm test
+```
+
+Os testes de integração (`npm run test:integration`) sobem a API de verdade contra Postgres e Redis e cobrem login, upload de PDF, indexação e pergunta com citação, além do isolamento entre tenants. O passo a passo está em [`backend/README.md`](backend/README.md#testes).
+
+## O que aprendi
+
+- **O limiar de relevância é o que segura a alucinação.** Medi as distâncias de perguntas dentro e fora do escopo (`scripts/debug-retrieval.ts`) e calibrei um limiar para cada modelo de embeddings. Cada modelo distribui as distâncias numa faixa diferente, então um limiar fixo não serve para todos.
+- **Chat e embeddings são decisões separadas.** O chat pode vir do tenant ou da plataforma, mas os embeddings precisam ser do deploy inteiro: vetores de modelos diferentes na mesma coluna deixam a busca sem sentido. A Anthropic, por exemplo, não oferece embeddings ([ADR-005](docs/decisions/ADR-005-provedor-de-ia-da-plataforma.md)).
+- **Teste de integração pega o que teste unitário não pega.** Um hook de sessão preso ao escopo de um plugin do Fastify derrubava toda rota fora do módulo de identidade. Só um teste HTTP de verdade, atravessando módulos, mostrou o problema.
+- **Isolamento de tenant tem que estar na query, não na tela.** Todo repositório recebe `organization_id`, e a busca vetorial filtra por organização e pelos tópicos que o assistente pode consultar.
+- **Rodar do zero é uma funcionalidade.** O `docker compose up` em um clone limpo revelou scripts de bootstrap que não entravam no build e uma imagem de storage que tinha saído do ar. Hoje esse caminho faz parte do processo.
