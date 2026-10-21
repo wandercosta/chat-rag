@@ -94,7 +94,7 @@ Após subir os contêineres de infraestrutura, siga a sequência padrão de inic
 4. **Criar usuário Master inicial**:
 
    ```bash
-   npx tsx scripts/create-master.ts admin@chatrag.local "SenhaForte123!"
+   npx tsx src/bootstrap/create-master.ts admin@chatrag.local "SenhaForte123!"
    ```
 
 5. **Iniciar a API e o Worker**:

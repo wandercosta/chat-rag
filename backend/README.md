@@ -38,7 +38,7 @@ typecheck/lint/testes) — ver "Validado ponta a ponta" em `docs/README.md`.
    ```
 6. Crie o primeiro usuario Master (nao existe cadastro publico no produto):
    ```bash
-   npx tsx scripts/create-master.ts admin@chatrag.local "uma-senha-forte"
+   npx tsx src/bootstrap/create-master.ts admin@chatrag.local "uma-senha-forte"
    ```
 7. Suba a API e, em outro terminal, o worker de indexacao/retencao:
    ```bash
