@@ -44,3 +44,10 @@ describe("chunkText boundaries", () => {
     for (const chunk of chunkText(text)) expect(words.has(chunk.split(" ")[0])).toBe(true);
   });
 });
+
+describe("chunkText sentence starts", () => {
+  it("starts follow-up chunks at the beginning of a sentence", () => {
+    const text = Array.from({ length: 60 }, (_, i) => `Art. ${i + 1}. Regra de numero ${i + 1} do codigo.`).join(" ");
+    for (const chunk of chunkText(text).slice(1)) expect(chunk).toMatch(/^Art\. \d+\./);
+  });
+});

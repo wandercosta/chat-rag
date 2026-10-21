@@ -19,7 +19,7 @@ function lastSentenceEnd(text: string, from: number, to: number): number {
 
 /**
  * Divisao por tamanho com sobreposicao. O corte prefere fim de frase e, na
- * falta dele, um espaco; o inicio do trecho seguinte tambem cai num espaco.
+ * falta dele, um espaco; o trecho seguinte comeca no inicio de uma frase.
  * Antes o inicio podia cair no meio de uma palavra ("t. 84 e paragrafos. Art.
  * 49..."), o que piorava o embedding e aparecia feio na citacao.
  */
@@ -42,9 +42,18 @@ export function chunkText(text: string): string[] {
     chunks.push(normalized.slice(start, end).trim());
     if (end >= normalized.length) break;
 
-    let next = Math.max(end - CHUNK_OVERLAP, start + 1);
-    const space = normalized.indexOf(" ", next);
-    if (space !== -1 && space < end) next = space + 1;
+    // O proximo trecho comeca no inicio de uma frase dentro da sobreposicao
+    // (ou, sem frase ali, numa palavra inteira).
+    let next = Math.max(end - CHUNK_OVERLAP * 2, start + 1);
+    SENTENCE_END.lastIndex = next;
+    const sentence = SENTENCE_END.exec(normalized);
+    if (sentence && sentence.index + 2 < end) {
+      next = sentence.index + 2;
+    } else {
+      next = Math.max(end - CHUNK_OVERLAP, start + 1);
+      const space = normalized.indexOf(" ", next);
+      if (space !== -1 && space < end) next = space + 1;
+    }
     start = next;
   }
 
