@@ -1,4 +1,4 @@
-import type { ConversationChannel } from "../../db/types.js";
+import type { ConversationChannel, MessageCitation } from "../../db/types.js";
 import { conversationsRepository, type ConversationFilters } from "./conversations.repository.js";
 
 export const conversationsService = {
@@ -56,8 +56,8 @@ export const conversationsService = {
     return conversationsRepository.addMessage(conversationId, "visitante", content);
   },
 
-  addAssistantMessage(conversationId: string, content: string) {
-    return conversationsRepository.addMessage(conversationId, "assistente", content);
+  addAssistantMessage(conversationId: string, content: string, citations: MessageCitation[] = []) {
+    return conversationsRepository.addMessage(conversationId, "assistente", content, citations);
   },
 
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {

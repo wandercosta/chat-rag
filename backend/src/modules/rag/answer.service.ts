@@ -3,10 +3,42 @@ import { conversationsService, gapsService, visitorsService } from "../conversat
 import { usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
 import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
-import { NoActiveCredentialError, resolveProviderForTenant } from "./provider-resolver.js";
+import type { MessageCitation } from "../../db/types.js";
+import type { RetrievedChunk } from "./chunks.repository.js";
+import { NoActiveCredentialError, resolveChatProvider } from "./provider-resolver.js";
 import type { ChatMessage } from "./provider.types.js";
 
 export class AssistantNotFoundError extends Error {}
+
+export type Citation = MessageCitation;
+
+/** Quantos caracteres do trecho acompanham a citacao (o trecho inteiro vai no
+ * prompt; para o visitante basta o suficiente para conferir a origem). */
+const EXCERPT_CHARS = 320;
+
+function toCitations(chunks: RetrievedChunk[]): Citation[] {
+  return chunks.map((c, i) => ({
+    index: i + 1,
+    sourceId: c.source_id,
+    sourceTitle: c.source_title,
+    excerpt:
+      c.content.length > EXCERPT_CHARS ? `${c.content.slice(0, EXCERPT_CHARS).trim()}…` : c.content,
+  }));
+}
+
+/** So as citacoes que a resposta referenciou ([1], [2]...). Se o modelo nao
+ * marcou nenhuma, vale o trecho mais relevante. */
+export function citationsUsed(reply: string, citations: Citation[]): Citation[] {
+  const referenced = new Set([...reply.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
+  const used = citations.filter((c) => referenced.has(c.index));
+  return used.length > 0 ? used : citations.slice(0, 1);
+}
+
+/** Modo sem LLM (AI_PROVIDER=local): devolve o trecho mais relevante com a
+ * referencia. Demonstra o fluxo inteiro sem nenhuma chave de API. */
+function extractiveReply(chunks: RetrievedChunk[]): string {
+  return `Encontrei isto em "${chunks[0].source_title}" [1]:\n\n${chunks[0].content.trim()}`;
+}
 
 /**
  * Texto que o visitante le, nao diagnostico interno. A versao anterior
@@ -47,7 +79,7 @@ function sanitizeUserInput(input: string): string {
 
 function buildSystemPrompt(
   instructions: string | null,
-  context: string[],
+  context: Array<{ content: string; sourceTitle: string }>,
   visitorContext: string | null,
 ): string {
   const baseRules =
@@ -66,13 +98,17 @@ function buildSystemPrompt(
     ? `${withInstructions}\n\nDados do atendimento atual (use apenas para personalizar o tratamento, nunca como fonte de fatos):\n${visitorContext}`
     : withInstructions;
 
-  const sanitizedChunks = context.map((c) =>
-    c
+  const sanitizedChunks = context.map((c, i) => {
+    const content = c.content
       .replaceAll("<context>", "&lt;context&gt;")
-      .replaceAll("</context>", "&lt;/context&gt;"),
-  );
+      .replaceAll("</context>", "&lt;/context&gt;");
+    return `[${i + 1}] (documento: ${c.sourceTitle})\n${content}`;
+  });
 
-  return `${withVisitor}\n\n<context>\n${sanitizedChunks.join("\n---\n")}\n</context>`;
+  const citationRule =
+    "\n\nCada trecho do CONTEXTO comeca com um numero entre colchetes. Ao usar um trecho, cite o numero dele no fim da frase, por exemplo: [1].";
+
+  return `${withVisitor}${citationRule}\n\n<context>\n${sanitizedChunks.join("\n---\n")}\n</context>`;
 }
 
 /** Quantas mensagens anteriores acompanham a pergunta. Suficiente para
@@ -176,7 +212,7 @@ export const answerService = {
     if (smalltalk) {
       const reply = smalltalkReply(smalltalk);
       await conversationsService.addAssistantMessage(conversationId, reply);
-      return { conversationId, answer: reply, usedContext: false };
+      return { conversationId, answer: reply, usedContext: false, citations: [] as Citation[] };
     }
 
     const retrievalQuery = buildRetrievalQuery(question, history);
@@ -198,7 +234,7 @@ export const answerService = {
         type: "no_context",
         payload: { latencyMs: Date.now() - startedAt, reason },
       });
-      return { conversationId, answer, usedContext: false };
+      return { conversationId, answer, usedContext: false, citations: [] as Citation[] };
     };
 
     let retrieval;
@@ -207,7 +243,6 @@ export const answerService = {
         organizationId,
         assistantId,
         retrievalQuery,
-        environment,
       );
     } catch (err) {
       if (err instanceof NoActiveCredentialError) {
@@ -218,28 +253,48 @@ export const answerService = {
 
     if (!retrieval.sufficientContext) return recordNoAnswer("sem_recuperacao");
 
-    const visitorContext = await loadVisitorContext(organizationId, options.conversationId);
-    const provider = await resolveProviderForTenant(organizationId, environment);
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        content: buildSystemPrompt(
-          assistant.instructions,
-          retrieval.chunks.map((c) => c.content),
-          visitorContext,
-        ),
-      },
-      ...history,
-      { role: "user", content: question },
-    ];
+    let provider;
+    try {
+      provider = await resolveChatProvider(organizationId, environment, assistant.model_id);
+    } catch (err) {
+      if (err instanceof NoActiveCredentialError) return recordNoAnswer("sem_recuperacao");
+      throw err;
+    }
 
-    const reply = await provider.chat(messages, assistant.model_id);
+    const allCitations = toCitations(retrieval.chunks);
+    let reply: string;
+    let citations: Citation[];
 
-    // Recuperou contexto, mas o contexto nao responde a pergunta: conta como
-    // lacuna igual, senao a pergunta some do radar do tenant.
-    if (reply.includes(NO_ANSWER_SENTINEL)) return recordNoAnswer("modelo_nao_respondeu");
+    if (provider.kind === "extractive") {
+      reply = extractiveReply(retrieval.chunks);
+      citations = allCitations.slice(0, 1);
+    } else {
+      const visitorContext = await loadVisitorContext(organizationId, options.conversationId);
+      const messages: ChatMessage[] = [
+        {
+          role: "system",
+          content: buildSystemPrompt(
+            assistant.instructions,
+            retrieval.chunks.map((c) => ({ content: c.content, sourceTitle: c.source_title })),
+            visitorContext,
+          ),
+        },
+        ...history,
+        { role: "user", content: question },
+      ];
 
-    await conversationsService.addAssistantMessage(conversationId, reply);
+      reply = await provider.chat(messages, assistant.model_id);
+
+      // Recuperou contexto, mas o contexto nao responde a pergunta (ou o
+      // modelo recusou e devolveu vazio): conta como lacuna igual, senao a
+      // pergunta some do radar do tenant.
+      if (!reply || reply.includes(NO_ANSWER_SENTINEL)) {
+        return recordNoAnswer("modelo_nao_respondeu");
+      }
+      citations = citationsUsed(reply, allCitations);
+    }
+
+    await conversationsService.addAssistantMessage(conversationId, reply, citations);
 
     await usageService.record({
       organizationId,
@@ -252,6 +307,6 @@ export const answerService = {
       },
     });
 
-    return { conversationId, answer: reply, usedContext: true };
+    return { conversationId, answer: reply, usedContext: true, citations };
   },
 };
