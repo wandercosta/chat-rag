@@ -1,63 +1,28 @@
 #!/bin/sh
 # =============================================================================
-# entrypoint.sh — Inicializacao automatica do ChatRAG
+# entrypoint.sh — inicializacao do container da API
 #
-# Roda antes de subir a API:
-#   1. Executa as migrações (idempotente — pula o que já rodou)
-#   2. Cria o bucket no MinIO (idempotente — ignora se já existe)
-#   3. Cria o usuário Master (idempotente — ignora se já existe)
-#   4. Inicia o processo informado via CMD
+#   1. Migrations do banco (idempotente)
+#   2. Bucket do MinIO (idempotente)
+#   3. Usuario Master (idempotente)
+#   4. Processo informado no CMD
 #
-# Variaveis configuradas via docker-compose (têm defaults):
-#   MASTER_EMAIL    — email do usuario master (default: admin@chatrag.local)
-#   MASTER_PASSWORD — senha do usuario master (default: Admin@2025!)
+# O worker e o seed usam a mesma imagem com outro entrypoint (ver
+# docker-compose.yml) e nao passam por aqui.
 # =============================================================================
 set -e
 
-MASTER_EMAIL="${MASTER_EMAIL:-admin@chatrag.local}"
-MASTER_PASSWORD="${MASTER_PASSWORD:-Admin@2025!}"
+: "${MASTER_EMAIL:?defina MASTER_EMAIL no .env}"
+: "${MASTER_PASSWORD:?defina MASTER_PASSWORD no .env}"
 
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║        ChatRAG — Inicializando...        ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
+echo "▶ Migrations"
+npx node-pg-migrate up --migrations-dir migrations --database-url-var DATABASE_URL --tsx
 
-# ---------------------------------------------------------------------------
-# 1. Migrações (node-pg-migrate — idempotente, pula o que já rodou)
-# ---------------------------------------------------------------------------
-echo "▶ Executando migrações do banco de dados..."
-node node_modules/node-pg-migrate/bin/node-pg-migrate.js up \
-  --migrations-dir migrations \
-  --database-url-var DATABASE_URL \
-  --no-lock 2>&1 | sed 's/^/  /'
-echo "✓ Migrações concluídas."
-echo ""
+echo "▶ Bucket de arquivos"
+node dist/bootstrap/create-bucket.js
 
-# ---------------------------------------------------------------------------
-# 2. Bucket do MinIO (idempotente via script compilado)
-# ---------------------------------------------------------------------------
-echo "▶ Criando bucket de arquivos no MinIO..."
-node dist/scripts/create-bucket.js 2>&1 | sed 's/^/  /' || \
-  echo "  (bucket já existe ou MinIO não disponível — continuando)"
-echo "✓ Bucket pronto."
-echo ""
+echo "▶ Usuario Master"
+node dist/bootstrap/create-master.js "$MASTER_EMAIL" "$MASTER_PASSWORD"
 
-# ---------------------------------------------------------------------------
-# 3. Usuário Master (ignora erro de email duplicado = já existe)
-# ---------------------------------------------------------------------------
-echo "▶ Verificando usuário Master ($MASTER_EMAIL)..."
-node dist/scripts/create-master.js "$MASTER_EMAIL" "$MASTER_PASSWORD" 2>&1 | sed 's/^/  /' || \
-  echo "  (usuário já existe — ignorando)"
-echo "✓ Usuário Master pronto."
-echo ""
-
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Inicialização concluída! Iniciando app..."
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# ---------------------------------------------------------------------------
-# 4. Inicia o processo principal (API ou Worker)
-# ---------------------------------------------------------------------------
+echo "✓ Inicializacao concluida"
 exec "$@"

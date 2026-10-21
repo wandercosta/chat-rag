@@ -18,8 +18,8 @@ import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
 import { Route as PlaygroundRouteImport } from './routes/playground'
-import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as TesteWidgetRouteImport } from './routes/teste-widget'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
@@ -70,14 +70,14 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
   path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UsuariosRoute = UsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TesteWidgetRoute = TesteWidgetRouteImport.update({
   id: '/teste-widget',
   path: '/teste-widget',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssistentesIndexRoute = AssistentesIndexRouteImport.update({
@@ -111,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
@@ -127,6 +128,7 @@ export interface FileRoutesByTo {
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
@@ -144,6 +146,7 @@ export interface FileRoutesById {
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
@@ -162,6 +165,7 @@ export interface FileRouteTypes {
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
@@ -178,6 +182,7 @@ export interface FileRouteTypes {
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
@@ -194,6 +199,7 @@ export interface FileRouteTypes {
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
     | '/tenants/$tenantId'
@@ -211,6 +217,7 @@ export interface RootRouteChildren {
   LacunasRoute: typeof LacunasRoute
   PlataformaRoute: typeof PlataformaRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  TesteWidgetRoute: typeof TesteWidgetRoute
   UsuariosRoute: typeof UsuariosRoute
   AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
@@ -283,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teste-widget': {
+      id: '/teste-widget'
+      path: '/teste-widget'
+      fullPath: '/teste-widget'
+      preLoaderRoute: typeof TesteWidgetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/usuarios': {
       id: '/usuarios'
       path: '/usuarios'
@@ -331,8 +345,8 @@ const rootRouteChildren: RootRouteChildren = {
   LacunasRoute: LacunasRoute,
   PlataformaRoute: PlataformaRoute,
   PlaygroundRoute: PlaygroundRoute,
-  UsuariosRoute: UsuariosRoute,
   TesteWidgetRoute: TesteWidgetRoute,
+  UsuariosRoute: UsuariosRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,

@@ -1,45 +1,45 @@
-# Dockerfile multi-estágio para o backend ChatRAG (API e Worker)
-FROM node:22-alpine AS builder
+# Dockerfile multi-estagio do backend ChatRAG (API, worker e seed usam a mesma imagem).
+#
+# Base Debian (slim) e nao Alpine: o runtime ONNX usado pelos embeddings locais
+# (@huggingface/transformers) so publica binarios para glibc.
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# Copiar manifests de dependência e instalar (inclui devDeps para build e migrations)
 COPY package*.json ./
 RUN npm ci
 
-# Copiar código fonte e TypeScript config
 COPY tsconfig.json ./
-COPY migrations/ ./migrations/
-COPY scripts/ ./scripts/
 COPY src/ ./src/
 
-# Compilar TypeScript para JavaScript (dist/)
 RUN npm run build
 
-# --- Estágio de Produção ---
-FROM node:22-alpine AS runner
+# --- Estagio de producao ---
+FROM node:22-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copiar dependências de produção
 COPY package*.json ./
-# node-pg-migrate precisa de tsx para ler migrations em TypeScript
-RUN npm ci --only=production && \
-    npm install --no-save tsx node-pg-migrate
+# node-pg-migrate + tsx: as migrations sao arquivos TypeScript.
+RUN npm ci --omit=dev && npm install --no-save tsx@4 node-pg-migrate@7
 
-# Copiar artefatos compilados do estágio builder
+# Baixa o modelo de embeddings local no build, para o primeiro upload nao
+# esperar ~120 MB de download. Desligue com --build-arg PRELOAD_EMBEDDING_MODEL=false.
+ARG PRELOAD_EMBEDDING_MODEL=true
+ARG LOCAL_EMBEDDING_MODEL=Xenova/multilingual-e5-small
+RUN if [ "$PRELOAD_EMBEDDING_MODEL" = "true" ]; then \
+      node -e "import('@huggingface/transformers').then(t => t.pipeline('feature-extraction', process.argv[1], { dtype: 'q8' })).then(() => console.log('modelo de embeddings em cache'))" "$LOCAL_EMBEDDING_MODEL"; \
+    fi
+
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/scripts ./scripts
-
-# Copiar e tornar o entrypoint executável
+COPY migrations/ ./migrations/
+COPY seed/ ./seed/
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 EXPOSE 3333
 
-# O entrypoint roda migrações + setup antes de iniciar o processo principal
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["node", "dist/server.js"]
