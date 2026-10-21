@@ -1,6 +1,6 @@
 # ChatRAG — instruções para o Claude Code
 
-A pasta `docs/` é a fonte oficial de verdade do produto (ver [`docs/README.md`](docs/README.md) para o índice completo e o estado atual da Fase 0). Raiz do repo = painel (TanStack Start/React/TypeScript, gerado no Lovable). `backend/` = API (Fastify/TypeScript, ver `backend/README.md`). `docker-compose.yml` = infraestrutura local (Postgres+pgvector, Redis, MinIO).
+A pasta `docs/` é a fonte oficial de verdade do produto (ver [`docs/README.md`](docs/README.md) para o índice completo e o estado atual da Fase 0). Raiz do repo = painel (TanStack Start/React/TypeScript, gerado no Lovable). `backend/` = API (Fastify/TypeScript, ver `backend/README.md`). `docker-compose.yml` = stack completa com seed (Postgres+pgvector, Redis, storage S3/SeaweedFS, API, worker, painel); `docker-compose.infra.yml` = só a infraestrutura, para desenvolver com hot reload. Provedor de IA da plataforma por `.env` (ADR-005).
 
 ## Regra permanente: documentação acompanha toda mudança
 
@@ -28,7 +28,7 @@ Isso vale tanto para código quanto para decisões de arquitetura discutidas ape
 - Produto independente: login, dados e deploy próprios.
 - Comportamento por cliente/assistente é configuração, não fork de código.
 - Master (control plane) e Tenant (painel) são escopos de administração distintos e não podem se misturar.
-- Chave OpenAI é BYOK por tenant, nunca devolvida por API/log/auditoria.
+- Chave OpenAI do tenant (BYOK) nunca é devolvida por API/log/auditoria; chaves da plataforma ficam só no `.env` (ADR-005).
 
 ## Estado atual do projeto
 
