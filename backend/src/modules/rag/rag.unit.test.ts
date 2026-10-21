@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toAnthropicMessages } from "./anthropic-adapter.js";
 import { citationsUsed, type Citation } from "./answer.service.js";
+import { lexicalOverlap, queryTerms, rerank } from "./retrieval.service.js";
 import { createHashEmbeddings } from "./local-embeddings.js";
 import { EMBEDDING_DIMENSIONS, padEmbedding } from "./provider.types.js";
 
@@ -68,5 +69,32 @@ describe("hash embeddings", () => {
       "passage",
     );
     expect(cosine(query, related)).toBeGreaterThan(cosine(query, unrelated));
+  });
+});
+
+describe("hybrid rerank", () => {
+  const chunk = (id: string, distance: number, content: string) => ({
+    id,
+    content,
+    distance,
+    source_id: "s",
+    source_title: "CDC",
+    topic_id: "t",
+  });
+
+  it("puts the excerpt with the question terms ahead of a slightly closer one", () => {
+    const ranked = rerank(
+      [
+        chunk("a", 0.136, "o consumidor pode exigir a substituicao das partes viciadas"),
+        chunk("b", 0.137, "Art. 49. O consumidor pode desistir do contrato no prazo de 7 dias"),
+      ],
+      "Comprei pela internet. Em quantos dias posso desistir da compra?",
+    );
+    expect(ranked.map((c) => c.id)).toEqual(["b", "a"]);
+  });
+
+  it("matches accent-free stems", () => {
+    expect(queryTerms("desistência da compra")).toEqual(["desis", "compr"]);
+    expect(lexicalOverlap(["desis"], "pode DESISTIR do contrato")).toBe(1);
   });
 });

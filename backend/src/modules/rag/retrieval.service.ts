@@ -23,6 +23,49 @@ import { resolveEmbeddingProvider } from "./provider-resolver.js";
  * invencao.
  */
 const MAX_CHUNKS = 6;
+/** Candidatos buscados no pgvector antes da reordenacao. */
+const CANDIDATES = 12;
+/** Peso da sobreposicao de termos na reordenacao. As distancias dos melhores
+ * candidatos costumam ficar a menos de 0.02 umas das outras; com este peso,
+ * um trecho que contem as palavras da pergunta passa a frente de outro so
+ * levemente mais proximo no espaco vetorial. */
+const LEXICAL_WEIGHT = 0.03;
+
+const STOPWORDS = new Set([
+  "para", "pela", "pelo", "como", "qual", "quais", "quando", "onde", "posso", "pode",
+  "sobre", "minha", "meu", "seus", "suas", "isso", "esse", "essa", "este", "esta",
+  "uma", "com", "sem", "que", "dos", "das", "nos", "nas", "por", "mais", "muito",
+]);
+
+/** Radicais de 5 letras sem acento: "desistir" casa com "desistencia". */
+export function queryTerms(text: string): string[] {
+  const words = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 3 && !STOPWORDS.has(w));
+  return [...new Set(words.map((w) => w.slice(0, 5)))];
+}
+
+/** Fracao dos termos da pergunta que aparecem no trecho. */
+export function lexicalOverlap(terms: string[], content: string): number {
+  if (terms.length === 0) return 0;
+  const haystack = content.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return terms.filter((t) => haystack.includes(t)).length / terms.length;
+}
+
+/**
+ * Reordenacao hibrida: distancia vetorial menos um bonus pela sobreposicao
+ * de termos. O filtro de relevancia continua usando so a distancia vetorial.
+ */
+export function rerank(chunks: RetrievedChunk[], query: string): RetrievedChunk[] {
+  const terms = queryTerms(query);
+  return chunks
+    .map((c) => ({ c, score: c.distance - LEXICAL_WEIGHT * lexicalOverlap(terms, c.content) }))
+    .sort((a, b) => a.score - b.score)
+    .map(({ c }) => c);
+}
 
 export interface RetrievalResult {
   chunks: RetrievedChunk[];
@@ -48,9 +91,12 @@ export const retrievalService = {
       organizationId,
       topicIds,
       padEmbedding(queryEmbedding),
-      MAX_CHUNKS,
+      CANDIDATES,
     );
-    const relevant = candidates.filter((c) => c.distance <= provider.relevanceThreshold);
+    const relevant = rerank(
+      candidates.filter((c) => c.distance <= provider.relevanceThreshold),
+      query,
+    ).slice(0, MAX_CHUNKS);
 
     return { chunks: relevant, sufficientContext: relevant.length > 0 };
   },
