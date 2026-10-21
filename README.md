@@ -114,7 +114,7 @@ Os módulos do backend só conversam pelo `index.ts` de cada um, regra checada n
 cd backend && npm ci && npm test
 ```
 
-Os testes de integração (`npm run test:integration`) sobem a API de verdade contra Postgres e Redis e cobrem login, upload de PDF, indexação e pergunta com citação, além do isolamento entre tenants. O passo a passo está em [`backend/README.md`](backend/README.md#testes).
+Os testes de integração (`npm run test:integration`) sobem a API de verdade contra Postgres e Redis e cobrem login, criação atômica de tenant, upload de PDF, indexação e pergunta com citação. O passo a passo está em [`backend/README.md`](backend/README.md#testes).
 
 ## O que aprendi
 

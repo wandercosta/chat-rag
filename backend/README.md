@@ -137,7 +137,7 @@ enxerga os topicos delas (ADR-003).
 
 ```bash
 npm test                  # unitarios (crypto, autorizacao, chunker, RAG) - nao precisam de infra
-npm run test:integration  # API real: auth, upload de PDF, pergunta com citacao, isolamento entre tenants - precisam da infra + banco de teste
+npm run test:integration  # API real: auth, tenant atomico, upload de PDF, pergunta com citacao - precisam da infra + banco de teste
 ```
 
 Os testes usam IA em modo local (`AI_PROVIDER=local`, `EMBEDDING_PROVIDER=hash`,
