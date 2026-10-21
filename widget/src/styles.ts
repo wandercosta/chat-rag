@@ -169,6 +169,12 @@ export function buildStyles(options: WidgetOptions): string {
     .chatrag-feedback button { background: none; border: 1px solid var(--chatrag-border); border-radius: 8px; cursor: pointer; font-size: 12px; padding: 2px 8px; color: var(--chatrag-muted); }
     .chatrag-feedback button[data-active="true"] { border-color: var(--chatrag-accent); color: var(--chatrag-accent); }
 
+    .chatrag-citations { align-self: flex-start; max-width: 82%; display: flex; flex-direction: column; gap: 4px; margin-top: -2px; }
+    .chatrag-citations-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--chatrag-muted); }
+    .chatrag-citation { border: 1px solid var(--chatrag-border); border-radius: 8px; padding: 4px 8px; font-size: 12px; color: var(--chatrag-fg); }
+    .chatrag-citation summary { cursor: pointer; color: var(--chatrag-accent); font-weight: 600; }
+    .chatrag-citation p { margin: 6px 0 2px; color: var(--chatrag-muted); line-height: 1.45; white-space: pre-wrap; }
+
     .chatrag-sectors { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
     .chatrag-sectors button { border: 1px solid var(--chatrag-accent); color: var(--chatrag-accent); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
 

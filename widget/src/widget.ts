@@ -2,7 +2,7 @@ import { createApiClient, ChatRagApiError, type ApiClient } from "./api.js";
 import { el } from "./dom.js";
 import { CHAT_ICON, CLOSE_ICON } from "./icons.js";
 import { buildStyles } from "./styles.js";
-import type { ChatMessage, WidgetOptions } from "./types.js";
+import type { ChatMessage, Citation, WidgetOptions } from "./types.js";
 
 interface RenderedMessage extends ChatMessage {
   feedback?: "positivo" | "negativo";
@@ -25,7 +25,7 @@ export class ChatRagWidget {
     this.api = createApiClient(options.apiBaseUrl);
   }
 
-  mount() {
+  mount(configError: unknown = null) {
     const host = el("div", { id: "chatrag-widget-host" });
     const shadow = host.attachShadow({ mode: "open" });
 
@@ -53,24 +53,21 @@ export class ChatRagWidget {
     (mountPoint ?? document.body).append(host);
 
     this.renderGreeting();
-    void this.preflight();
+    this.afterConfig(configError);
   }
 
-  /** Primeira chamada publica (docs/apis/contratos-planejados.md - Widget
-   * publico): valida chave + origem antes do visitante tentar conversar,
-   * para falhar cedo com uma mensagem clara em vez de um erro so no envio. */
-  private async preflight() {
-    try {
-      await this.api.getConfig(this.options.key);
-      if (this.options.externalUserId) {
-        void this.ensureConversation();
-      }
-    } catch (err) {
-      this.messages = [{ role: "assistente", content: this.describeError(err) }];
+  /** A config publica (docs/apis/contratos-planejados.md - Widget publico) e
+   * buscada antes do mount, em main.ts. Se falhou (chave ou origem invalida),
+   * o widget mostra o motivo em vez de falhar so no primeiro envio. */
+  private afterConfig(configError: unknown) {
+    if (configError) {
+      this.messages = [{ role: "assistente", content: this.describeError(configError) }];
       this.sendBtn.disabled = true;
       this.input.disabled = true;
       this.renderMessages();
+      return;
     }
+    if (this.options.externalUserId) void this.ensureConversation();
   }
 
   private buildLauncher() {
@@ -171,6 +168,7 @@ export class ChatRagWidget {
       this.messages = res.messages.map((m) => ({
         role: m.role,
         content: m.content,
+        citations: m.citations,
       }));
       this.renderMessages();
     }
@@ -188,8 +186,12 @@ export class ChatRagWidget {
 
     try {
       const conversationId = await this.ensureConversation();
-      const { answer } = await this.api.sendMessage(this.options.key, conversationId, text);
-      this.messages.push({ role: "assistente", content: answer });
+      const { answer, citations } = await this.api.sendMessage(
+        this.options.key,
+        conversationId,
+        text,
+      );
+      this.messages.push({ role: "assistente", content: answer, citations });
     } catch (err) {
       this.messages.push({ role: "assistente", content: this.describeError(err) });
     } finally {
@@ -279,6 +281,19 @@ export class ChatRagWidget {
     return "Nao foi possivel enviar sua mensagem agora. Tente novamente.";
   }
 
+  /** "Fontes" abaixo da resposta: documento de origem + trecho (expansivel). */
+  private renderCitations(citations: Citation[]): HTMLElement {
+    return el("div", { class: "chatrag-citations" }, [
+      el("span", { class: "chatrag-citations-label" }, ["Fontes"]),
+      ...citations.map((c) =>
+        el("details", { class: "chatrag-citation" }, [
+          el("summary", {}, [`[${c.index}] ${c.sourceTitle}`]),
+          el("p", {}, [c.excerpt]),
+        ]),
+      ),
+    ]);
+  }
+
   private renderMessages() {
     this.messagesEl.innerHTML = "";
     this.messages.forEach((msg, index) => {
@@ -291,6 +306,7 @@ export class ChatRagWidget {
           alt: "Avatar",
         });
         const msgContainer = el("div", { style: "display: flex; flex-direction: column; max-width: 82%;" }, [bubble]);
+        if (msg.citations?.length) msgContainer.append(this.renderCitations(msg.citations));
         if (index > 0) {
           const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
           up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
@@ -302,6 +318,9 @@ export class ChatRagWidget {
         this.messagesEl.append(row);
       } else {
         this.messagesEl.append(bubble);
+        if (msg.role === "assistente" && msg.citations?.length) {
+          this.messagesEl.append(this.renderCitations(msg.citations));
+        }
         if (msg.role === "assistente" && index > 0) {
           const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
           up.addEventListener("click", () => this.handleFeedback(index, "positivo"));

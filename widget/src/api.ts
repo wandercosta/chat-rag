@@ -1,4 +1,4 @@
-import type { ChatMessage, ConfigResponse, HandoffResponse } from "./types.js";
+import type { ChatMessage, Citation, ConfigResponse, HandoffResponse } from "./types.js";
 
 export class ChatRagApiError extends Error {
   constructor(
@@ -50,7 +50,7 @@ export function createApiClient(baseUrl: string) {
       return postJson<{
         conversationId: string;
         isResumed?: boolean;
-        messages?: Array<{ role: "visitante" | "assistente"; content: string }>;
+        messages?: ChatMessage[];
       }>(baseUrl, "/widget/conversations", {
         key,
         ...(visitor?.externalUserId ? { externalUserId: visitor.externalUserId } : {}),
@@ -61,7 +61,7 @@ export function createApiClient(baseUrl: string) {
     },
 
     sendMessage(key: string, conversationId: string, message: string) {
-      return postJson<{ answer: string }>(
+      return postJson<{ answer: string; citations?: Citation[] }>(
         baseUrl,
         `/widget/conversations/${conversationId}/messages`,
         {

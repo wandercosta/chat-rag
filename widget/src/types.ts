@@ -27,9 +27,27 @@ export interface WidgetOptions {
   context: Record<string, unknown> | null;
 }
 
+/** Aparencia configurada no painel (assistente > Widget). */
+export interface Appearance {
+  title?: string;
+  greeting?: string;
+  accentColor?: string;
+  position?: Position;
+  theme?: Theme;
+}
+
 export interface ConfigResponse {
   assistantId: string;
   environment: "teste" | "producao";
+  appearance?: Appearance;
+}
+
+/** Trecho e documento de origem que embasaram uma resposta. */
+export interface Citation {
+  index: number;
+  sourceId: string;
+  sourceTitle: string;
+  excerpt: string;
 }
 
 export interface HandoffSector {
@@ -44,4 +62,5 @@ export type HandoffResponse =
 export interface ChatMessage {
   role: "visitante" | "assistente";
   content: string;
+  citations?: Citation[];
 }
