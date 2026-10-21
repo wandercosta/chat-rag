@@ -1,6 +1,6 @@
 /**
- * Diagnostico do limiar de relevancia do RAG (`RELEVANCE_DISTANCE_THRESHOLD`
- * em src/modules/rag/retrieval.service.ts). Mede a distancia cosine entre uma
+ * Diagnostico do limiar de relevancia do RAG (`relevanceThreshold` de cada
+ * provedor de embeddings, ver src/modules/rag/). Mede a distancia cosine entre uma
  * pergunta e os chunks ja indexados de uma organizacao, sem passar pelo LLM.
  *
  * Serve para calibrar o limiar com dado real em vez de chute: rode com
@@ -12,8 +12,8 @@
  */
 import { sql } from "kysely";
 import { db } from "../src/db/client.js";
-import { resolveProviderForTenant } from "../src/modules/rag/provider-resolver.js";
-import { RELEVANCE_DISTANCE_THRESHOLD } from "../src/modules/rag/retrieval.service.js";
+import { padEmbedding } from "../src/modules/rag/provider.types.js";
+import { resolveEmbeddingProvider } from "../src/modules/rag/provider-resolver.js";
 
 const [organizationId, ...questions] = process.argv.slice(2);
 
@@ -24,11 +24,11 @@ if (!organizationId || questions.length === 0) {
   process.exit(1);
 }
 
-const provider = await resolveProviderForTenant(organizationId, "teste");
+const provider = await resolveEmbeddingProvider(organizationId);
 
 for (const question of questions) {
-  const [embedding] = await provider.embed([question]);
-  const vector = `[${embedding.join(",")}]`;
+  const [embedding] = await provider.embed([question], "query");
+  const vector = `[${padEmbedding(embedding).join(",")}]`;
 
   const result = await sql<{ title: string; distance: number }>`
     select s.title, (sc.embedding <=> ${vector}::vector) as distance
@@ -46,7 +46,7 @@ for (const question of questions) {
   }
   for (const row of result.rows) {
     const distance = Number(row.distance);
-    const mark = distance <= RELEVANCE_DISTANCE_THRESHOLD ? "passa" : "corta";
+    const mark = distance <= provider.relevanceThreshold ? "passa" : "corta";
     console.log(`  ${distance.toFixed(3)}  [${mark}]  ${row.title}`);
   }
 }
