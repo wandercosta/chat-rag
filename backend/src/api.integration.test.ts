@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 
 // Armazenamento de arquivos em memoria: o teste cobre a API e o pipeline de
-// RAG, nao o MinIO.
+// RAG, nao o storage S3.
 const files = vi.hoisted(() => new Map<string, Buffer>());
 vi.mock("./storage/objects.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./storage/objects.js")>()),

@@ -1,4 +1,6 @@
-# Ambiente de desenvolvimento local do ChatRAG.
+# Infraestrutura para desenvolvimento local do ChatRAG (so banco, fila e
+# storage; API e painel rodam fora do Docker com hot reload).
+# Para subir o produto inteiro, use docker-compose.yml.
 #
 # O que e Docker, em uma frase: cada "service" abaixo roda em um container,
 # uma especie de mini-computador isolado com so o necessario para rodar aquele
@@ -6,11 +8,11 @@
 # sua maquina.
 #
 # Comandos basicos (rodar na pasta onde este arquivo esta):
-#   docker compose up -d        -> sobe tudo em segundo plano
-#   docker compose ps           -> mostra o que esta rodando
-#   docker compose logs -f db   -> acompanha o log de um servico (ex.: db)
-#   docker compose down         -> derruba tudo (mantem os dados salvos)
-#   docker compose down -v      -> derruba tudo E APAGA os dados (cuidado)
+#   docker compose -f docker-compose.infra.yml up -d
+#   docker compose -f docker-compose.infra.yml ps
+#   docker compose -f docker-compose.infra.yml logs -f db
+#   docker compose -f docker-compose.infra.yml down      (mantem os dados)
+#   docker compose -f docker-compose.infra.yml down -v   (APAGA os dados)
 
 services:
   # Banco de dados principal. Usa uma imagem que ja vem com a extensao
@@ -20,7 +22,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chatrag}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatrag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-chatrag}
     ports:
       # <porta na sua maquina>:<porta dentro do container>
@@ -54,29 +56,28 @@ services:
       timeout: 5s
       retries: 10
 
-  # Armazenamento de arquivos compativel com S3, para rodar local sem
-  # depender de uma conta na AWS. O console web fica em uma porta separada.
-  minio:
-    image: minio/minio:latest
+  # Armazenamento de arquivos compativel com S3 (SeaweedFS), para rodar local
+  # sem depender de uma conta na AWS.
+  storage:
+    image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server -s3 -dir=/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-chatrag}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-chatrag123}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-chatrag}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?defina S3_SECRET_ACCESS_KEY no .env}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000" # API S3
-      - "${MINIO_CONSOLE_PORT:-9001}:9001" # painel web do MinIO
+      - "${S3_PORT:-9000}:8333" # API S3
     volumes:
-      - chatrag_minio_data:/data
+      - chatrag_storage_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
 # Volumes nomeados = onde o Docker guarda os dados de verdade no seu disco,
 # fora dos containers. Sem isso, "docker compose down" apagaria tudo.
 volumes:
   chatrag_postgres_data:
   chatrag_redis_data:
-  chatrag_minio_data:
+  chatrag_storage_data:

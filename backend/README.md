@@ -11,18 +11,20 @@ limit, handoff WhatsApp), `audit` (append-only) e `analytics` (usage_events +
 resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a
 lista completa do que falta.
 
-Validado ponta a ponta contra Postgres/Redis/MinIO reais (nao so
+Validado ponta a ponta contra Postgres/Redis/storage S3 reais (nao so
 typecheck/lint/testes) — ver "Validado ponta a ponta" em `docs/README.md`.
 
-## Passo a passo (primeira vez)
+Para so rodar o produto, use `docker compose up --build` na raiz (ver README
+principal). O passo a passo abaixo e para desenvolver a API com hot reload.
 
-1. Na raiz do repo, suba a infraestrutura local:
+## Passo a passo (desenvolvimento)
+
+1. Na raiz do repo, copie `.env.example` para `.env` e suba so a infraestrutura:
    ```bash
-   docker compose up -d
+   docker compose -f docker-compose.infra.yml up -d
    ```
-   Se `docker compose ps` mostrar o servico `db` reiniciando ou a porta 5433
-   falhando, provavelmente ja existe outro Postgres nesta maquina — o
-   `docker-compose.yml` ja mapeia para 5433 (nao 5432) por causa disso.
+   O Postgres fica na porta 5433 (nao 5432) para nao colidir com um Postgres
+   nativo da maquina.
 2. Nesta pasta (`backend/`), copie o `.env.example` para `.env` e ajuste se quiser.
 3. Instale as dependencias:
    ```bash
@@ -32,7 +34,7 @@ typecheck/lint/testes) — ver "Validado ponta a ponta" em `docs/README.md`.
    ```bash
    npm run migrate:up
    ```
-5. Crie o bucket do MinIO usado por fontes PDF/DOCX (so na primeira vez):
+5. Crie o bucket do storage S3 usado por fontes PDF/DOCX (so na primeira vez):
    ```bash
    npm run bucket:create
    ```
@@ -134,8 +136,17 @@ enxerga os topicos delas (ADR-003).
 ## Testes
 
 ```bash
-npm test                  # unitarios (crypto, autorizacao, envelope, chunker) - nao precisam de infra
-npm run test:integration  # login, tenant atomico, isolamento, propagacao de sessao via HTTP real - precisam de docker compose up -d + migrate:up
+npm test                  # unitarios (crypto, autorizacao, chunker, RAG) - nao precisam de infra
+npm run test:integration  # API real: auth, upload de PDF, pergunta com citacao, isolamento entre tenants - precisam da infra + banco de teste
+```
+
+Os testes usam IA em modo local (`AI_PROVIDER=local`, `EMBEDDING_PROVIDER=hash`,
+definidos em `vitest.config.ts`): nao precisam de chave nem de rede. O banco de
+teste vem de `TEST_DATABASE_URL` (padrao:
+`postgres://chatrag:chatrag@localhost:5433/chatrag_test`):
+
+```bash
+export TEST_DATABASE_URL="postgres://chatrag:<POSTGRES_PASSWORD do .env>@localhost:5433/chatrag_test"
 ```
 
 Os testes de integracao rodam sequencialmente (`fileParallelism: false` no
@@ -149,12 +160,12 @@ contra o Postgres de dev e apagou um tenant de demo inteiro. Por isso
 `vitest.config.ts` aponta `DATABASE_URL` para um banco `chatrag_test`
 separado (mesmo Postgres do docker compose, banco diferente), e
 `resetDatabase()` se recusa a rodar se o nome do banco nao contiver "test".
-Crie o banco de teste uma unica vez, com o mesmo Postgres do
-`docker-compose.yml` ja de pe:
+Crie o banco de teste uma unica vez, com o Postgres do
+`docker-compose.infra.yml` ja de pe (comandos na raiz do repo e em `backend/`):
 
 ```bash
-docker exec -e PGPASSWORD=chatrag chatrag-db-1 psql -U chatrag -d postgres -c "CREATE DATABASE chatrag_test OWNER chatrag;"
-DATABASE_URL="postgres://chatrag:chatrag@localhost:5433/chatrag_test" npx node-pg-migrate up -j ts --migrations-dir migrations -d DATABASE_URL
+docker compose -f docker-compose.infra.yml exec db psql -U chatrag -d postgres -c "CREATE DATABASE chatrag_test OWNER chatrag;"
+DATABASE_URL="$TEST_DATABASE_URL" npx node-pg-migrate up --tsx --migrations-dir migrations -d DATABASE_URL
 ```
 
 Repita a segunda linha (so o `migrate up`) sempre que adicionar uma migracao nova.

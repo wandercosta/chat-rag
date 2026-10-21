@@ -1,5 +1,5 @@
 /**
- * Cria o bucket do MinIO usado por knowledge/sources (PDF/DOCX). So precisa
+ * Cria o bucket do storage S3 usado por knowledge/sources (PDF/DOCX). So precisa
  * rodar uma vez por ambiente (o entrypoint do container roda sempre; e idempotente).
  * Uso local: npm run bucket:create
  */

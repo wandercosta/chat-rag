@@ -13,9 +13,9 @@ x-backend-env: &backend-env
   NODE_ENV: production
   DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
   REDIS_URL: redis://redis:6379
-  S3_ENDPOINT: http://minio:9000
-  S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-  S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  S3_ENDPOINT: http://storage:8333
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
   S3_BUCKET: chatrag-sources
   S3_FORCE_PATH_STYLE: "true"
   APP_MASTER_KEY: ${APP_MASTER_KEY}
@@ -56,20 +56,22 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+  # Storage de arquivos compativel com S3 (SeaweedFS). Os PDFs enviados ficam
+  # aqui; em producao, troque por S3/R2 apontando S3_ENDPOINT no .env.
+  storage:
+    image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
-    command: server /data
+    command: server -s3 -dir=/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
     volumes:
-      - minio_data:/data
+      - storage_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   # API: roda migrations, cria o bucket e o usuario Master antes de abrir a porta.
   backend-api:
@@ -86,7 +88,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
+      storage: { condition: service_healthy }
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s
@@ -97,6 +99,7 @@ services:
   # Worker: consome a fila de indexacao (extracao -> chunks -> embeddings).
   backend-worker:
     image: chatrag-backend
+    pull_policy: never
     entrypoint: ["node", "dist/worker.js"]
     restart: unless-stopped
     environment: *backend-env
@@ -106,6 +109,7 @@ services:
   # Seed: 1 tenant, 1 assistente e o PDF do CDC indexado. Roda uma vez e sai.
   seed:
     image: chatrag-backend
+    pull_policy: never
     entrypoint: ["node", "dist/bootstrap/seed.js"]
     restart: "no"
     environment:
@@ -136,4 +140,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  minio_data:
+  storage_data:
