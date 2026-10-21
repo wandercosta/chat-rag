@@ -1,5 +1,5 @@
 import { db } from "../../db/client.js";
-import type { AssistantStatus } from "../../db/types.js";
+import type { AssistantStatus, WidgetSettings } from "../../db/types.js";
 
 export interface NewAssistantInput {
   organizationId: string;
@@ -14,6 +14,7 @@ export interface AssistantUpdateInput {
   modelId?: string;
   instructions?: string | null;
   retentionDays?: number | null;
+  widgetSettings?: WidgetSettings;
 }
 
 export const assistantsRepository = {
@@ -59,6 +60,9 @@ export const assistantsRepository = {
         ...(input.modelId !== undefined && { model_id: input.modelId }),
         ...(input.instructions !== undefined && { instructions: input.instructions }),
         ...(input.retentionDays !== undefined && { retention_days: input.retentionDays }),
+        ...(input.widgetSettings !== undefined && {
+          widget_settings: JSON.stringify(input.widgetSettings),
+        }),
         updated_at: new Date().toISOString(),
       })
       .where("organization_id", "=", organizationId)

@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
@@ -7,6 +5,7 @@ import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
+  assistantsService,
   handoffService,
 } from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
@@ -63,7 +62,13 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         assistantId: resolved.assistantId,
         type: "widget_loaded",
       });
-      return { assistantId: resolved.assistantId, environment: resolved.environment };
+      const assistant = await assistantsService.get(resolved.organizationId, resolved.assistantId);
+      return {
+        assistantId: resolved.assistantId,
+        environment: resolved.environment,
+        // Aparencia definida no painel; atributos data-* do <script> sobrescrevem.
+        appearance: assistant?.widget_settings ?? {},
+      };
     } catch (err) {
       return handlePublicError(err, reply);
     }
@@ -101,6 +106,7 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         messages: messages.map((m) => ({
           role: m.role,
           content: m.content,
+          citations: m.citations,
         })),
       });
     } catch (err) {
@@ -139,7 +145,7 @@ export async function embedPublicRoutes(app: FastifyInstance) {
             environment: resolved.environment,
           },
         );
-        return { answer: result.answer };
+        return { answer: result.answer, citations: result.citations };
       } catch (err) {
         return handlePublicError(err, reply);
       }
