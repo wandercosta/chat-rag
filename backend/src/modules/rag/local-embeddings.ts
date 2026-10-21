@@ -25,9 +25,10 @@ function loadExtractor(model: string): Promise<FeatureExtractor> {
 export function createLocalEmbeddings(model: string): EmbeddingProvider {
   return {
     // Medido com o CDC (scripts/debug-retrieval.ts): o melhor trecho de
-    // perguntas cobertas pela lei ficou entre 0.125 e 0.138; perguntas fora do
-    // escopo ("capital da Franca", "bolo de chocolate"), entre 0.182 e 0.221.
-    relevanceThreshold: 0.16,
+    // perguntas cobertas pela lei ficou entre 0.117 e 0.140; perguntas fora do
+    // escopo ("capital da Franca", "filme de terror"), entre 0.166 e 0.213.
+    // O limiar fica no meio da folga.
+    relevanceThreshold: 0.153,
     async embed(texts, purpose) {
       const extractor = await loadExtractor(model);
       const prefixed = texts.map((t) => `${purpose}: ${t}`);
