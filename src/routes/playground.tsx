@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { FlaskConical, Send } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
+import { CitationList } from "@/components/citation-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApiError, assistantsApi, playgroundApi } from "@/lib/api-client";
+import { ApiError, assistantsApi, playgroundApi, type Citation } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/playground")({
@@ -38,6 +39,7 @@ interface ChatMessage {
   role: "visitante" | "assistente";
   content: string;
   usedContext?: boolean;
+  citations?: Citation[];
 }
 
 const GREETING: ChatMessage = {
@@ -82,7 +84,12 @@ function Playground() {
       setConversationId(result.conversationId);
       setMessages((m) => [
         ...m,
-        { role: "assistente", content: result.answer, usedContext: result.usedContext },
+        {
+          role: "assistente",
+          content: result.answer,
+          usedContext: result.usedContext,
+          citations: result.citations,
+        },
       ]);
     },
     onError: (err) => {
@@ -150,8 +157,8 @@ function Playground() {
                     <div
                       className={
                         m.role === "visitante"
-                          ? "w-fit max-w-[75%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                          : "w-fit max-w-[75%] rounded-lg bg-muted px-3 py-2 text-sm"
+                          ? "w-fit max-w-[75%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                          : "w-fit max-w-[75%] whitespace-pre-wrap rounded-lg bg-muted px-3 py-2 text-sm"
                       }
                     >
                       {m.content}
@@ -160,6 +167,7 @@ function Playground() {
                           Sem contexto na base
                         </span>
                       )}
+                      {m.citations && <CitationList citations={m.citations} />}
                     </div>
                   </div>
                 ))}

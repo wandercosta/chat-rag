@@ -36,6 +36,7 @@ import {
   handoffApi,
   modelsApi,
   type Assistant,
+  type WidgetSettings,
 } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -214,6 +215,15 @@ function AssistantDetail() {
 
         <HandoffConfigCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
 
+        <WidgetAppearanceCard
+          tenantId={tenantId}
+          assistant={assistant}
+          readOnly={readOnly}
+          onSaved={(updated) =>
+            queryClient.setQueryData(["assistant", tenantId, assistantId], updated)
+          }
+        />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
@@ -244,6 +254,140 @@ function AssistantDetail() {
         </Card>
       </div>
     </>
+  );
+}
+
+const DEFAULT_ACCENT = "#5B4FE9";
+
+/**
+ * Aparencia do widget publico. O widget busca estes valores em
+ * POST /widget/config ao carregar; um atributo data-* no <script> do site
+ * hospedeiro ainda sobrescreve o campo correspondente.
+ */
+function WidgetAppearanceCard({
+  tenantId,
+  assistant,
+  readOnly,
+  onSaved,
+}: {
+  tenantId: string | null;
+  assistant: Assistant;
+  readOnly: boolean;
+  onSaved: (updated: Assistant) => void;
+}) {
+  const [settings, setSettings] = useState<WidgetSettings>(assistant.widget_settings ?? {});
+
+  useEffect(() => setSettings(assistant.widget_settings ?? {}), [assistant.widget_settings]);
+
+  const set = <K extends keyof WidgetSettings>(key: K, value: WidgetSettings[K]) =>
+    setSettings((s) => ({ ...s, [key]: value || undefined }));
+
+  const save = useMutation({
+    mutationFn: () =>
+      assistantsApi.update(tenantId!, assistant.id, { widgetSettings: settings }),
+    onSuccess: (updated) => {
+      toast.success("Aparência do widget salva");
+      onSaved(updated);
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a aparência");
+    },
+  });
+
+  const accent = settings.accentColor ?? DEFAULT_ACCENT;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="text-base">Widget</CardTitle>
+          <CardDescription>
+            Aparência do chat embutido nos sites. Atributos <code>data-*</code> do script
+            sobrescrevem estes valores.
+          </CardDescription>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={readOnly || save.isPending}
+          onClick={() => save.mutate()}
+        >
+          <Save /> {save.isPending ? "Salvando..." : "Salvar"}
+        </Button>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="widget-title">Título</Label>
+          <Input
+            id="widget-title"
+            maxLength={60}
+            placeholder="Fale com a gente"
+            value={settings.title ?? ""}
+            disabled={readOnly}
+            onChange={(e) => set("title", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="widget-accent">Cor de destaque</Label>
+          <div className="flex gap-2">
+            <Input
+              id="widget-accent"
+              type="color"
+              className="w-14 p-1"
+              value={accent}
+              disabled={readOnly}
+              onChange={(e) => set("accentColor", e.target.value)}
+            />
+            <Input value={accent} readOnly className="font-mono" aria-label="Cor em hexadecimal" />
+          </div>
+        </div>
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="widget-greeting">Saudação</Label>
+          <Textarea
+            id="widget-greeting"
+            rows={2}
+            maxLength={300}
+            placeholder="Olá! Como posso ajudar?"
+            value={settings.greeting ?? ""}
+            disabled={readOnly}
+            onChange={(e) => set("greeting", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Posição</Label>
+          <Select
+            value={settings.position ?? "bottom-right"}
+            disabled={readOnly}
+            onValueChange={(v) => set("position", v as WidgetSettings["position"])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+              <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Tema</Label>
+          <Select
+            value={settings.theme ?? "light"}
+            disabled={readOnly}
+            onValueChange={(v) => set("theme", v as WidgetSettings["theme"])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Claro</SelectItem>
+              <SelectItem value="dark">Escuro</SelectItem>
+              <SelectItem value="sync">Seguir o sistema do visitante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

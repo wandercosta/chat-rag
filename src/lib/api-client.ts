@@ -156,8 +156,19 @@ export interface Assistant {
   response_mode: "estrita";
   instructions: string | null;
   retention_days: number | null;
+  widget_settings: WidgetSettings;
   created_at: string;
   updated_at: string;
+}
+
+/** Aparencia do widget definida no painel (atributos data-* do <script>
+ * ainda podem sobrescrever cada campo no site hospedeiro). */
+export interface WidgetSettings {
+  title?: string;
+  greeting?: string;
+  accentColor?: string;
+  position?: "bottom-right" | "bottom-left";
+  theme?: "light" | "dark" | "sync";
 }
 
 export interface CreateAssistantInput {
@@ -172,6 +183,7 @@ export interface UpdateAssistantInput {
   modelId?: string;
   instructions?: string | null;
   retentionDays?: number | null;
+  widgetSettings?: WidgetSettings;
 }
 
 export const assistantsApi = {
@@ -232,10 +244,19 @@ export const handoffApi = {
 
 // --- rag: playground ------------------------------------------------
 
+/** Trecho e documento de origem que embasaram uma resposta do assistente. */
+export interface Citation {
+  index: number;
+  sourceId: string;
+  sourceTitle: string;
+  excerpt: string;
+}
+
 export interface PlaygroundAnswer {
   conversationId: string;
   answer: string;
   usedContext: boolean;
+  citations: Citation[];
 }
 
 export const playgroundApi = {
@@ -488,6 +509,7 @@ export interface ConversationMessage {
   conversation_id: string;
   role: "visitante" | "assistente";
   content: string;
+  citations: Citation[];
   created_at: string;
 }
 
