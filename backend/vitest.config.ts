@@ -15,8 +15,21 @@ export default defineConfig({
     // local apagou o tenant de demo inteiro). banco de teste isolado,
     // criado uma vez com `createdb chatrag_test` + migrate:up apontando
     // pra ele (ver backend/README.md - Testes).
+    //
+    // Os demais valores sao ficticios e so existem para os testes nao
+    // dependerem de um .env local. IA: modo local + embeddings por hashing,
+    // sem rede e sem chave (ver src/modules/rag/local-embeddings.ts).
     env: {
-      DATABASE_URL: "postgres://chatrag:chatrag@localhost:5433/chatrag_test",
+      DATABASE_URL:
+        process.env.TEST_DATABASE_URL ?? "postgres://chatrag:chatrag@localhost:5433/chatrag_test",
+      REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://localhost:6379",
+      APP_MASTER_KEY: "test-only-master-key-not-a-secret-32b",
+      S3_ENDPOINT: "http://localhost:9000",
+      S3_ACCESS_KEY_ID: "test",
+      S3_SECRET_ACCESS_KEY: "test",
+      S3_BUCKET: "chatrag-test",
+      AI_PROVIDER: "local",
+      EMBEDDING_PROVIDER: "hash",
     },
   },
 });
