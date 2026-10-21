@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "embed": "node scripts/embed-in-backend.mjs",
+    "build:embed": "vite build && node scripts/embed-in-backend.mjs"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
