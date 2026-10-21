@@ -1,5 +1,5 @@
 import { db } from "../../db/client.js";
-import type { ConversationChannel, MessageRole } from "../../db/types.js";
+import type { ConversationChannel, MessageCitation, MessageRole } from "../../db/types.js";
 
 export interface ConversationFilters {
   assistantId?: string;
@@ -72,10 +72,15 @@ export const conversationsRepository = {
       .executeTakeFirstOrThrow();
   },
 
-  addMessage(conversationId: string, role: MessageRole, content: string) {
+  addMessage(
+    conversationId: string,
+    role: MessageRole,
+    content: string,
+    citations: MessageCitation[] = [],
+  ) {
     return db
       .insertInto("messages")
-      .values({ conversation_id: conversationId, role, content })
+      .values({ conversation_id: conversationId, role, content, citations: JSON.stringify(citations) })
       .returningAll()
       .executeTakeFirstOrThrow();
   },

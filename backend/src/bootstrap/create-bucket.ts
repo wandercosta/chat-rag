@@ -1,10 +1,10 @@
 /**
- * Cria o bucket do MinIO usado por knowledge/sources (PDF/DOCX). So precisa
- * rodar uma vez por ambiente local (docker compose up -d antes).
- * Uso: npm run bucket:create
+ * Cria o bucket do storage S3 usado por knowledge/sources (PDF/DOCX). So precisa
+ * rodar uma vez por ambiente (o entrypoint do container roda sempre; e idempotente).
+ * Uso local: npm run bucket:create
  */
 import { CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
-import { s3, SOURCES_BUCKET } from "../src/storage/s3.js";
+import { s3, SOURCES_BUCKET } from "../storage/s3.js";
 
 try {
   await s3.send(new HeadBucketCommand({ Bucket: SOURCES_BUCKET }));

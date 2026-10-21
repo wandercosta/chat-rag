@@ -6,7 +6,7 @@
  * varrido pelo dependency-cruiser porque nao faz parte de src/).
  *
  * Pre-requisitos: backend rodando (`npm run dev`) e um usuario Master ja
- * criado (`npx tsx scripts/create-master.ts <email> "<senha>"`).
+ * criado (`npx tsx src/bootstrap/create-master.ts <email> "<senha>"`).
  *
  * Uso (todos os parametros sao opcionais, com defaults de demo):
  *   npx tsx scripts/seed-demo.ts \
@@ -72,7 +72,7 @@ const masterPassword = str("master-password");
 if (!masterEmail || !masterPassword) {
   console.error(
     "Uso: informe --master-email e --master-password de um usuario Master ja criado " +
-      '(npx tsx scripts/create-master.ts <email> "<senha>").',
+      '(npx tsx src/bootstrap/create-master.ts <email> "<senha>").',
   );
   process.exit(1);
 }

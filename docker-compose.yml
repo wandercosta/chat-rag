@@ -1,82 +1,143 @@
-# Ambiente de desenvolvimento local do ChatRAG.
+# ChatRAG — stack completa: banco, fila, storage, API, worker, painel e seed.
 #
-# O que e Docker, em uma frase: cada "service" abaixo roda em um container,
-# uma especie de mini-computador isolado com so o necessario para rodar aquele
-# programa (banco, fila, storage), sem precisar instalar nada disso direto na
-# sua maquina.
+#   cp .env.example .env
+#   docker compose up --build
 #
-# Comandos basicos (rodar na pasta onde este arquivo esta):
-#   docker compose up -d        -> sobe tudo em segundo plano
-#   docker compose ps           -> mostra o que esta rodando
-#   docker compose logs -f db   -> acompanha o log de um servico (ex.: db)
-#   docker compose down         -> derruba tudo (mantem os dados salvos)
-#   docker compose down -v      -> derruba tudo E APAGA os dados (cuidado)
+# Painel:  http://localhost:3000   (login do tenant de demonstracao no .env)
+# Widget:  http://localhost:3333/demo
+#
+# Para desenvolver com hot reload, suba so a infraestrutura com
+# docker-compose.infra.yml e rode API/painel fora do Docker (ver backend/README.md).
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  REDIS_URL: redis://redis:6379
+  S3_ENDPOINT: http://storage:8333
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  S3_BUCKET: chatrag-sources
+  S3_FORCE_PATH_STYLE: "true"
+  APP_MASTER_KEY: ${APP_MASTER_KEY}
+  CORS_ORIGIN: http://localhost:${FRONTEND_PORT:-3000}
+  AI_PROVIDER: ${AI_PROVIDER:-local}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+  EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-}
+  DEMO_WIDGET_KEY: ${DEMO_WIDGET_KEY:-}
 
 services:
-  # Banco de dados principal. Usa uma imagem que ja vem com a extensao
-  # pgvector instalada (necessaria para busca por similaridade de embeddings).
   db:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-chatrag}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatrag}
-      POSTGRES_DB: ${POSTGRES_DB:-chatrag}
-    ports:
-      # <porta na sua maquina>:<porta dentro do container>
-      # 5433 (nao 5432): ha um Postgres nativo do Windows nesta maquina ja
-      # ocupando a 5432 fora do Docker; usamos outra porta para nao colidir.
-      - "${POSTGRES_PORT:-5433}:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      # Guarda os dados do banco fora do container, para nao perder nada
-      # quando o container for recriado.
-      - chatrag_postgres_data:/var/lib/postgresql/data
-      # Scripts aqui dentro rodam automaticamente na primeira vez que o
-      # volume de dados e criado (ver infra/postgres-init/001-pgvector.sql).
+      - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatrag}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # Fila e cache. Usado depois pelo worker de indexacao e por rate limit.
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - chatrag_redis_data:/data
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # Armazenamento de arquivos compativel com S3, para rodar local sem
-  # depender de uma conta na AWS. O console web fica em uma porta separada.
-  minio:
-    image: minio/minio:latest
+  # Storage de arquivos compativel com S3 (SeaweedFS). Os PDFs enviados ficam
+  # aqui; em producao, troque por S3/R2 apontando S3_ENDPOINT no .env.
+  storage:
+    image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server -s3 -dir=/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-chatrag}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-chatrag123}
-    ports:
-      - "${MINIO_API_PORT:-9000}:9000" # API S3
-      - "${MINIO_CONSOLE_PORT:-9001}:9001" # painel web do MinIO
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
     volumes:
-      - chatrag_minio_data:/data
+      - storage_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
-# Volumes nomeados = onde o Docker guarda os dados de verdade no seu disco,
-# fora dos containers. Sem isso, "docker compose down" apagaria tudo.
+  # API: roda migrations, cria o bucket e o usuario Master antes de abrir a porta.
+  backend-api:
+    build: ./backend
+    image: chatrag-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-3333}:3333"
+    environment:
+      <<: *backend-env
+      PORT: 3333
+      MASTER_EMAIL: ${MASTER_EMAIL}
+      MASTER_PASSWORD: ${MASTER_PASSWORD}
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      storage: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # Worker: consome a fila de indexacao (extracao -> chunks -> embeddings).
+  backend-worker:
+    image: chatrag-backend
+    pull_policy: never
+    entrypoint: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      backend-api: { condition: service_healthy }
+
+  # Seed: 1 tenant, 1 assistente e o PDF do CDC indexado. Roda uma vez e sai.
+  seed:
+    image: chatrag-backend
+    pull_policy: never
+    entrypoint: ["node", "dist/bootstrap/seed.js"]
+    restart: "no"
+    environment:
+      <<: *backend-env
+      SEED_API_URL: http://backend-api:3333
+      MASTER_EMAIL: ${MASTER_EMAIL}
+      MASTER_PASSWORD: ${MASTER_PASSWORD}
+      DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
+    depends_on:
+      backend-api: { condition: service_healthy }
+      backend-worker: { condition: service_started }
+
+  # Painel administrativo (TanStack Start). A URL da API vai no build: e o
+  # navegador de quem acessa o painel que precisa alcanca-la.
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-3333}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend-api: { condition: service_healthy }
+
 volumes:
-  chatrag_postgres_data:
-  chatrag_redis_data:
-  chatrag_minio_data:
+  postgres_data:
+  redis_data:
+  storage_data:

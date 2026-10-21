@@ -18,6 +18,7 @@ export interface RetrievedChunk {
   id: string;
   content: string;
   source_id: string;
+  source_title: string;
   topic_id: string;
   distance: number;
 }
@@ -57,11 +58,13 @@ export const chunksRepository = {
     if (topicIds.length === 0) return [];
 
     const result = await sql<RetrievedChunk>`
-      select id, content, source_id, topic_id, embedding <=> ${toVectorLiteral(queryEmbedding)}::vector as distance
-      from source_chunks
-      where organization_id = ${organizationId}
-        and topic_id = any(${sql`array[${sql.join(topicIds)}]::uuid[]`})
-      order by embedding <=> ${toVectorLiteral(queryEmbedding)}::vector
+      select c.id, c.content, c.source_id, s.title as source_title, c.topic_id,
+        c.embedding <=> ${toVectorLiteral(queryEmbedding)}::vector as distance
+      from source_chunks c
+      join sources s on s.id = c.source_id
+      where c.organization_id = ${organizationId}
+        and c.topic_id = any(${sql`array[${sql.join(topicIds)}]::uuid[]`})
+      order by c.embedding <=> ${toVectorLiteral(queryEmbedding)}::vector
       limit ${limit}
     `.execute(db);
 

@@ -17,6 +17,19 @@ const updateSchema = z.object({
   modelId: z.string().min(1).optional(),
   instructions: z.string().nullable().optional(),
   retentionDays: z.number().int().positive().nullable().optional(),
+  widgetSettings: z
+    .object({
+      title: z.string().max(60).optional(),
+      greeting: z.string().max(300).optional(),
+      accentColor: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional(),
+      position: z.enum(["bottom-right", "bottom-left"]).optional(),
+      theme: z.enum(["light", "dark", "sync"]).optional(),
+    })
+    .strict()
+    .optional(),
 });
 
 export async function assistantsRoutes(app: FastifyInstance) {

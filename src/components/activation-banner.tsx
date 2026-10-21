@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { TriangleAlert } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { aiCredentialsApi } from "@/lib/api-client";
+import { aiCredentialsApi, platformApi } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
-/** Banner reutilizável de estado de ativação da base — reflete a credencial de IA real do tenant. */
+/** Banner reutilizável de estado de ativação da base — reflete a credencial de IA real do
+ * tenant. Some quando a plataforma já oferece IA própria (.env), sem chave do tenant. */
 export function ActivationBanner({ context }: { context?: string }) {
   const { can, tenantId } = useSession();
 
@@ -16,8 +17,15 @@ export function ActivationBanner({ context }: { context?: string }) {
     enabled: !!tenantId,
   });
 
+  const platformQuery = useQuery({
+    queryKey: ["platform-ai"],
+    queryFn: () => platformApi.ai(),
+    staleTime: Infinity,
+  });
+
   const hasValidKey = credentialsQuery.data?.some((c) => c.status === "valida") ?? false;
-  if (!credentialsQuery.isSuccess || hasValidKey) return null;
+  if (!credentialsQuery.isSuccess || !platformQuery.isSuccess) return null;
+  if (hasValidKey || platformQuery.data.available) return null;
 
   return (
     <Alert className="border-warning/40 bg-warning/10">

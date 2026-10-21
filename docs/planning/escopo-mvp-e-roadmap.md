@@ -19,7 +19,7 @@
 - Execucao de acoes ou leitura de dados de sistemas externos.
 - Cobranca, assinatura e autoatendimento comercial.
 - Audio, video, imagem, planilha e sincronizacao de APIs.
-- Login integrado ao PAIM.
+- Login integrado a sistemas externos (SSO).
 - Atendimento humano nativo; o primeiro canal sera WhatsApp.
 
 ## Evolucao

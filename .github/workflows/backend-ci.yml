@@ -25,7 +25,7 @@ jobs:
         env:
           POSTGRES_USER: chatrag
           POSTGRES_PASSWORD: chatrag
-          POSTGRES_DB: chatrag
+          POSTGRES_DB: chatrag_test
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U chatrag"
@@ -40,10 +40,17 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+    # Valores ficticios, so para o CI. Os testes usam IA em modo local
+    # (sem chave e sem rede), definido em vitest.config.ts.
     env:
-      DATABASE_URL: postgres://chatrag:chatrag@localhost:5432/chatrag
+      DATABASE_URL: postgres://chatrag:chatrag@localhost:5432/chatrag_test
+      TEST_DATABASE_URL: postgres://chatrag:chatrag@localhost:5432/chatrag_test
       REDIS_URL: redis://localhost:6379
       APP_MASTER_KEY: ci-only-key-not-a-real-secret-32bytes
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: ci
+      S3_SECRET_ACCESS_KEY: ci
+      S3_BUCKET: chatrag-ci
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +61,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Type check
         run: npx tsc --noEmit

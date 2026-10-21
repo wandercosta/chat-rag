@@ -1,6 +1,10 @@
 import "dotenv/config";
 import { z } from "zod";
 
+/** docker compose repassa variavel vazia ("") quando o .env nao a define. */
+const optional = <T extends z.ZodTypeAny>(type: T) =>
+  z.preprocess((v) => (v === "" ? undefined : v), type.optional());
+
 const schema = z.object({
   PORT: z.coerce.number().default(3333),
   DATABASE_URL: z.string().min(1),
@@ -18,6 +22,35 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_BUCKET: z.string().min(1),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
+
+  // Provedor de IA da plataforma (docs/decisions/ADR-005). A chave BYOK do
+  // tenant, quando cadastrada no painel, continua tendo prioridade para chat.
+  //   openai    -> chat via OpenAI (OPENAI_API_KEY)
+  //   anthropic -> chat via Claude (ANTHROPIC_API_KEY)
+  //   local     -> sem LLM: responde com o trecho mais relevante (demo sem chave)
+  AI_PROVIDER: z.enum(["openai", "anthropic", "local"]).default("local"),
+  OPENAI_API_KEY: optional(z.string()),
+  OPENAI_CHAT_MODEL: z.string().default("gpt-4o-mini"),
+  ANTHROPIC_API_KEY: optional(z.string()),
+  ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
+  // Embeddings sao globais do deploy (trocar exige reindexar as fontes).
+  //   openai -> text-embedding-3-small
+  //   local  -> modelo multilingue rodando no proprio container (sem chave)
+  //   hash   -> vetor deterministico por hashing de termos (testes/CI, offline)
+  EMBEDDING_PROVIDER: optional(z.enum(["openai", "local", "hash"])),
+  LOCAL_EMBEDDING_MODEL: z.string().default("Xenova/multilingual-e5-small"),
+
+  // Pagina de demonstracao do widget (GET /demo) com a chave criada pelo seed.
+  DEMO_WIDGET_KEY: optional(z.string()),
 });
 
-export const env = schema.parse(process.env);
+export const env = schema
+  .superRefine((e, ctx) => {
+    if (e.AI_PROVIDER === "openai" && !e.OPENAI_API_KEY) {
+      ctx.addIssue({ code: "custom", message: "AI_PROVIDER=openai exige OPENAI_API_KEY" });
+    }
+    if (e.AI_PROVIDER === "anthropic" && !e.ANTHROPIC_API_KEY) {
+      ctx.addIssue({ code: "custom", message: "AI_PROVIDER=anthropic exige ANTHROPIC_API_KEY" });
+    }
+  })
+  .parse(process.env);

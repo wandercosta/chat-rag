@@ -1,0 +1,83 @@
+# Infraestrutura para desenvolvimento local do ChatRAG (so banco, fila e
+# storage; API e painel rodam fora do Docker com hot reload).
+# Para subir o produto inteiro, use docker-compose.yml.
+#
+# O que e Docker, em uma frase: cada "service" abaixo roda em um container,
+# uma especie de mini-computador isolado com so o necessario para rodar aquele
+# programa (banco, fila, storage), sem precisar instalar nada disso direto na
+# sua maquina.
+#
+# Comandos basicos (rodar na pasta onde este arquivo esta):
+#   docker compose -f docker-compose.infra.yml up -d
+#   docker compose -f docker-compose.infra.yml ps
+#   docker compose -f docker-compose.infra.yml logs -f db
+#   docker compose -f docker-compose.infra.yml down      (mantem os dados)
+#   docker compose -f docker-compose.infra.yml down -v   (APAGA os dados)
+
+services:
+  # Banco de dados principal. Usa uma imagem que ja vem com a extensao
+  # pgvector instalada (necessaria para busca por similaridade de embeddings).
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chatrag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-chatrag}
+    ports:
+      # <porta na sua maquina>:<porta dentro do container>
+      # 5433 (nao 5432): ha um Postgres nativo do Windows nesta maquina ja
+      # ocupando a 5432 fora do Docker; usamos outra porta para nao colidir.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      # Guarda os dados do banco fora do container, para nao perder nada
+      # quando o container for recriado.
+      - chatrag_postgres_data:/var/lib/postgresql/data
+      # Scripts aqui dentro rodam automaticamente na primeira vez que o
+      # volume de dados e criado (ver infra/postgres-init/001-pgvector.sql).
+      - ./infra/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatrag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Fila e cache. Usado depois pelo worker de indexacao e por rate limit.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - chatrag_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Armazenamento de arquivos compativel com S3 (SeaweedFS), para rodar local
+  # sem depender de uma conta na AWS.
+  storage:
+    image: chrislusf/seaweedfs:4.48
+    restart: unless-stopped
+    command: server -s3 -dir=/data
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-chatrag}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?defina S3_SECRET_ACCESS_KEY no .env}
+    ports:
+      - "${S3_PORT:-9000}:8333" # API S3
+    volumes:
+      - chatrag_storage_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+# Volumes nomeados = onde o Docker guarda os dados de verdade no seu disco,
+# fora dos containers. Sem isso, "docker compose down" apagaria tudo.
+volumes:
+  chatrag_postgres_data:
+  chatrag_redis_data:
+  chatrag_storage_data:

@@ -36,6 +36,7 @@ import {
   handoffApi,
   modelsApi,
   type Assistant,
+  type WidgetSettings,
 } from "@/lib/api-client";
 import { useSession } from "@/lib/session";
 
@@ -214,6 +215,15 @@ function AssistantDetail() {
 
         <HandoffConfigCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
 
+        <WidgetAppearanceCard
+          tenantId={tenantId}
+          assistant={assistant}
+          readOnly={readOnly}
+          onSaved={(updated) =>
+            queryClient.setQueryData(["assistant", tenantId, assistantId], updated)
+          }
+        />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
@@ -244,6 +254,139 @@ function AssistantDetail() {
         </Card>
       </div>
     </>
+  );
+}
+
+const DEFAULT_ACCENT = "#5B4FE9";
+
+/**
+ * Aparencia do widget publico. O widget busca estes valores em
+ * POST /widget/config ao carregar; um atributo data-* no <script> do site
+ * hospedeiro ainda sobrescreve o campo correspondente.
+ */
+function WidgetAppearanceCard({
+  tenantId,
+  assistant,
+  readOnly,
+  onSaved,
+}: {
+  tenantId: string | null;
+  assistant: Assistant;
+  readOnly: boolean;
+  onSaved: (updated: Assistant) => void;
+}) {
+  const [settings, setSettings] = useState<WidgetSettings>(assistant.widget_settings ?? {});
+
+  useEffect(() => setSettings(assistant.widget_settings ?? {}), [assistant.widget_settings]);
+
+  const set = <K extends keyof WidgetSettings>(key: K, value: WidgetSettings[K]) =>
+    setSettings((s) => ({ ...s, [key]: value || undefined }));
+
+  const save = useMutation({
+    mutationFn: () => assistantsApi.update(tenantId!, assistant.id, { widgetSettings: settings }),
+    onSuccess: (updated) => {
+      toast.success("Aparência do widget salva");
+      onSaved(updated);
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a aparência");
+    },
+  });
+
+  const accent = settings.accentColor ?? DEFAULT_ACCENT;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="text-base">Widget</CardTitle>
+          <CardDescription>
+            Aparência do chat embutido nos sites. Atributos <code>data-*</code> do script
+            sobrescrevem estes valores.
+          </CardDescription>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={readOnly || save.isPending}
+          onClick={() => save.mutate()}
+        >
+          <Save /> {save.isPending ? "Salvando..." : "Salvar"}
+        </Button>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="widget-title">Título</Label>
+          <Input
+            id="widget-title"
+            maxLength={60}
+            placeholder="Fale com a gente"
+            value={settings.title ?? ""}
+            disabled={readOnly}
+            onChange={(e) => set("title", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="widget-accent">Cor de destaque</Label>
+          <div className="flex gap-2">
+            <Input
+              id="widget-accent"
+              type="color"
+              className="w-14 p-1"
+              value={accent}
+              disabled={readOnly}
+              onChange={(e) => set("accentColor", e.target.value)}
+            />
+            <Input value={accent} readOnly className="font-mono" aria-label="Cor em hexadecimal" />
+          </div>
+        </div>
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="widget-greeting">Saudação</Label>
+          <Textarea
+            id="widget-greeting"
+            rows={2}
+            maxLength={300}
+            placeholder="Olá! Como posso ajudar?"
+            value={settings.greeting ?? ""}
+            disabled={readOnly}
+            onChange={(e) => set("greeting", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Posição</Label>
+          <Select
+            value={settings.position ?? "bottom-right"}
+            disabled={readOnly}
+            onValueChange={(v) => set("position", v as WidgetSettings["position"])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+              <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Tema</Label>
+          <Select
+            value={settings.theme ?? "light"}
+            disabled={readOnly}
+            onValueChange={(v) => set("theme", v as WidgetSettings["theme"])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Claro</SelectItem>
+              <SelectItem value="dark">Escuro</SelectItem>
+              <SelectItem value="sync">Seguir o sistema do visitante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -408,7 +551,8 @@ function HandoffConfigCard({
             Atendimento Humano no WhatsApp
           </CardTitle>
           <CardDescription>
-            Cadastre os setores e números de WhatsApp para os visitantes falarem direto com atendentes humanos.
+            Cadastre os setores e números de WhatsApp para os visitantes falarem direto com
+            atendentes humanos.
           </CardDescription>
         </div>
         {!readOnly && (
@@ -452,7 +596,8 @@ function HandoffConfigCard({
                     onChange={(e) => setPhoneNumber(e.target.value)}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Link gerado automaticamente: <code className="rounded bg-muted px-1">https://wa.me/5511...</code>
+                    Link gerado automaticamente:{" "}
+                    <code className="rounded bg-muted px-1">https://wa.me/5511...</code>
                   </p>
                 </div>
                 <DialogFooter className="pt-2">
@@ -478,7 +623,9 @@ function HandoffConfigCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {configsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando setores…</p>}
+        {configsQuery.isLoading && (
+          <p className="text-sm text-muted-foreground">Carregando setores…</p>
+        )}
         {configsQuery.isSuccess && configs.length === 0 && (
           <div className="rounded-lg border border-dashed p-4 text-center">
             <p className="text-xs text-muted-foreground">
@@ -500,7 +647,10 @@ function HandoffConfigCard({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{c.sector_name}</span>
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[10px]"
+                    >
                       WhatsApp Web
                     </Badge>
                   </div>
@@ -517,7 +667,11 @@ function HandoffConfigCard({
                     title="Testar link do WhatsApp"
                     onClick={() => {
                       const digits = c.phone_number.replace(/[^\d]/g, "");
-                      window.open(`https://wa.me/${digits}?text=${encodeURIComponent("Olá! Vim através do site.")}`, "_blank", "noopener,noreferrer");
+                      window.open(
+                        `https://wa.me/${digits}?text=${encodeURIComponent("Olá! Vim através do site.")}`,
+                        "_blank",
+                        "noopener,noreferrer",
+                      );
                     }}
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -542,12 +696,16 @@ function HandoffConfigCard({
 
         {configs.length > 1 && (
           <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-            👉 <strong>Múltiplos setores cadastrados:</strong> Ao clicar no botão de WhatsApp no chat, o widget mostrará automaticamente os botões para o visitante escolher com qual setor deseja falar ({configs.map((c) => `"${c.sector_name}"`).join(", ")}).
+            👉 <strong>Múltiplos setores cadastrados:</strong> Ao clicar no botão de WhatsApp no
+            chat, o widget mostrará automaticamente os botões para o visitante escolher com qual
+            setor deseja falar ({configs.map((c) => `"${c.sector_name}"`).join(", ")}).
           </div>
         )}
         {configs.length === 1 && (
           <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-            👉 <strong>Setor único cadastrado:</strong> Ao clicar em WhatsApp no chat, o visitante será redirecionado direto para o WhatsApp Web do setor <strong>&quot;{configs[0].sector_name}&quot;</strong>.
+            👉 <strong>Setor único cadastrado:</strong> Ao clicar em WhatsApp no chat, o visitante
+            será redirecionado direto para o WhatsApp Web do setor{" "}
+            <strong>&quot;{configs[0].sector_name}&quot;</strong>.
           </div>
         )}
       </CardContent>

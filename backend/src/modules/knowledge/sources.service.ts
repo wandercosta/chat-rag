@@ -1,3 +1,4 @@
+import { platformAiAvailable } from "../../config/ai.js";
 import { aiCredentialsService } from "../organizations/index.js";
 import { auditService } from "../audit/index.js";
 import { enqueueSourceIndexing } from "../../queue/source-indexing.queue.js";
@@ -12,9 +13,14 @@ export class InvalidTransitionError extends Error {}
 const MAX_TEXT_LENGTH = 200_000;
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
+/** Indexa quando o tenant tem chave BYOK ou quando a plataforma oferece IA
+ * propria (.env, ADR-005); senao a fonte espera a ativacao. */
+async function canIndex(organizationId: string): Promise<boolean> {
+  return platformAiAvailable() || (await aiCredentialsService.hasAnyActiveKey(organizationId));
+}
+
 async function nextStatusAfterReviewGate(organizationId: string): Promise<SourceStatus> {
-  const hasKey = await aiCredentialsService.hasAnyActiveKey(organizationId);
-  return hasKey ? "fila" : "aguardando_ativacao";
+  return (await canIndex(organizationId)) ? "fila" : "aguardando_ativacao";
 }
 
 async function enqueueIfQueued(organizationId: string, sourceId: string, status: SourceStatus) {
@@ -164,7 +170,7 @@ export const sourcesService = {
    * chave ser validada; sem chave valida agora, nao faz nada.
    */
   async activatePending(organizationId: string) {
-    if (!(await aiCredentialsService.hasAnyActiveKey(organizationId))) return { activated: 0 };
+    if (!(await canIndex(organizationId))) return { activated: 0 };
 
     const pending = await sourcesRepository.listByStatus(organizationId, "aguardando_ativacao");
     for (const source of pending) {

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { CitationList } from "@/components/citation-list";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,11 +172,12 @@ function TranscriptSheet({
               <div
                 className={
                   m.role === "visitante"
-                    ? "w-fit max-w-[80%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                    : "w-fit max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm"
+                    ? "w-fit max-w-[80%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                    : "w-fit max-w-[80%] whitespace-pre-wrap rounded-lg bg-muted px-3 py-2 text-sm"
                 }
               >
                 {m.content}
+                {m.citations?.length ? <CitationList citations={m.citations} /> : null}
               </div>
             </div>
           ))}

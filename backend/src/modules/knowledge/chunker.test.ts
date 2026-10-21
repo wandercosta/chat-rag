@@ -28,3 +28,26 @@ describe("chunkText", () => {
     expect(chunks.every((c) => c.length > 0)).toBe(true);
   });
 });
+
+describe("chunkText boundaries", () => {
+  const sentence = (i: number) => `Art. ${i}. O consumidor tem o direito numero ${i} garantido por lei.`;
+  const text = Array.from({ length: 60 }, (_, i) => sentence(i + 1)).join(" ");
+
+  it("ends chunks at a sentence boundary when one is close", () => {
+    const chunks = chunkText(text);
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks.slice(0, -1)) expect(chunk).toMatch(/[.;!?]$/);
+  });
+
+  it("never starts a chunk in the middle of a word", () => {
+    const words = new Set(text.split(" "));
+    for (const chunk of chunkText(text)) expect(words.has(chunk.split(" ")[0])).toBe(true);
+  });
+});
+
+describe("chunkText sentence starts", () => {
+  it("starts follow-up chunks at the beginning of a sentence", () => {
+    const text = Array.from({ length: 60 }, (_, i) => `Art. ${i + 1}. Regra de numero ${i + 1} do codigo.`).join(" ");
+    for (const chunk of chunkText(text).slice(1)) expect(chunk).toMatch(/^Art\. \d+\./);
+  });
+});

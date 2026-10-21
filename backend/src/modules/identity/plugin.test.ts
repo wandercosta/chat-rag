@@ -25,7 +25,9 @@ function fakeReply() {
 }
 
 function fakeRequest(auth: AuthContext | null, organizationId?: string) {
-  return { auth, params: { organizationId } } as unknown as import("fastify").FastifyRequest;
+  return { auth, params: { organizationId } } as unknown as import("fastify").FastifyRequest<{
+    Params: { organizationId?: string };
+  }>;
 }
 
 beforeEach(() => {

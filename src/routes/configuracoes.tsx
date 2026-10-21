@@ -23,6 +23,7 @@ import {
   aiCredentialsApi,
   modelsApi,
   organizationsApi,
+  platformApi,
   sourcesApi,
   type CredentialEnvironment,
   type CredentialStatus,
@@ -92,6 +93,7 @@ function SettingsPage() {
     <>
       <PageHeader title="Configurações" description="Ajustes da organização ativa." />
       <ActivationBanner />
+      <PlatformAiCard />
       <AiCredentialsCard tenantId={tenantId} />
       <div className="grid gap-6 lg:grid-cols-2">
         <AllowedModelsCard tenantId={tenantId} />
@@ -340,6 +342,44 @@ function RetentionCard({ tenantId }: { tenantId: string | null }) {
         <Button disabled={save.isPending} onClick={() => save.mutate()}>
           {save.isPending ? "Salvando..." : "Salvar retenção"}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const PROVIDER_LABEL = {
+  openai: "OpenAI",
+  anthropic: "Anthropic (Claude)",
+  local: "Modo local (sem LLM)",
+  hash: "Hashing de termos",
+} as const;
+
+/** IA definida no .env do deploy (ADR-005). So leitura: nunca mostra chaves. */
+function PlatformAiCard() {
+  const query = useQuery({ queryKey: ["platform-ai"], queryFn: () => platformApi.ai() });
+  if (!query.data) return null;
+  const ai = query.data;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">IA da plataforma</CardTitle>
+        <CardDescription>
+          Definida no <code>.env</code> do servidor. Uma chave OpenAI cadastrada abaixo tem
+          prioridade para assistentes com modelos da OpenAI.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2 text-sm">
+        <Badge variant="outline">
+          Chat: {PROVIDER_LABEL[ai.chatProvider]}
+          {ai.chatModel ? ` · ${ai.chatModel}` : ""}
+        </Badge>
+        <Badge variant="outline">
+          Embeddings:{" "}
+          {ai.embeddingProvider === "local"
+            ? "modelo multilíngue local"
+            : PROVIDER_LABEL[ai.embeddingProvider]}
+        </Badge>
       </CardContent>
     </Card>
   );

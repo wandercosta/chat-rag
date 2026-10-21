@@ -1,5 +1,6 @@
+import { createApiClient } from "./api.js";
 import { ChatRagWidget } from "./widget.js";
-import type { Mode, Position, Theme, WidgetOptions } from "./types.js";
+import type { Appearance, ConfigResponse, Mode, Position, Theme, WidgetOptions } from "./types.js";
 
 // Capturado de imediato: document.currentScript so e confiavel enquanto o
 // script esta executando de forma sincrona (funciona com async, nao apos um await).
@@ -57,14 +58,39 @@ function readOptions(): WidgetOptions | null {
   };
 }
 
-function init() {
+/** A aparencia vem do painel; um atributo data-* presente no <script>
+ * sobrescreve o campo correspondente (o site hospedeiro tem a palavra final). */
+function applyAppearance(options: WidgetOptions, appearance: Appearance | undefined) {
+  if (!appearance) return;
+  if (appearance.title && !scriptEl?.hasAttribute("data-title")) options.title = appearance.title;
+  if (appearance.greeting && !scriptEl?.hasAttribute("data-greeting"))
+    options.greeting = appearance.greeting;
+  if (appearance.accentColor && !options.accentColor) options.accentColor = appearance.accentColor;
+  if (appearance.position && !scriptEl?.hasAttribute("data-position"))
+    options.position = appearance.position;
+  if (appearance.theme && !scriptEl?.hasAttribute("data-theme")) options.theme = appearance.theme;
+}
+
+async function init() {
   const options = readOptions();
   if (!options) return;
-  new ChatRagWidget(options).mount();
+
+  // Primeira chamada publica: valida chave + origem e traz a aparencia antes
+  // de montar, para o widget nao "piscar" com o visual padrao.
+  let config: ConfigResponse | null = null;
+  let configError: unknown = null;
+  try {
+    config = await createApiClient(options.apiBaseUrl).getConfig(options.key);
+    applyAppearance(options, config.appearance);
+  } catch (err) {
+    configError = err;
+  }
+
+  new ChatRagWidget(options).mount(configError);
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  document.addEventListener("DOMContentLoaded", () => void init());
 } else {
-  init();
+  void init();
 }

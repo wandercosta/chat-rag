@@ -5,7 +5,7 @@
 ## Decisoes
 
 1. Produto inicialmente interno, mas multi-tenant desde o primeiro release. Um painel Master cria tenants e seus usuarios administradores iniciais; nao ha auto cadastro nem cobranca no MVP.
-2. O PAIM nao e dependencia do produto; login e dados serao proprios. Integracao futura e opcional.
+2. O produto nao depende de sistemas externos para login e dados; integracoes futuras sao opcionais.
 3. PostgreSQL + pgvector e a base de dados recomendada, em vez de MySQL, por adequacao ao RAG.
 4. OpenAI e o provedor inicial por adaptador intercambiavel. Cada tenant fornece e controla sua propria chave OpenAI (BYOK), o que separa uso e custo por tenant. Ele pode cadastrar a base antes de ativar chave; indexacao e chat ficam bloqueados/alertados ate a ativacao.
 5. React/TypeScript no painel, Node.js/TypeScript na API/workers e widget JavaScript independente.

@@ -102,6 +102,7 @@ export interface AssistantsTable {
   response_mode: ResponseMode;
   instructions: string | null;
   retention_days: number | null;
+  widget_settings: ColumnType<WidgetSettings, string | undefined, string>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -169,7 +170,23 @@ export interface MessagesTable {
   conversation_id: string;
   role: MessageRole;
   content: string;
+  citations: ColumnType<MessageCitation[], string | undefined, string>;
   created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface MessageCitation {
+  index: number;
+  sourceId: string;
+  sourceTitle: string;
+  excerpt: string;
+}
+
+export interface WidgetSettings {
+  title?: string;
+  greeting?: string;
+  accentColor?: string;
+  position?: "bottom-right" | "bottom-left";
+  theme?: "light" | "dark" | "sync";
 }
 
 export interface FeedbacksTable {
