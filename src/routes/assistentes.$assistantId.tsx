@@ -283,8 +283,7 @@ function WidgetAppearanceCard({
     setSettings((s) => ({ ...s, [key]: value || undefined }));
 
   const save = useMutation({
-    mutationFn: () =>
-      assistantsApi.update(tenantId!, assistant.id, { widgetSettings: settings }),
+    mutationFn: () => assistantsApi.update(tenantId!, assistant.id, { widgetSettings: settings }),
     onSuccess: (updated) => {
       toast.success("Aparência do widget salva");
       onSaved(updated);
@@ -552,7 +551,8 @@ function HandoffConfigCard({
             Atendimento Humano no WhatsApp
           </CardTitle>
           <CardDescription>
-            Cadastre os setores e números de WhatsApp para os visitantes falarem direto com atendentes humanos.
+            Cadastre os setores e números de WhatsApp para os visitantes falarem direto com
+            atendentes humanos.
           </CardDescription>
         </div>
         {!readOnly && (
@@ -596,7 +596,8 @@ function HandoffConfigCard({
                     onChange={(e) => setPhoneNumber(e.target.value)}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Link gerado automaticamente: <code className="rounded bg-muted px-1">https://wa.me/5511...</code>
+                    Link gerado automaticamente:{" "}
+                    <code className="rounded bg-muted px-1">https://wa.me/5511...</code>
                   </p>
                 </div>
                 <DialogFooter className="pt-2">
@@ -622,7 +623,9 @@ function HandoffConfigCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {configsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando setores…</p>}
+        {configsQuery.isLoading && (
+          <p className="text-sm text-muted-foreground">Carregando setores…</p>
+        )}
         {configsQuery.isSuccess && configs.length === 0 && (
           <div className="rounded-lg border border-dashed p-4 text-center">
             <p className="text-xs text-muted-foreground">
@@ -644,7 +647,10 @@ function HandoffConfigCard({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{c.sector_name}</span>
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[10px]"
+                    >
                       WhatsApp Web
                     </Badge>
                   </div>
@@ -661,7 +667,11 @@ function HandoffConfigCard({
                     title="Testar link do WhatsApp"
                     onClick={() => {
                       const digits = c.phone_number.replace(/[^\d]/g, "");
-                      window.open(`https://wa.me/${digits}?text=${encodeURIComponent("Olá! Vim através do site.")}`, "_blank", "noopener,noreferrer");
+                      window.open(
+                        `https://wa.me/${digits}?text=${encodeURIComponent("Olá! Vim através do site.")}`,
+                        "_blank",
+                        "noopener,noreferrer",
+                      );
                     }}
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -686,12 +696,16 @@ function HandoffConfigCard({
 
         {configs.length > 1 && (
           <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-            👉 <strong>Múltiplos setores cadastrados:</strong> Ao clicar no botão de WhatsApp no chat, o widget mostrará automaticamente os botões para o visitante escolher com qual setor deseja falar ({configs.map((c) => `"${c.sector_name}"`).join(", ")}).
+            👉 <strong>Múltiplos setores cadastrados:</strong> Ao clicar no botão de WhatsApp no
+            chat, o widget mostrará automaticamente os botões para o visitante escolher com qual
+            setor deseja falar ({configs.map((c) => `"${c.sector_name}"`).join(", ")}).
           </div>
         )}
         {configs.length === 1 && (
           <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-            👉 <strong>Setor único cadastrado:</strong> Ao clicar em WhatsApp no chat, o visitante será redirecionado direto para o WhatsApp Web do setor <strong>&quot;{configs[0].sector_name}&quot;</strong>.
+            👉 <strong>Setor único cadastrado:</strong> Ao clicar em WhatsApp no chat, o visitante
+            será redirecionado direto para o WhatsApp Web do setor{" "}
+            <strong>&quot;{configs[0].sector_name}&quot;</strong>.
           </div>
         )}
       </CardContent>

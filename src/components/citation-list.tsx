@@ -11,7 +11,10 @@ export function CitationList({ citations }: { citations: Citation[] }) {
         Fontes
       </span>
       {citations.map((c) => (
-        <details key={`${c.sourceId}-${c.index}`} className="rounded-md border bg-background px-2 py-1">
+        <details
+          key={`${c.sourceId}-${c.index}`}
+          className="rounded-md border bg-background px-2 py-1"
+        >
           <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-primary">
             <FileText className="size-3.5 shrink-0" />[{c.index}] {c.sourceTitle}
           </summary>
