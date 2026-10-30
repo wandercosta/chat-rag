@@ -121,6 +121,20 @@ export async function channelsRoutes(app: FastifyInstance) {
     });
   }
 
+  app.patch<ItemParams>(`${base}/:id`, adminOnly, async (request, reply) => {
+    const body = z.object({ humanAgentTag: z.boolean() }).parse(request.body);
+    try {
+      return await connectionsService.setHumanAgentTag(
+        request.auth!.userId,
+        request.params.organizationId,
+        request.params.id,
+        body.humanAgentTag,
+      );
+    } catch (err) {
+      return handleError(err, reply);
+    }
+  });
+
   app.post<ItemParams>(`${base}/:id/check`, adminOnly, async (request, reply) => {
     try {
       const connections = await connectionsService.list(request.params.organizationId);

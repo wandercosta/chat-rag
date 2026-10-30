@@ -127,7 +127,7 @@ const inboxCore = {
         author_email: emailOf(m.author_user_id),
       })),
       assignment: row ? toAssignment(row, emails) : null,
-      replyWindowEndsAt: await replyWindowEndsAt(conversation.id, conversation.channel),
+      replyWindowEndsAt: await replyWindowEndsAt(conversation),
       notes: notes.map((n) => ({ ...n, author_email: emailOf(n.author_user_id) })),
     };
   },
@@ -250,7 +250,7 @@ const inboxCore = {
    * mensagem enviada tem um responsavel humano identificavel). */
   async reply(actor: InboxActor, organizationId: string, conversationId: string, content: string) {
     const conversation = await requireReplyable(organizationId, conversationId);
-    await assertWindowOpen(conversationId, conversation.channel);
+    await assertWindowOpen(conversation);
     await claimForReply(actor, organizationId, conversationId);
     const message = await conversationsService.addAgentMessage(
       conversationId,

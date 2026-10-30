@@ -6,5 +6,6 @@
 export { inboxService, AssignedToAnotherUserError, OutsideWindowError } from "./inbox.service.js";
 export type { InboxActor } from "./inbox.service.js";
 export { inboxRoutes } from "./inbox.routes.js";
+export { setReplyWindowPolicy } from "./reply.js";
 export { cannedResponsesRoutes } from "./canned-responses.routes.js";
 export { agentMetricsRoutes } from "./metrics.routes.js";

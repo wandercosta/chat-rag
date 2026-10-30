@@ -16,6 +16,8 @@ export class DuplicateConnectionError extends Error {}
 export class ConnectionCheckError extends Error {}
 
 export { secretsOf };
+
+const HUMAN_AGENT_PROVIDERS = new Set(["messenger", "instagram"]);
 export type { NewConnectionInput };
 
 const PROVIDER_LABEL = {
@@ -24,6 +26,16 @@ const PROVIDER_LABEL = {
   instagram: "Instagram",
   telegram: "Telegram",
 } as const;
+
+/** Janela de resposta da conexao, em horas (regra registrada no inbox pelo app.ts). */
+export async function replyWindowHours(organizationId: string, connectionId: string) {
+  const connection = await connectionsRepository.findById(organizationId, connectionId);
+  return connection &&
+    HUMAN_AGENT_PROVIDERS.has(connection.provider) &&
+    connection.config.humanAgentTag === "true"
+    ? 7 * 24
+    : 24;
+}
 
 /** Corpo do modelo e quantas variaveis ({{1}}, {{2}}...) ele pede. */
 function templateBody(components: { type: string; text?: string }[] = []) {
@@ -154,6 +166,29 @@ export const connectionsService = {
       type: "seguranca",
       target: `${connection.provider} · ${connection.name}`,
     });
+  },
+
+  /**
+   * Tag "Agente humano" da Meta (Messenger e Instagram): o atendente responde
+   * ate 7 dias depois da ultima mensagem do cliente, em vez de 24 horas. So
+   * funciona se o app do tenant tiver a permissao aprovada pela Meta, por
+   * isso e o administrador quem liga.
+   */
+  async setHumanAgentTag(actorUserId: string, organizationId: string, id: string, on: boolean) {
+    const connection = await connectionsRepository.findById(organizationId, id);
+    if (!connection || !HUMAN_AGENT_PROVIDERS.has(connection.provider)) {
+      throw new ConnectionNotFoundError();
+    }
+    const config = { ...connection.config, humanAgentTag: on ? "true" : "false" };
+    await connectionsRepository.setConfig(organizationId, id, config);
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: on ? "Ligou a tag Agente humano" : "Desligou a tag Agente humano",
+      type: "configuracao",
+      target: connection.name,
+    });
+    return { id, provider: connection.provider, config };
   },
 
   listTemplates(organizationId: string, connectionId: string) {

@@ -8,7 +8,8 @@ export class ChannelNotSupportedError extends Error {}
 /** Evita duas pessoas respondendo a mesma conversa ao mesmo tempo. */
 export class AssignedToAnotherUserError extends Error {}
 /** WhatsApp, Instagram e Messenger so aceitam texto livre ate 24 horas depois
- * da ultima mensagem do cliente; depois, so modelo aprovado (ADR-006 #9). */
+ * da ultima mensagem do cliente (7 dias com a tag "Agente humano" no
+ * Messenger/Instagram); depois, so modelo aprovado no WhatsApp (ADR-006 #9). */
 export class OutsideWindowError extends Error {}
 
 export interface InboxActor {
@@ -28,7 +29,26 @@ const WINDOW_CHANNELS: ReadonlySet<ConversationChannel> = new Set([
   "instagram",
   "messenger",
 ]);
-const WINDOW_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Horas da janela de uma conexao: 24 por padrao; 168 no Messenger/Instagram
+ * com a tag "Agente humano" ligada. Quem sabe da conexao e o modulo channels,
+ * que registra a regra no app.ts (o inbox nao le tabela de outro modulo).
+ */
+type WindowPolicy = (organizationId: string, connectionId: string) => Promise<number>;
+let windowHoursFor: WindowPolicy = async () => 24;
+
+export function setReplyWindowPolicy(policy: WindowPolicy) {
+  windowHoursFor = policy;
+}
+
+interface WindowedConversation {
+  id: string;
+  organization_id: string;
+  channel: ConversationChannel;
+  channel_connection_id: string | null;
+}
 
 export async function requireReplyable(organizationId: string, conversationId: string) {
   const conversation = await conversationsService.get(organizationId, conversationId);
@@ -39,17 +59,18 @@ export async function requireReplyable(organizationId: string, conversationId: s
 
 /** Ate quando da para responder com texto livre; null = sem janela (widget,
  * Telegram) ou ja fechada sem mensagem do cliente. */
-export async function replyWindowEndsAt(
-  conversationId: string,
-  channel: ConversationChannel,
-): Promise<Date | null> {
-  if (!WINDOW_CHANNELS.has(channel)) return null;
-  const last = await conversationsService.lastVisitorMessageAt(conversationId);
-  return last ? new Date(last.getTime() + WINDOW_MS) : new Date(0);
+export async function replyWindowEndsAt(conversation: WindowedConversation): Promise<Date | null> {
+  if (!WINDOW_CHANNELS.has(conversation.channel)) return null;
+  const last = await conversationsService.lastVisitorMessageAt(conversation.id);
+  if (!last) return new Date(0);
+  const hours = conversation.channel_connection_id
+    ? await windowHoursFor(conversation.organization_id, conversation.channel_connection_id)
+    : 24;
+  return new Date(last.getTime() + hours * HOUR_MS);
 }
 
-export async function assertWindowOpen(conversationId: string, channel: ConversationChannel) {
-  const endsAt = await replyWindowEndsAt(conversationId, channel);
+export async function assertWindowOpen(conversation: WindowedConversation) {
+  const endsAt = await replyWindowEndsAt(conversation);
   if (endsAt && endsAt.getTime() < Date.now()) throw new OutsideWindowError();
 }
 

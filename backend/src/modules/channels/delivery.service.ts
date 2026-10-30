@@ -12,6 +12,19 @@ export class TemplateParamsError extends Error {}
 export class NotAChannelConversationError extends Error {}
 
 const DONE = new Set(["enviada", "entregue", "lida"]);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Resposta de atendente no Messenger/Instagram depois das 24 horas, com a
+ * tag ligada na conexao (o inbox ja conferiu o limite de 7 dias). */
+async function needsHumanAgentTag(
+  connection: { provider: string; config: Record<string, string> },
+  message: { role: string; conversation_id: string },
+) {
+  if (message.role !== "atendente" || connection.config.humanAgentTag !== "true") return false;
+  if (connection.provider !== "messenger" && connection.provider !== "instagram") return false;
+  const last = await conversationsService.lastVisitorMessageAt(message.conversation_id);
+  return !!last && Date.now() - last.getTime() > DAY_MS;
+}
 
 /**
  * Envia ao canal uma mensagem ja gravada (resposta da IA ou de atendente).
@@ -48,6 +61,7 @@ export async function deliverMessage(organizationId: string, messageId: string) 
         connection,
         to,
         message.content,
+        { humanAgent: await needsHumanAgentTag(connection, message) },
       );
     } catch (err) {
       const error = err instanceof Error ? err.message : "falha no envio";

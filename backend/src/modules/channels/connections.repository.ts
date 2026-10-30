@@ -100,6 +100,15 @@ export const connectionsRepository = {
       .execute();
   },
 
+  async setConfig(organizationId: string, id: string, config: Record<string, string>) {
+    await db
+      .updateTable("channel_connections")
+      .set({ config: JSON.stringify(config), updated_at: new Date().toISOString() })
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", id)
+      .execute();
+  },
+
   async remove(organizationId: string, id: string) {
     const r = await db
       .deleteFrom("channel_connections")

@@ -42,6 +42,12 @@ export const channelsApi = {
   /** Os campos de cada provedor estao no dialogo de conexao. */
   connect: (organizationId: string, provider: ChannelProvider, input: Record<string, string>) =>
     post<ChannelConnection>(`${base(organizationId)}/channels/${provider}`, input),
+  /** Tag "Agente humano" da Meta (Messenger e Instagram): responder ate 7 dias. */
+  setHumanAgentTag: (organizationId: string, id: string, humanAgentTag: boolean) =>
+    apiFetch<{ config: Record<string, string> }>(`${base(organizationId)}/channels/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ humanAgentTag }),
+    }),
   check: (organizationId: string, id: string) =>
     post<{ status: string; detail: string | null }>(`${base(organizationId)}/channels/${id}/check`),
   remove: (organizationId: string, id: string) =>

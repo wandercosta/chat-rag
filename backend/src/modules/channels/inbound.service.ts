@@ -83,7 +83,15 @@ async function routeInbound(connection: Connection, message: InboundMessage) {
     organizationId,
     connection.provider,
     message.from,
-    { name: message.name, phone: providers[connection.provider].phoneFrom(message.from) },
+    {
+      name: message.name,
+      phone: providers[connection.provider].phoneFrom(message.from),
+      // So no primeiro contato; sem a permissao na Meta, segue sem nome.
+      lookupName: async () =>
+        (await providers[connection.provider]
+          .lookupName?.(connection, message.from)
+          .catch(() => null)) ?? null,
+    },
   );
   const conversation = await conversationFor(organizationId, connection, contactId);
 

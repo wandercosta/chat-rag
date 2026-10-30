@@ -24,7 +24,12 @@ export interface SentMessage {
 /** Mensagem enviada pelo Messenger/Instagram (POST /{pagina}/messages). */
 export interface MetaMessage {
   pageId: string;
-  body: { recipient: { id: string }; message: { text: string } };
+  body: {
+    recipient: { id: string };
+    messaging_type: string;
+    tag?: string;
+    message: { text: string };
+  };
 }
 
 /** Chamada a Bot API do Telegram simulada. */
@@ -87,6 +92,11 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
         const name = request.params.id.slice("media.".length);
         return { url: `${base}/wa-files/${name}`, mime_type: FAKE_FILES[name]?.type };
       }
+      // API de perfil (Messenger) e do usuario (Instagram).
+      if (request.query.fields === "first_name,last_name") {
+        return { first_name: "Carla", last_name: "Souza" };
+      }
+      if (request.query.fields === "name,username") return { name: "Duda Lima", username: "duda" };
       if (request.query.fields === "name") return { name: "Pagina Teste" };
       if (request.query.fields === "username") return { username: "loja.teste" };
       return { display_phone_number: "+55 11 4000-0000", verified_name: "Loja Teste" };
