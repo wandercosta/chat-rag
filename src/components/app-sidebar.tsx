@@ -15,6 +15,7 @@ import {
   FlaskConical,
   Inbox,
   Contact,
+  RadioTower,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,6 +47,7 @@ const tenantItems: Item[] = [
   { title: "Contatos", url: "/contatos", icon: Contact, perm: "contacts" },
   { title: "Conversas", url: "/conversas", icon: MessageSquare, perm: "conversations" },
   { title: "Lacunas e feedbacks", url: "/lacunas", icon: SearchX, perm: "gaps" },
+  { title: "Canais", url: "/canais", icon: RadioTower, perm: "channels" },
   { title: "Integrações e widget", url: "/integracoes", icon: KeyRound, perm: "integrations" },
   { title: "Usuários e permissões", url: "/usuarios", icon: Users, perm: "users" },
   { title: "Configurações", url: "/configuracoes", icon: Settings, perm: "settings" },

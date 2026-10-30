@@ -7,6 +7,8 @@ import { retentionService } from "./modules/conversations/index.js";
 import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
+import { CHANNEL_MESSAGES_QUEUE, type ChannelJob } from "./queue/channel-messages.queue.js";
+import { processChannelJob } from "./modules/channels/index.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -88,6 +90,18 @@ retentionWorker.on("failed", (job, err) => {
   console.error("job de retencao falhou:", err.message);
 });
 
+// Canais (ADR-006): mensagens recebidas, recibos e envios pela fila, para o
+// webhook responder rapido e o envio ter novas tentativas.
+const channelWorker = new Worker<ChannelJob>(
+  CHANNEL_MESSAGES_QUEUE,
+  async (job) => processChannelJob(job.data),
+  { connection: { url: env.REDIS_URL }, concurrency: 5 },
+);
+
+channelWorker.on("failed", (job, err) => {
+  console.error(`job de canal falhou (${job?.data.kind}):`, err.message);
+});
+
 await scheduleRetentionSweep();
 
-console.log("worker de indexacao e retencao iniciado");
+console.log("worker de indexacao, retencao e canais iniciado");

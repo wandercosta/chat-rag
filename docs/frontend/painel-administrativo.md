@@ -36,7 +36,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 12. **Caixa de entrada** (`/atendimento`, ja existe para o widget): abas Aguardando, Minhas, Todas abertas, Resolvidas e Com o assistente; assumir, devolver, atribuir (administrador), mudar status, responder, nota interna (visualmente distinta da resposta) e respostas prontas; atualiza sem recarregar. O detalhe do assistente ganhou o interruptor "Atendimento humano pelo painel". Falta: filtro por canal, que chega com os canais.
 13. **Contatos** (`/contatos` e `/contatos/:id`, ja existem): busca, filtro por etiqueta, opt-in e segmento, salvar segmento, importar e exportar CSV, etiquetas e campos personalizados; detalhe com dados, etiquetas, opt-in, canais e conversas, e exclusao (LGPD). Na caixa de entrada, o nome do contato aparece na fila e ha "Salvar como contato" para visitante anonimo.
-14. **Canais:** conectar e desconectar WhatsApp, Instagram, Messenger e Telegram; estado da conexao; o token nunca aparece depois de salvo.
+14. **Canais** (`/canais`, ja existe para WhatsApp; so Administrador): conectar com conferencia do token na Meta, URL de retorno e token de verificacao para copiar, testar conexao, sincronizar e listar modelos, desconectar. Na caixa de entrada, conversas de WhatsApp mostram o canal, o recibo de cada mensagem e, fora da janela de 24 horas, o envio de modelo no lugar da resposta livre. Telegram, Instagram e Messenger chegam na etapa 5.
 15. **Campanhas:** publico por segmento (so contatos com opt-in), template, agendamento e metricas de entrega.
 16. **Automacoes:** editor visual de fluxo, publicar/despublicar e log de execucoes.
 

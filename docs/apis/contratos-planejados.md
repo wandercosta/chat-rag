@@ -22,8 +22,8 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 
 ## Planejado pelo ADR-006 (ainda sem rotas)
 
-- Painel: conexoes de canal (sem leitura do token), templates, campanhas e automacoes.
-- Webhooks de entrada por provedor (Meta, Telegram): publicos, com validacao de assinatura e idempotencia; a organizacao vem da conexao do canal, nunca do payload.
+- Painel: conexoes de Telegram, Instagram e Messenger, campanhas e automacoes.
+- Webhooks de Telegram e Instagram/Messenger: mesmas regras do webhook do WhatsApp abaixo.
 
 ## Regras
 
@@ -66,7 +66,15 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET|POST /organizations/:organizationId/contacts` (lista paginada com `search`, `tagIds`, `tagMatch`, `optIn`, `segmentId`, `page`; criar: Administrador e Atendente), `GET|PATCH|DELETE .../contacts/:contactId` (detalhe com identidades e conversas; excluir so Administrador e apaga as conversas)
 - `POST .../contacts/from-conversation` (salva o visitante da conversa como contato ou liga a um existente; 200 quando juntou, 201 quando criou), `POST .../contacts/import` (`{ csv }`, relatorio por linha), `GET .../contacts/export` (CSV com o mesmo filtro da lista) — importar e exportar so Administrador
 - `GET|POST /organizations/:organizationId/contact-tags`, `.../contact-fields`, `.../contact-segments` e `DELETE .../:id` em cada um (ler: Administrador, Atendente e Analista; criar e remover: Administrador)
+- `GET /organizations/:organizationId/channels` (Administrador; inclui a URL de webhook e o token de verificacao, nunca o token de acesso), `POST .../channels/whatsapp` (confere o token na Meta antes de salvar; 409 se o numero ja esta conectado), `POST .../channels/:id/check`, `DELETE .../channels/:id`
+- `GET .../channels/:id/templates` (Administrador e Atendente), `POST .../channels/:id/templates/sync` (Administrador), `POST .../inbox/:conversationId/template` (`{ templateId, params }`, envio de modelo aprovado fora da janela de 24 horas; Administrador e Atendente)
+- `POST .../inbox/:conversationId/messages` responde 422 em conversa de WhatsApp fora da janela de 24 horas
 - `GET|POST /organizations/:organizationId/canned-responses`, `DELETE .../canned-responses/:responseId` (respostas prontas; criar e remover so Administrador)
+
+Webhook publico do WhatsApp (sem sessao; autenticado pela assinatura do app do tenant, ver `integrations/whatsapp.md`):
+
+- `GET /webhooks/whatsapp/:connectionId` (verificacao da Meta: devolve `hub.challenge` se `hub.verify_token` confere)
+- `POST /webhooks/whatsapp/:connectionId` (401 sem `X-Hub-Signature-256` valida; 200 rapido e processamento na fila)
 
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 

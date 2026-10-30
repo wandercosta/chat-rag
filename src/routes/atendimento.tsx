@@ -15,6 +15,7 @@ import {
   type InboxView,
 } from "@/lib/inbox-api";
 import { useSession } from "@/lib/session";
+import { channelLabel } from "@/lib/channels-api";
 
 export const Route = createFileRoute("/atendimento")({
   head: () => ({
@@ -150,10 +151,13 @@ function ConversationRow({
         <p className="line-clamp-2 text-xs text-muted-foreground">
           {c.last_message?.content ?? "Sem mensagens ainda."}
         </p>
-        {c.assignment && (
+        {(c.assignment || c.channel !== "widget") && (
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline">{inboxStatusLabel[c.assignment.status]}</Badge>
-            {c.assignment.assignedUserEmail && (
+            {c.channel !== "widget" && <Badge variant="secondary">{channelLabel[c.channel]}</Badge>}
+            {c.assignment && (
+              <Badge variant="outline">{inboxStatusLabel[c.assignment.status]}</Badge>
+            )}
+            {c.assignment?.assignedUserEmail && (
               <Badge variant="secondary" className="max-w-full truncate">
                 {c.assignment.assignedUserEmail}
               </Badge>

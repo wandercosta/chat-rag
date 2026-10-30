@@ -9,6 +9,7 @@ import {
   ConversationNotFoundError,
   ForbiddenAssignmentError,
   InvalidAssigneeError,
+  OutsideWindowError,
   inboxService,
   type InboxActor,
 } from "./inbox.service.js";
@@ -44,6 +45,11 @@ function handleInboxError(err: unknown, reply: FastifyReply) {
     return reply.code(422).send({ error: "esta conversa nao recebe resposta humana" });
   if (err instanceof AssignedToAnotherUserError)
     return reply.code(409).send({ error: "conversa atribuida a outra pessoa" });
+  if (err instanceof OutsideWindowError)
+    return reply.code(422).send({
+      error:
+        "passaram 24 horas da ultima mensagem do cliente: so da para enviar um modelo aprovado",
+    });
   if (err instanceof InvalidAssigneeError)
     return reply.code(422).send({ error: "essa pessoa nao atende conversas nesta organizacao" });
   if (err instanceof ForbiddenAssignmentError)

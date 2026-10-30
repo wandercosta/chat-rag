@@ -17,16 +17,29 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `embed`: chaves, dominios, configuracao publica e validacao de origem.
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
+- `channels`: canais oficiais (ADR-006, etapa 4) — conexao do WhatsApp do tenant, webhook assinado, fila de entrada e envio, recibos e modelos.
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
-- `channels`: conexao de canal por tenant (WhatsApp Cloud API, Instagram/Messenger pela Graph API, Telegram Bot API), webhooks de entrada com validacao de assinatura e idempotencia pelo id do provedor, envio, templates e status de entrega. Token de canal com envelope encryption, como a chave de IA.
+- `channels` (restante, etapa 5): Telegram pela Bot API e Instagram/Messenger pela Graph API, sobre a mesma camada do WhatsApp.
 - `campaigns`: publico por segmento com opt-in, agendamento, envio pela fila com ritmo por organizacao e metricas de entrega.
 - `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## WhatsApp (ADR-006, etapa 4)
+
+Detalhes de comportamento e configuracao na Meta em `integrations/whatsapp.md`. No backend:
+
+- **Webhook so valida e enfileira:** `POST /webhooks/whatsapp/:connectionId` le o corpo cru (parser JSON proprio, so dentro desse plugin), confere `X-Hub-Signature-256` com a chave secreta do app do tenant e poe cada mensagem e recibo na fila `channel-messages` (`src/queue/`). A organizacao vem da conexao, nunca do corpo; mudancas de outro `phone_number_id` sao ignoradas.
+- **Worker:** `processChannelJob` (modulo `channels`) trata entrada, recibo e envio. Entrada nao tem nova tentativa (a mensagem ja foi gravada; repetir mandaria a resposta duas vezes); envio tem 3, so em erro temporario.
+- **Idempotencia:** o job de entrada usa o id da mensagem como `jobId` e o processamento confere `provider_message_id` antes de gravar. As buscas por id do provedor sao escopadas pela organizacao da conexao: um tenant controla o proprio app na Meta e poderia assinar um evento citando a mensagem de outro tenant.
+- **Resposta da IA:** `answerService.answer` recebe `providerMessageId` e `handoff: "automatico"` (sem botao no WhatsApp: sem resposta na base e com caixa de entrada ligada, a propria resposta avisa e a conversa vai para a fila) e devolve o id da mensagem gravada, que e enviada pela Graph API com as fontes no fim do texto.
+- **Janela de 24 horas:** a regra fica no modulo `inbox` (`reply.ts`), para WhatsApp, Instagram e Messenger; o detalhe da conversa traz `replyWindowEndsAt`. Fora da janela, so `POST .../inbox/:id/template` (modulo `channels`), que exige modelo `APPROVED` da mesma conexao com todas as variaveis.
+- **Segredos:** token e chave secreta do app num unico envelope (`src/crypto/envelope.ts`, o mesmo da chave de IA, agora fora do modulo `organizations` para os dois usarem); o painel so ve o final do token.
+- **Ainda nao:** baixar midia recebida, Embedded Signup (conectar sem copiar ids e token), estado do canal na tela do Master.
 
 ## Contatos (ADR-006, etapa 3)
 

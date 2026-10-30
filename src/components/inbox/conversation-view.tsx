@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CitationList } from "@/components/citation-list";
@@ -12,17 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { ApiError, membersApi } from "@/lib/api-client";
 import {
-  cannedResponsesApi,
   inboxApi,
   inboxStatusLabel,
   type InboxConversationDetail,
   type InboxStatus,
 } from "@/lib/inbox-api";
 import { useSession } from "@/lib/session";
+import { deliveryLabel } from "@/lib/channels-api";
+import { Composer } from "./composer";
+import { TemplateComposer } from "./template-composer";
 import { ConversationContact } from "./save-contact-dialog";
 
 type TimelineItem =
@@ -87,7 +86,10 @@ export function ConversationView({
   const agents = (membersQuery.data ?? []).filter(
     (m) => m.role === "Administrador" || m.role === "Atendente",
   );
-  const replyable = canAct && detail.channel === "widget";
+  const replyable = canAct && detail.channel !== "playground";
+  // WhatsApp depois de 24 horas sem mensagem do cliente: so modelo aprovado.
+  const windowClosed =
+    !!detail.replyWindowEndsAt && new Date(detail.replyWindowEndsAt).getTime() < Date.now();
 
   return (
     <Card className="flex max-h-[70vh] flex-col overflow-hidden p-0">
@@ -184,7 +186,19 @@ export function ConversationView({
         )}
       </div>
 
-      {replyable && (
+      {replyable && windowClosed && detail.channel_connection_id && (
+        <TemplateComposer
+          tenantId={tenantId}
+          conversationId={detail.id}
+          connectionId={detail.channel_connection_id}
+          onSent={() =>
+            void queryClient.invalidateQueries({
+              queryKey: ["inbox-conversation", tenantId, conversationId],
+            })
+          }
+        />
+      )}
+      {replyable && !windowClosed && (
         <Composer
           tenantId={tenantId}
           conversationId={detail.id}
@@ -225,92 +239,15 @@ function MessageBubble({ message: m }: { message: InboxConversationDetail["messa
         {m.content}
         {m.citations?.length ? <CitationList citations={m.citations} /> : null}
       </div>
-    </div>
-  );
-}
-
-function Composer({
-  tenantId,
-  conversationId,
-  busy,
-  onSend,
-}: {
-  tenantId: string | null;
-  conversationId: string;
-  busy: boolean;
-  onSend: (mode: "reply" | "note", content: string) => Promise<unknown>;
-}) {
-  const [mode, setMode] = useState<"reply" | "note">("reply");
-  const [text, setText] = useState("");
-  const cannedQuery = useQuery({
-    queryKey: ["canned-responses", tenantId],
-    queryFn: () => cannedResponsesApi.list(tenantId!),
-    enabled: !!tenantId,
-  });
-
-  async function send() {
-    const content = text.trim();
-    if (!content) return;
-    try {
-      await onSend(mode, content);
-      setText("");
-    } catch {
-      // o toast de erro vem da mutation; o texto fica para tentar de novo.
-    }
-  }
-
-  return (
-    <div className="space-y-2 border-t px-4 py-3" key={conversationId}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "reply" | "note")}>
-          <TabsList>
-            <TabsTrigger value="reply">Responder</TabsTrigger>
-            <TabsTrigger value="note">Nota interna</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {mode === "reply" && (cannedQuery.data?.length ?? 0) > 0 && (
-          <Select
-            value=""
-            onValueChange={(id) => {
-              const chosen = cannedQuery.data?.find((r) => r.id === id);
-              if (chosen) setText((t) => (t ? `${t}\n${chosen.content}` : chosen.content));
-            }}
-          >
-            <SelectTrigger className="h-8 w-48" aria-label="Resposta pronta">
-              <SelectValue placeholder="Resposta pronta…" />
-            </SelectTrigger>
-            <SelectContent>
-              {cannedQuery.data?.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-      <Textarea
-        rows={3}
-        value={text}
-        placeholder={
-          mode === "reply"
-            ? "Escreva a resposta para o visitante… (Ctrl+Enter envia)"
-            : "Anotação só para a equipe; o visitante não vê."
-        }
-        className={mode === "note" ? "border-amber-300 bg-amber-50/60 dark:bg-amber-950/30" : ""}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            void send();
-          }
-        }}
-      />
-      <div className="flex justify-end">
-        <Button size="sm" disabled={busy || !text.trim()} onClick={() => void send()}>
-          {mode === "reply" ? "Enviar ao visitante" : "Salvar nota"}
-        </Button>
-      </div>
+      {m.delivery_status && (
+        <span
+          className={`mt-0.5 text-[11px] ${m.delivery_status === "falhou" ? "text-destructive" : "text-muted-foreground"}`}
+          title={m.delivery_error ?? undefined}
+        >
+          {deliveryLabel[m.delivery_status]}
+          {m.delivery_error ? `: ${m.delivery_error}` : ""}
+        </span>
+      )}
     </div>
   );
 }

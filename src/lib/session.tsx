@@ -35,6 +35,7 @@ export type Permission =
   | "inbox_reply"
   | "contacts"
   | "contacts_write"
+  | "channels"
   | "write";
 
 const matrix: Record<Profile, Permission[]> = {
@@ -50,6 +51,7 @@ const matrix: Record<Profile, Permission[]> = {
     "audit",
     "inbox",
     "contacts",
+    "channels",
     "write",
   ],
   Administrador: [
@@ -65,6 +67,7 @@ const matrix: Record<Profile, Permission[]> = {
     "inbox_reply",
     "contacts",
     "contacts_write",
+    "channels",
     "write",
   ],
   "Editor de base": ["assistants", "knowledge", "write"],

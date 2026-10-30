@@ -2,7 +2,7 @@ import { db } from "../../db/client.js";
 import type { CredentialEnvironment } from "../../db/types.js";
 import { auditService } from "../audit/index.js";
 import { aiCredentialsRepository } from "./ai-credentials.repository.js";
-import { decryptSecret, encryptSecret, maskSecret } from "./ai-credentials.envelope.js";
+import { decryptSecret, encryptSecret, maskSecret } from "../../crypto/envelope.js";
 import { validateOpenAiKey } from "./ai-credentials.provider-check.js";
 
 export interface CredentialStatusView {
