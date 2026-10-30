@@ -1,6 +1,6 @@
 import { auditService } from "../audit/index.js";
 import { conversationsService } from "../conversations/index.js";
-import type { ContactFilter } from "../../db/types.js";
+import type { ContactChannel, ContactFilter } from "../../db/types.js";
 import { contactsRepository, type ContactValues } from "./contacts.repository.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
@@ -236,6 +236,41 @@ export const contactsService = {
     }
     await conversationsService.setContact(organizationId, conversationId, contact.id);
     return { contact, merged: !!existing };
+  },
+
+  /**
+   * Quem escreveu por um canal (ADR-006 #8): reaproveita a identidade do canal
+   * ou um contato com o mesmo telefone; senao, cria. Diferente do widget, todo
+   * remetente de canal vira contato, porque o canal ja identifica a pessoa.
+   */
+  async resolveForChannel(
+    organizationId: string,
+    channel: Exclude<ContactChannel, "widget">,
+    externalId: string,
+    profile: { name?: string | null; phone?: string | null },
+  ): Promise<string> {
+    const identity = await identitiesRepository.find(organizationId, channel, externalId);
+    if (identity) return identity.contact_id;
+
+    const phone = normalizePhone(profile.phone);
+    const contact =
+      (phone && (await contactsRepository.findByPhone(organizationId, phone))) ||
+      (await contactsRepository.insert(organizationId, { name: profile.name ?? null, phone }));
+    if (!contact.name && profile.name) {
+      await contactsRepository.update(organizationId, contact.id, { name: profile.name });
+    }
+    const linked = await identitiesRepository.link(organizationId, contact.id, channel, externalId);
+    return linked?.contact_id ?? contact.id;
+  },
+
+  /** Endereco do contato num canal (ex.: o wa_id para responder no WhatsApp). */
+  async channelAddress(
+    organizationId: string,
+    contactId: string,
+    channel: ContactChannel,
+  ): Promise<string | null> {
+    const identities = await identitiesRepository.listFor(organizationId, contactId);
+    return identities.find((i) => i.channel === channel)?.value ?? null;
   },
 
   /** Nome para mostrar em outras telas (fila da caixa de entrada). */

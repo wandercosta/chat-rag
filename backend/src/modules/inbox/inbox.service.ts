@@ -6,21 +6,31 @@ import { realtime, type InboxEvent } from "../../realtime/events.js";
 import type { InboxStatus, TenantRole } from "../../db/types.js";
 import { assignmentsRepository, type AssignmentView } from "./assignments.repository.js";
 import { notesRepository } from "./notes.repository.js";
+import {
+  AssignedToAnotherUserError,
+  ChannelNotSupportedError,
+  ConversationNotFoundError,
+  OutsideWindowError,
+  assertWindowOpen,
+  claimForReply,
+  replyWindowEndsAt,
+  requireReplyable,
+  type InboxActor,
+} from "./reply.js";
+import { enqueueChannelJob } from "../../queue/channel-messages.queue.js";
 
-export class ConversationNotFoundError extends Error {}
-/** Hoje so o widget recebe resposta humana; playground e teste interno. */
-export class ChannelNotSupportedError extends Error {}
-/** Evita duas pessoas respondendo a mesma conversa ao mesmo tempo. */
-export class AssignedToAnotherUserError extends Error {}
+export {
+  AssignedToAnotherUserError,
+  ChannelNotSupportedError,
+  ConversationNotFoundError,
+  OutsideWindowError,
+};
+export type { InboxActor };
+
 export class InvalidAssigneeError extends Error {}
 export class ForbiddenAssignmentError extends Error {}
 
 export type InboxView = AssignmentView | "assistente";
-
-export interface InboxActor {
-  userId: string;
-  role: TenantRole;
-}
 
 /** Quem pode receber e responder conversas. */
 const AGENT_ROLES: readonly TenantRole[] = ["Administrador", "Atendente"];
@@ -57,13 +67,6 @@ async function withContactLabels<T extends { contact_id: string | null }>(
     ...c,
     contact_label: c.contact_id ? (labels.get(c.contact_id) ?? null) : null,
   }));
-}
-
-async function requireReplyable(organizationId: string, conversationId: string) {
-  const conversation = await conversationsService.get(organizationId, conversationId);
-  if (!conversation) throw new ConversationNotFoundError();
-  if (conversation.channel !== "widget") throw new ChannelNotSupportedError();
-  return conversation;
 }
 
 async function notify(organizationId: string, conversationId: string, extra?: InboxEvent) {
@@ -122,6 +125,7 @@ export const inboxService = {
         author_email: emailOf(m.author_user_id),
       })),
       assignment: row ? toAssignment(row, emails) : null,
+      replyWindowEndsAt: await replyWindowEndsAt(conversation.id, conversation.channel),
       notes: notes.map((n) => ({ ...n, author_email: emailOf(n.author_user_id) })),
     };
   },
@@ -235,26 +239,21 @@ export const inboxService = {
   /** Responder assume a conversa se ela estiver livre (ADR-006 #3: toda
    * mensagem enviada tem um responsavel humano identificavel). */
   async reply(actor: InboxActor, organizationId: string, conversationId: string, content: string) {
-    await requireReplyable(organizationId, conversationId);
-    const current = await assignmentsRepository.find(organizationId, conversationId);
-
-    if (
-      isActive(current) &&
-      current.assigned_user_id &&
-      current.assigned_user_id !== actor.userId
-    ) {
-      throw new AssignedToAnotherUserError();
-    }
-
-    await assignmentsRepository.upsert(organizationId, conversationId, {
-      status: isActive(current) ? current.status : "aberta",
-      assignedUserId: actor.userId,
-    });
+    const conversation = await requireReplyable(organizationId, conversationId);
+    await assertWindowOpen(conversationId, conversation.channel);
+    await claimForReply(actor, organizationId, conversationId);
     const message = await conversationsService.addAgentMessage(
       conversationId,
       content,
       actor.userId,
     );
+
+    // Canal externo: o envio vai pela fila (com novas tentativas) e o recibo
+    // do provedor atualiza o status. O widget recebe pelo tempo real.
+    if (conversation.channel !== "widget") {
+      await conversationsService.setDelivery(message.id, { status: "enviando" });
+      await enqueueChannelJob({ kind: "outbound", organizationId, messageId: message.id });
+    }
 
     // A trilha registra quem respondeu, nunca o conteudo.
     await auditService.record({
@@ -272,6 +271,8 @@ export const inboxService = {
     });
     return message;
   },
+
+  claimForReply,
 
   async addNote(
     actor: InboxActor,

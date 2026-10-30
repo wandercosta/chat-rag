@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
 import { Route as ConversasRouteImport } from './routes/conversas'
@@ -41,6 +42,11 @@ const AtendimentoRoute = AtendimentoRouteImport.update({
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CanaisRoute = CanaisRouteImport.update({
+  id: '/canais',
+  path: '/canais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
   '/conversas': typeof ConversasRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
   '/conversas': typeof ConversasRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
   '/conversas': typeof ConversasRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
     | '/conversas'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
     | '/conversas'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
     | '/conversas'
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
+  CanaisRoute: typeof CanaisRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ConhecimentoRoute: typeof ConhecimentoRoute
   ConversasRoute: typeof ConversasRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/canais': {
+      id: '/canais'
+      path: '/canais'
+      fullPath: '/canais'
+      preLoaderRoute: typeof CanaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtendimentoRoute: AtendimentoRoute,
   AuditoriaRoute: AuditoriaRoute,
+  CanaisRoute: CanaisRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ConhecimentoRoute: ConhecimentoRoute,
   ConversasRoute: ConversasRoute,

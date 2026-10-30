@@ -17,7 +17,15 @@ export type SourceStatus =
   | "pronta"
   | "erro"
   | "arquivada";
-export type ConversationChannel = "widget" | "whatsapp" | "playground";
+export type ConversationChannel =
+  | "widget"
+  | "whatsapp"
+  | "playground"
+  | "telegram"
+  | "instagram"
+  | "messenger";
+export type ChannelProvider = "whatsapp" | "telegram" | "instagram" | "messenger";
+export type DeliveryStatus = "enviando" | "enviada" | "entregue" | "lida" | "falhou";
 export type MessageRole = "visitante" | "assistente" | "atendente";
 export type InboxStatus = "aberta" | "pendente" | "resolvida";
 export type FeedbackRating = "positivo" | "negativo";
@@ -164,6 +172,7 @@ export interface ConversationsTable {
   assistant_id: string;
   visitor_id: string | null;
   contact_id: string | null;
+  channel_connection_id: string | null;
   channel: ConversationChannel;
   started_at: ColumnType<Date, string | undefined, never>;
 }
@@ -175,7 +184,40 @@ export interface MessagesTable {
   content: string;
   citations: ColumnType<MessageCitation[], string | undefined, string>;
   author_user_id: string | null;
+  provider_message_id: string | null;
+  delivery_status: DeliveryStatus | null;
+  delivery_error: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ChannelConnectionsTable {
+  id: Generated<string>;
+  organization_id: string;
+  assistant_id: string;
+  provider: ChannelProvider;
+  name: string;
+  external_id: string;
+  config: ColumnType<Record<string, string>, string | undefined, string>;
+  secret: ColumnType<import("../crypto/envelope.js").SerializedEnvelope, string, string>;
+  secret_hint: string;
+  verify_token: string;
+  status: ColumnType<"ativo" | "erro" | "inativo", "ativo" | "erro" | "inativo" | undefined>;
+  status_detail: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ChannelTemplatesTable {
+  id: Generated<string>;
+  organization_id: string;
+  connection_id: string;
+  name: string;
+  language: string;
+  category: string | null;
+  status: string;
+  body: string;
+  variables: number;
+  synced_at: ColumnType<Date, string | undefined, string>;
 }
 
 export interface ConversationAssignmentsTable {
@@ -405,4 +447,6 @@ export interface Database {
   contact_tag_links: ContactTagLinksTable;
   contact_fields: ContactFieldsTable;
   contact_segments: ContactSegmentsTable;
+  channel_connections: ChannelConnectionsTable;
+  channel_templates: ChannelTemplatesTable;
 }

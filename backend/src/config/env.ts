@@ -42,6 +42,12 @@ const schema = z.object({
 
   // Pagina de demonstracao do widget (GET /demo) com a chave criada pelo seed.
   DEMO_WIDGET_KEY: optional(z.string()),
+
+  // Canais (ADR-006). Endereco publico da API, usado para montar a URL de
+  // webhook que o tenant cola na Meta/Telegram; sem ele, vem do Host da
+  // requisicao do painel. As URLs base das APIs oficiais so mudam em teste.
+  PUBLIC_API_URL: optional(z.string().url()),
+  WHATSAPP_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
 });
 
 export const env = schema

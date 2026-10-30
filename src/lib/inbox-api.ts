@@ -51,6 +51,9 @@ export interface InboxConversationDetail {
   started_at: string;
   contact_id: string | null;
   contact_label: string | null;
+  channel_connection_id: string | null;
+  /** Fim da janela de 24 horas (WhatsApp); null quando o canal nao tem janela. */
+  replyWindowEndsAt: string | null;
   messages: (ConversationMessage & { author_email: string | null })[];
   assignment: InboxAssignment | null;
   notes: InboxNote[];

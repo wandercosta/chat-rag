@@ -22,7 +22,9 @@ export default defineConfig({
     env: {
       DATABASE_URL:
         process.env.TEST_DATABASE_URL ?? "postgres://chatrag:chatrag@localhost:5433/chatrag_test",
-      REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://localhost:6379",
+      // Banco 1 do Redis: as filas dos testes nao se misturam com o worker de dev
+      // (que usa o banco 0) rodando na mesma maquina.
+      REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://localhost:6379/1",
       APP_MASTER_KEY: "test-only-master-key-not-a-secret-32b",
       S3_ENDPOINT: "http://localhost:9000",
       S3_ACCESS_KEY_ID: "test",
@@ -30,6 +32,8 @@ export default defineConfig({
       S3_BUCKET: "chatrag-test",
       AI_PROVIDER: "local",
       EMBEDDING_PROVIDER: "hash",
+      // API da Meta simulada pelos testes de canal (src/test/fake-graph-api.ts).
+      WHATSAPP_GRAPH_URL: "http://127.0.0.1:4599/v21.0",
     },
   },
 });

@@ -1,4 +1,5 @@
-import type { ConversationChannel, MessageCitation } from "../../db/types.js";
+import type { ConversationChannel, DeliveryStatus, MessageCitation } from "../../db/types.js";
+import { channelMessagesRepository } from "./channel-messages.repository.js";
 import { conversationsRepository, type ConversationFilters } from "./conversations.repository.js";
 
 export const conversationsService = {
@@ -52,8 +53,11 @@ export const conversationsService = {
     return { conversation: newConv, isResumed: false, messages: [] };
   },
 
-  addVisitorMessage(conversationId: string, content: string) {
-    return conversationsRepository.addMessage(conversationId, "visitante", content);
+  /** `providerMessageId`: id no canal (WhatsApp...), para o webhook ser idempotente. */
+  addVisitorMessage(conversationId: string, content: string, providerMessageId?: string) {
+    return conversationsRepository.addMessage(conversationId, "visitante", content, [], null, {
+      providerMessageId,
+    });
   },
 
   addAssistantMessage(conversationId: string, content: string, citations: MessageCitation[] = []) {
@@ -120,6 +124,70 @@ export const conversationsService = {
   /** Excluir um contato apaga as conversas dele (LGPD). */
   deleteForContact(organizationId: string, contactId: string) {
     return conversationsRepository.deleteForContact(organizationId, contactId);
+  },
+
+  // --- canais (ADR-006, etapa 4) --------------------------------------------
+
+  startForChannel(
+    organizationId: string,
+    assistantId: string,
+    channel: ConversationChannel,
+    connectionId: string,
+    contactId: string,
+  ) {
+    return channelMessagesRepository.startForChannel(
+      organizationId,
+      assistantId,
+      channel,
+      connectionId,
+      contactId,
+    );
+  },
+
+  findLatestForChannel(organizationId: string, connectionId: string, contactId: string) {
+    return channelMessagesRepository.findLatestForChannel(organizationId, connectionId, contactId);
+  },
+
+  lastVisitorMessageAt(conversationId: string) {
+    return channelMessagesRepository.lastMessageAt(conversationId, "visitante");
+  },
+
+  lastMessageAt(conversationId: string) {
+    return channelMessagesRepository.lastMessageAt(conversationId);
+  },
+
+  findMessageByProviderId(organizationId: string, providerMessageId: string) {
+    return channelMessagesRepository.findMessageByProviderId(organizationId, providerMessageId);
+  },
+
+  /** Ajuste de texto antes do envio (ex.: fontes no fim da resposta no WhatsApp). */
+  setContent(messageId: string, content: string) {
+    return channelMessagesRepository.setContent(messageId, content);
+  },
+
+  findMessage(organizationId: string, messageId: string) {
+    return channelMessagesRepository.findMessage(organizationId, messageId);
+  },
+
+  setDelivery(
+    messageId: string,
+    values: { providerMessageId?: string; status: DeliveryStatus; error?: string | null },
+  ) {
+    return channelMessagesRepository.setDelivery(messageId, values);
+  },
+
+  updateDeliveryByProviderId(
+    organizationId: string,
+    providerMessageId: string,
+    status: DeliveryStatus,
+    error: string | null,
+  ) {
+    return channelMessagesRepository.updateDeliveryByProviderId(
+      organizationId,
+      providerMessageId,
+      status,
+      error,
+    );
   },
 
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {

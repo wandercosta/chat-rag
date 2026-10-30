@@ -513,6 +513,10 @@ export interface ConversationMessage {
   role: "visitante" | "assistente" | "atendente";
   content: string;
   citations: Citation[];
+  /** Canais externos: recibo do provedor (WhatsApp...). */
+  delivery_status?: "enviando" | "enviada" | "entregue" | "lida" | "falhou" | null;
+  delivery_error?: string | null;
+  provider_message_id?: string | null;
   created_at: string;
 }
 
