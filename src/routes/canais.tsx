@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
-import { ConnectWhatsAppDialog } from "@/components/channels/connect-whatsapp-dialog";
+import { ConnectChannelDialog } from "@/components/channels/connect-channel-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,8 @@ export const Route = createFileRoute("/canais")({
       { title: "Canais — ChatRAG" },
       {
         name: "description",
-        content: "Conecte o WhatsApp oficial da organização ao assistente e à caixa de entrada.",
+        content:
+          "Conecte WhatsApp, Instagram, Messenger e Telegram oficiais ao assistente e à caixa de entrada.",
       },
     ],
   }),
@@ -37,7 +38,13 @@ function ChannelsPage() {
       <PageHeader
         title="Canais"
         description="Mensagens desses canais chegam ao assistente e, quando pedem atendente, à caixa de entrada. Só a API oficial de cada provedor é usada."
-        actions={<ConnectWhatsAppDialog tenantId={tenantId} />}
+        actions={
+          <>
+            {(["whatsapp", "instagram", "messenger", "telegram"] as const).map((provider) => (
+              <ConnectChannelDialog key={provider} tenantId={tenantId} provider={provider} />
+            ))}
+          </>
+        }
       />
       {listQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
       {listQuery.data?.length === 0 && (
@@ -50,6 +57,13 @@ function ChannelsPage() {
       </div>
     </>
   );
+}
+
+/** Como a conta aparece: numero, Pagina ou @usuario. */
+function accountLabel(c: ChannelConnection) {
+  if (c.provider === "whatsapp") return c.config.displayPhone || c.external_id;
+  if (c.provider === "messenger") return c.config.pageName || c.external_id;
+  return c.config.username ? `@${c.config.username}` : c.external_id;
 }
 
 function CopyLine({ label, value }: { label: string; value: string }) {
@@ -79,10 +93,11 @@ function ConnectionCard({
   connection: ChannelConnection;
 }) {
   const queryClient = useQueryClient();
+  const isWhatsApp = c.provider === "whatsapp";
   const templatesQuery = useQuery({
     queryKey: ["channel-templates", tenantId, c.id],
     queryFn: () => channelsApi.templates(tenantId!, c.id),
-    enabled: !!tenantId,
+    enabled: !!tenantId && isWhatsApp,
   });
   const onError = (err: unknown) =>
     toast.error(err instanceof ApiError ? err.message : "Não foi possível concluir");
@@ -119,8 +134,7 @@ function ConnectionCard({
             <Badge variant={c.status === "ativo" ? "secondary" : "destructive"}>{c.status}</Badge>
           </CardTitle>
           <CardDescription>
-            {channelLabel[c.provider]} · {c.config.displayPhone || c.external_id} · token{" "}
-            {c.secret_hint}
+            {channelLabel[c.provider]} · {accountLabel(c)} · token {c.secret_hint}
           </CardDescription>
           {c.status_detail && <p className="text-xs text-destructive">{c.status_detail}</p>}
         </div>
@@ -137,12 +151,20 @@ function ConnectionCard({
         </Button>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        <p className="text-xs text-muted-foreground">
-          Na Meta, em WhatsApp › Configuração, cadastre o webhook com estes dados e assine o campo
-          “messages”:
-        </p>
-        <CopyLine label="URL de retorno" value={c.webhookUrl} />
-        <CopyLine label="Token de verificação" value={c.verify_token} />
+        {c.provider === "telegram" ? (
+          <p className="text-xs text-muted-foreground">
+            O webhook é registrado sozinho no Telegram. Se o estado ficar em erro, confira se a API
+            tem endereço público com HTTPS (PUBLIC_API_URL) e use “Testar conexão”.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Na Meta, cadastre o webhook com estes dados e assine o campo “messages”:
+            </p>
+            <CopyLine label="URL de retorno" value={c.webhookUrl} />
+            <CopyLine label="Token de verificação" value={c.verify_token} />
+          </>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button
@@ -153,32 +175,36 @@ function ConnectionCard({
           >
             Testar conexão
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={sync.isPending}
-            onClick={() => sync.mutate()}
-          >
-            <RefreshCw />
-            Sincronizar modelos
-          </Button>
+          {isWhatsApp && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={sync.isPending}
+              onClick={() => sync.mutate()}
+            >
+              <RefreshCw />
+              Sincronizar modelos
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium">Modelos de mensagem</p>
-          {templatesQuery.data?.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Nenhum modelo. Eles servem para falar com o cliente depois de 24 horas sem resposta.
-            </p>
-          )}
-          {templatesQuery.data?.map((t) => (
-            <div key={t.id} className="flex items-center gap-2 text-xs">
-              <Badge variant="outline">{t.status}</Badge>
-              <span className="font-medium">{t.name}</span>
-              <span className="truncate text-muted-foreground">{t.body}</span>
-            </div>
-          ))}
-        </div>
+        {isWhatsApp && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Modelos de mensagem</p>
+            {templatesQuery.data?.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum modelo. Eles servem para falar com o cliente depois de 24 horas sem resposta.
+              </p>
+            )}
+            {templatesQuery.data?.map((t) => (
+              <div key={t.id} className="flex items-center gap-2 text-xs">
+                <Badge variant="outline">{t.status}</Badge>
+                <span className="font-medium">{t.name}</span>
+                <span className="truncate text-muted-foreground">{t.body}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

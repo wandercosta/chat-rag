@@ -1,10 +1,12 @@
 /** Canais oficiais (ADR-006, etapa 4; docs/apis/contratos-planejados.md). */
 import { apiFetch } from "./api-client";
 
+export type ChannelProvider = "whatsapp" | "telegram" | "instagram" | "messenger";
+
 export interface ChannelConnection {
   id: string;
   assistant_id: string;
-  provider: "whatsapp" | "telegram" | "instagram" | "messenger";
+  provider: ChannelProvider;
   name: string;
   external_id: string;
   config: Record<string, string>;
@@ -27,15 +29,6 @@ export interface ChannelTemplate {
   variables: number;
 }
 
-export interface NewWhatsAppConnection {
-  name: string;
-  assistantId: string;
-  phoneNumberId: string;
-  wabaId: string;
-  accessToken: string;
-  appSecret: string;
-}
-
 const base = (organizationId: string) => `/organizations/${organizationId}`;
 const post = <T>(path: string, body?: unknown) =>
   apiFetch<T>(path, {
@@ -46,8 +39,9 @@ const post = <T>(path: string, body?: unknown) =>
 export const channelsApi = {
   list: (organizationId: string) =>
     apiFetch<ChannelConnection[]>(`${base(organizationId)}/channels`),
-  createWhatsApp: (organizationId: string, input: NewWhatsAppConnection) =>
-    post<ChannelConnection>(`${base(organizationId)}/channels/whatsapp`, input),
+  /** Os campos de cada provedor estao no dialogo de conexao. */
+  connect: (organizationId: string, provider: ChannelProvider, input: Record<string, string>) =>
+    post<ChannelConnection>(`${base(organizationId)}/channels/${provider}`, input),
   check: (organizationId: string, id: string) =>
     post<{ status: string; detail: string | null }>(`${base(organizationId)}/channels/${id}/check`),
   remove: (organizationId: string, id: string) =>

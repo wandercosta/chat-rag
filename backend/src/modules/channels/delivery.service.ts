@@ -3,8 +3,9 @@ import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { inboxService, type InboxActor } from "../inbox/index.js";
 import { connectionsRepository, templatesRepository } from "./connections.repository.js";
-import { secretsOf } from "./connections.service.js";
-import { WhatsAppApiError, whatsappClient } from "./whatsapp.client.js";
+import { ChannelApiError } from "./http.js";
+import { providers, secretsOf } from "./providers.js";
+import { whatsappClient } from "./whatsapp.client.js";
 
 export class TemplateNotFoundError extends Error {}
 export class TemplateParamsError extends Error {}
@@ -27,20 +28,21 @@ export async function deliverMessage(organizationId: string, messageId: string) 
     organizationId,
     message.channel_connection_id,
   );
-  const to = await contactsService.channelAddress(organizationId, message.contact_id, "whatsapp");
+  const to = connection
+    ? await contactsService.channelAddress(organizationId, message.contact_id, connection.provider)
+    : null;
   if (!connection || !to) {
     await conversationsService.setDelivery(messageId, {
       status: "falhou",
-      error: !connection ? "canal desconectado" : "contato sem numero de WhatsApp",
+      error: !connection ? "canal desconectado" : "contato sem endereco neste canal",
     });
     await inboxService.touched(organizationId, message.conversation_id);
     return;
   }
 
   try {
-    const providerMessageId = await whatsappClient.sendText(
-      connection.external_id,
-      secretsOf(connection).accessToken,
+    const providerMessageId = await providers[connection.provider].sendText(
+      connection,
       to,
       message.content,
     );
@@ -51,7 +53,7 @@ export async function deliverMessage(organizationId: string, messageId: string) 
   } catch (err) {
     const error = err instanceof Error ? err.message : "falha no envio";
     await conversationsService.setDelivery(messageId, { status: "falhou", error });
-    if (err instanceof WhatsAppApiError && err.retryable) throw err;
+    if (err instanceof ChannelApiError && err.retryable) throw err;
   } finally {
     await inboxService.touched(organizationId, message.conversation_id);
   }
@@ -70,7 +72,11 @@ export async function sendTemplateFromPanel(
   params: string[],
 ) {
   const conversation = await conversationsService.get(organizationId, conversationId);
-  if (!conversation?.channel_connection_id || !conversation.contact_id) {
+  if (
+    conversation?.channel !== "whatsapp" ||
+    !conversation.channel_connection_id ||
+    !conversation.contact_id
+  ) {
     throw new NotAChannelConversationError();
   }
   const template = await templatesRepository.find(organizationId, templateId);

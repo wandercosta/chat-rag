@@ -3,10 +3,11 @@ import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { inboxService } from "../inbox/index.js";
 import { answerService } from "../rag/index.js";
-import type { DeliveryStatus } from "../../db/types.js";
+import type { ChannelProvider, DeliveryStatus } from "../../db/types.js";
 import type { InboundMessage } from "../../queue/channel-messages.queue.js";
 import { connectionsRepository } from "./connections.repository.js";
 import { deliverMessage } from "./delivery.service.js";
+import { providers } from "./providers.js";
 
 /** Depois de um dia sem mensagens, a proxima abre uma conversa nova. */
 const CONVERSATION_IDLE_MS = 24 * 60 * 60 * 1000;
@@ -14,7 +15,7 @@ const CONVERSATION_IDLE_MS = 24 * 60 * 60 * 1000;
 /** "Quero falar com um atendente", "tem algum humano?"... */
 const ASKS_FOR_HUMAN = /\b(atendente|humano|humana|falar com (uma )?pessoa)\b/i;
 
-/** No WhatsApp nao ha painel de fontes: as citacoes vao no fim do texto. */
+/** Nos canais nao ha painel de fontes: as citacoes vao no fim do texto. */
 function withSources(answer: string, citations: { index: number; sourceTitle: string }[]) {
   if (citations.length === 0) return answer;
   const lines = citations.map((c) => `[${c.index}] ${c.sourceTitle}`);
@@ -24,7 +25,7 @@ function withSources(answer: string, citations: { index: number; sourceTitle: st
 /** Conversa em andamento com o contato nesta conexao, ou uma nova. */
 async function conversationFor(
   organizationId: string,
-  connection: { id: string; assistant_id: string },
+  connection: { id: string; assistant_id: string; provider: ChannelProvider },
   contactId: string,
 ) {
   const latest = await conversationsService.findLatestForChannel(
@@ -40,14 +41,14 @@ async function conversationFor(
   return conversationsService.startForChannel(
     organizationId,
     connection.assistant_id,
-    "whatsapp",
+    connection.provider,
     connection.id,
     contactId,
   );
 }
 
 /**
- * Mensagem recebida pelo WhatsApp (worker). Mesmo caminho do widget: com humano
+ * Mensagem recebida por um canal (worker). Mesmo caminho do widget: com humano
  * na conversa, so grava e avisa o painel; senao, o assistente responde pela
  * base (ADR-006 #4). Pedido explicito de atendente, ou pergunta sem resposta
  * na base com a caixa de entrada ligada, poe a conversa na fila.
@@ -66,9 +67,9 @@ export async function processInbound(connectionId: string, message: InboundMessa
 
   const contactId = await contactsService.resolveForChannel(
     organizationId,
-    "whatsapp",
+    connection.provider,
     message.from,
-    { name: message.name, phone: `+${message.from}` },
+    { name: message.name, phone: providers[connection.provider].phoneFrom(message.from) },
   );
   const conversation = await conversationFor(organizationId, connection, contactId);
 

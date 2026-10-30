@@ -33,7 +33,7 @@ O Master pode consultar apenas o estado da configuracao (ausente, valida, invali
 
 ## Canais, campanhas e automacoes (ADR-006)
 
-Ja valem para o WhatsApp (etapa 4); as regras de campanha e automacao entram nas etapas 6 e 7. Alem do que esta abaixo: buscas pelo id de mensagem do provedor sao escopadas pela organizacao da conexao, porque cada tenant controla o proprio app na Meta e poderia assinar um evento citando a mensagem de outro tenant.
+Ja valem para WhatsApp, Instagram, Messenger e Telegram (etapas 4 e 5; no Telegram, sem assinatura de corpo, a autenticacao e o token secreto aleatorio registrado no `setWebhook` e devolvido em cada entrega); as regras de campanha e automacao entram nas etapas 6 e 7. Alem do que esta abaixo: buscas pelo id de mensagem do provedor sao escopadas pela organizacao da conexao, porque cada tenant controla o proprio app na Meta e poderia assinar um evento citando a mensagem de outro tenant.
 
 - Token de canal (WhatsApp, Instagram/Messenger, Telegram) segue as mesmas regras da chave de IA: envelope encryption, nunca devolvido por API, interface, log ou auditoria; o Master ve so o estado.
 - Webhook de entrada e publico, entao valida a assinatura do provedor antes de qualquer processamento, resolve a organizacao pela conexao do canal (nunca por parametro enviado pelo chamador) e e idempotente pelo id da mensagem no provedor.
