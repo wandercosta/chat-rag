@@ -53,6 +53,8 @@ O widget aceita, via atributos `data-*` no `<script>`, dados que o sistema hospe
 
 O WhatsApp e configurado pela organizacao. O assistente pode fornecer contexto para selecionar setor; caso a confianca seja insuficiente ou haja mais de uma opcao aplicavel, o widget mostra botoes com os setores para o visitante escolher. A primeira versao abre WhatsApp com a ultima pergunta e identificacao permitida, sem enviar automaticamente o historico completo.
 
+**Caixa de entrada (ADR-006).** Com "Atendimento humano pelo painel" ligado no assistente, `POST /widget/config` devolve `humanInbox: true` e o botao vira "Falar com atendente": o pedido coloca a conversa na fila do painel, o assistente para de responder e o widget abre um `EventSource` em `/widget/conversations/:id/events` para receber a resposta do atendente (identificada como "Atendente") e o aviso de encerramento. Quando a conversa e resolvida, o assistente volta a responder. Sem essa opcao, o comportamento do WhatsApp acima continua igual.
+
 ## Estado da implementacao
 
 Bundle publico em `widget/` (~13kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff, identidade/contexto do visitante (nao assinados, ver secao acima) e Shadow DOM. Diferencas do desenhado acima: titulo/saudacao/tema/posicao vem hoje de atributos `data-*` no `<script>`, nao de configuracao do assistente buscada da API (a hierarquia "assistente > organizacao" ainda nao existe); sem customizacao de logo; sem token de identidade autenticada assinado; resposta e request/response simples, sem streaming.

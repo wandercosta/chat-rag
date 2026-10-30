@@ -23,6 +23,7 @@ Antes de qualquer implementacao, leia os documentos relevantes desta pasta. Alte
 - `decisions/ADR-003-colecao-como-filtro-opcional.md` - colecao restringe o que o assistente enxerga da base, mas nao e pre-requisito para responder.
 - `decisions/ADR-004-modelos-liberados-por-padrao.md` - sem lista explicita, o tenant usa todos os modelos ativos do catalogo.
 - `decisions/ADR-005-provedor-de-ia-da-plataforma.md` - provedor de IA da plataforma por .env (OpenAI, Anthropic ou local) e embeddings globais do deploy.
+- `decisions/ADR-006-atendimento-omnichannel-e-crm.md` - evolucao para atendimento omnichannel com CRM de contatos: caixa de entrada humana, canais oficiais, campanhas e automacoes (substitui em parte o ADR-001 #12).
 - `deploy/ambientes.md` - ambientes e estratégias de deploy.
 - `deploy/containers.md` - guia e padronização de contêineres Docker (infraestrutura e stack completa).
 - `checklists/antes-de-implementar.md` - validacoes obrigatorias.
@@ -30,6 +31,8 @@ Antes de qualquer implementacao, leia os documentos relevantes desta pasta. Alte
 ## Estado atual
 
 Implementacao adiantada em relacao a ordem estrita do roadmap (`planning/escopo-mvp-e-roadmap.md`): ja cobre pedacos de Fase 0, 1 e 2, mas nenhuma fase esta "fechada" — o que falta em cada uma esta listado abaixo.
+
+Rumo atual (ADR-006): a Fase 3 e atendimento omnichannel com CRM de contatos, em 8 etapas. Feitas a etapa 1 (ADR e documentacao) e a etapa 2: **caixa de entrada para o widget** — modulo `inbox`, papel Atendente, tela `/atendimento`, interruptor por assistente, IA calada enquanto ha humano, notas internas, respostas prontas e tempo real por SSE + Redis pub/sub (ver `backend/especificacao-backend.md` - Caixa de entrada). Canais, contatos, campanhas e automacoes ainda nao tem codigo.
 
 - Painel administrativo prototipado no Lovable (raiz do repo, TanStack Start/React/TypeScript). Parcialmente ligado ao backend real:
   - Real: login/logout/sessao (`src/lib/session.tsx` consulta `GET /auth/me`, sem simulador de perfil), CORS dedicado (`backend/src/cors.ts` — painel com origem restrita + cookie, widget publico com origem aberta e sem cookie), tenants do Master (`/tenants`), assistentes (`/assistentes`, lista + criacao + edicao real de nome/modelo/status/instrucoes/retencao), lacunas (`/lacunas`, inclusive responder uma lacuna criando fonte), configuracoes (`/configuracoes`: chave OpenAI BYOK de verdade — cadastro/estado/remocao, modelos liberados, retencao da organizacao), base de conhecimento (`/conhecimento`: topicos, fontes texto/URL/upload PDF-DOCX, aprovar/reindexar/arquivar) e playground (`/playground`, chama `POST .../playground-messages` de verdade). Verificado no browser contra o backend rodando, nao so por inspecao de codigo.

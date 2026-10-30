@@ -4,6 +4,8 @@
 
 O ChatRAG fornece assistentes de IA baseados em conhecimento privado. Cada assistente atende um contexto definido, pode ser testado no painel e integrado a qualquer site por um script, sem alterar o sistema hospedeiro.
 
+Depois do MVP, o produto evolui para atendimento omnichannel com CRM de contatos (ADR-006): o assistente responde primeiro, no widget e nos canais que o tenant conectar (WhatsApp, Instagram, Messenger, Telegram), e o humano assume pela caixa de entrada compartilhada. O plano em etapas esta em `planning/escopo-mvp-e-roadmap.md` (Fase 3).
+
 ## Principios obrigatorios
 
 1. **Isolamento por organizacao**: dados nunca atravessam o limite do tenant.
@@ -34,6 +36,15 @@ Widget JS em site ------- API TypeScript ---- PostgreSQL + pgvector
                             |---- worker de extracao e indexacao
 ```
 
+Com o ADR-006 (planejado, ainda nao implementado), entram:
+
+```text
+Meta (WhatsApp/Instagram/Messenger) --webhook--> API ---- envio pelo canal (fila, ritmo por tenant)
+Telegram ------------------------------webhook--> API
+Painel <---- eventos em tempo real (Redis pub/sub, escopo por organizacao)
+Worker ---- campanhas agendadas e execucao de automacoes
+```
+
 ## Stack aprovada
 
 - Painel: React e TypeScript. O primeiro desenho visual sera produzido no Lovable.
@@ -50,3 +61,5 @@ Widget JS em site ------- API TypeScript ---- PostgreSQL + pgvector
 ## Limites do MVP
 
 O produto responde perguntas e encaminha ao atendimento. Ele nao executa acoes em sistemas externos, nao consulta bancos do cliente e nao modifica dados externos.
+
+O ADR-006 abre uma excecao so para comunicacao: responder, enviar template, disparar campanha e executar automacao pelos canais que o proprio tenant conectou, sempre com um responsavel humano identificavel e auditoria. O assistente continua so gerando resposta ancorada na base; ele nao decide acoes e nao le nem altera dados de sistemas do cliente.

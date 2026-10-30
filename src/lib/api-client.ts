@@ -4,7 +4,7 @@
  * podem ser adicionadas aqui seguindo o mesmo padrao conforme mais telas
  * saem do mock.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
 
 export class ApiError extends Error {
   constructor(
@@ -15,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // So manda Content-Type quando ha corpo JSON: Fastify rejeita (400) uma
   // requisicao com esse header e corpo vazio (ex.: POST /auth/logout), e num
   // upload multipart quem define o header (com boundary) tem que ser o browser.
@@ -52,7 +52,7 @@ export interface AuthContext {
   userId: string;
   email: string;
   isPlatform: boolean;
-  memberships: { organizationId: string; role: "Administrador" | "Editor de base" | "Analista" }[];
+  memberships: { organizationId: string; role: TenantRole }[];
 }
 
 export const authApi = {
@@ -157,6 +157,8 @@ export interface Assistant {
   instructions: string | null;
   retention_days: number | null;
   widget_settings: WidgetSettings;
+  /** Pedido de atendente no widget cai na caixa de entrada do painel. */
+  human_inbox_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -184,6 +186,7 @@ export interface UpdateAssistantInput {
   instructions?: string | null;
   retentionDays?: number | null;
   widgetSettings?: WidgetSettings;
+  humanInboxEnabled?: boolean;
 }
 
 export const assistantsApi = {
@@ -394,7 +397,7 @@ export const sourcesApi = {
 
 // --- identity: membros do tenant ------------------------------------------------
 
-export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista" | "Atendente";
 
 export interface Member {
   id: string;
@@ -507,7 +510,7 @@ export interface Conversation {
 export interface ConversationMessage {
   id: string;
   conversation_id: string;
-  role: "visitante" | "assistente";
+  role: "visitante" | "assistente" | "atendente";
   content: string;
   citations: Citation[];
   created_at: string;

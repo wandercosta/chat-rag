@@ -20,6 +20,11 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 - Registrar feedback.
 - Gerar encaminhamento para WhatsApp.
 
+## Planejado pelo ADR-006 (ainda sem rotas)
+
+- Painel: contatos (CRUD, etiquetas, campos, segmentos, importacao/exportacao CSV), conexoes de canal (sem leitura do token), templates, campanhas e automacoes.
+- Webhooks de entrada por provedor (Meta, Telegram): publicos, com validacao de assinatura e idempotencia; a organizacao vem da conexao do canal, nunca do payload.
+
 ## Regras
 
 - Nao existe endpoint publico de registro de tenant ou usuario; provisionamento requer sessao Master.
@@ -54,6 +59,11 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET|POST /organizations/:organizationId/members`, `PATCH|DELETE .../members/:membershipId` (acessos do tenant; senha provisoria definida pelo administrador, sem cadastro publico; a organizacao nunca fica sem administrador)
 - `GET /organizations/:organizationId/audit`
 - `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)
+- `GET /organizations/:organizationId/inbox?view=fila|minhas|abertas|resolvidas|assistente` (caixa de entrada, ADR-006; leitura para Administrador, Atendente e Analista)
+- `GET /organizations/:organizationId/inbox/events` (SSE: avisa qual conversa mudou; o painel recarrega pelas rotas normais)
+- `GET /organizations/:organizationId/inbox/:conversationId` (mensagens com autor, atribuicao e notas internas)
+- `POST .../inbox/:conversationId/assign` (`{ userId | null }`), `POST .../status` (`aberta|pendente|resolvida`), `POST .../messages` (resposta ao visitante; 409 se outra pessoa assumiu), `POST .../notes` (nota interna) — Administrador e Atendente; Master em suporte recebe 403
+- `GET|POST /organizations/:organizationId/canned-responses`, `DELETE .../canned-responses/:responseId` (respostas prontas; criar e remover so Administrador)
 
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 
@@ -61,4 +71,6 @@ Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 - `POST /widget/conversations` (aceita `externalUserId`, `visitorName`, `visitorEmail`, `context` opcionais — identidade/contexto do visitante nao assinados, ver `docs/integrations/widget-embed.md`)
 - `POST /widget/conversations/:conversationId/messages`
 - `POST /widget/conversations/:conversationId/feedback`
-- `POST /widget/conversations/:conversationId/handoff` (retorna link `wa.me` direto, ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)
+- `POST /widget/conversations/:conversationId/handoff` (com a caixa de entrada ligada no assistente, coloca a conversa na fila e retorna `{ inbox: true, status }`; senao, link `wa.me` direto ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)
+- `POST /widget/conversations/:conversationId/messages` responde `{ answer: null, humanHandling: true }` enquanto um humano cuida da conversa
+- `GET /widget/conversations/:conversationId/events?key=...` (SSE: resposta do atendente e status da conversa; mesma validacao de chave, origem e conversa das outras rotas publicas — a chave publica vai na query porque o `EventSource` nao envia corpo)

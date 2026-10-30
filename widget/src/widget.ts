@@ -1,12 +1,10 @@
-import { createApiClient, ChatRagApiError, type ApiClient } from "./api.js";
+import { createApiClient, type ApiClient } from "./api.js";
+import { describeError, describeHandoffError } from "./errors.js";
 import { el } from "./dom.js";
 import { CHAT_ICON, CLOSE_ICON } from "./icons.js";
+import { renderMessages, type RenderedMessage } from "./render.js";
 import { buildStyles } from "./styles.js";
-import type { ChatMessage, Citation, WidgetOptions } from "./types.js";
-
-interface RenderedMessage extends ChatMessage {
-  feedback?: "positivo" | "negativo";
-}
+import type { InboxEvent, WidgetOptions } from "./types.js";
 
 export class ChatRagWidget {
   private readonly api: ApiClient;
@@ -14,6 +12,7 @@ export class ChatRagWidget {
   private messages: RenderedMessage[] = [];
   private open = false;
   private sending = false;
+  private events: EventSource | null = null;
 
   private root!: HTMLElement;
   private panel!: HTMLDivElement;
@@ -61,7 +60,7 @@ export class ChatRagWidget {
    * o widget mostra o motivo em vez de falhar so no primeiro envio. */
   private afterConfig(configError: unknown) {
     if (configError) {
-      this.messages = [{ role: "assistente", content: this.describeError(configError) }];
+      this.messages = [{ role: "assistente", content: describeError(configError) }];
       this.sendBtn.disabled = true;
       this.input.disabled = true;
       this.renderMessages();
@@ -134,7 +133,11 @@ export class ChatRagWidget {
     this.sendBtn = el("button", { class: "chatrag-send" }, ["Enviar"]);
     this.sendBtn.addEventListener("click", () => this.handleSend());
 
-    const handoffBtn = el("button", { class: "chatrag-handoff" }, ["WhatsApp"]);
+    // Com a caixa de entrada ligada, o atendente responde aqui mesmo; senao,
+    // o botao abre o WhatsApp do setor (ADR-006).
+    const handoffBtn = el("button", { class: "chatrag-handoff" }, [
+      this.options.humanInbox ? "Falar com atendente" : "WhatsApp",
+    ]);
     handoffBtn.addEventListener("click", () => this.handleHandoff());
 
     const footer = el("div", { class: "chatrag-footer" }, [this.input, handoffBtn, this.sendBtn]);
@@ -164,6 +167,7 @@ export class ChatRagWidget {
       context: this.options.context,
     });
     this.conversationId = res.conversationId;
+    this.connectEvents();
     if (res.isResumed && res.messages && res.messages.length > 0) {
       this.messages = res.messages.map((m) => ({
         role: m.role,
@@ -191,9 +195,10 @@ export class ChatRagWidget {
         conversationId,
         text,
       );
-      this.messages.push({ role: "assistente", content: answer, citations });
+      // Sem resposta = um atendente esta na conversa; a dele chega por evento.
+      if (answer !== null) this.messages.push({ role: "assistente", content: answer, citations });
     } catch (err) {
-      this.messages.push({ role: "assistente", content: this.describeError(err) });
+      this.messages.push({ role: "assistente", content: describeError(err) });
     } finally {
       this.setSending(false);
       this.renderMessages();
@@ -215,37 +220,31 @@ export class ChatRagWidget {
     try {
       const conversationId = await this.ensureConversation();
       const result = await this.api.requestHandoff(this.options.key, conversationId);
-      if (result.needsSectorSelection) {
+      if ("inbox" in result) {
+        this.messages.push({
+          role: "aviso",
+          content: "Pedido enviado. Um atendente vai continuar a conversa aqui.",
+        });
+        this.renderMessages();
+      } else if (result.needsSectorSelection) {
         this.renderSectorChoice(result.sectors);
       } else {
         window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
       }
     } catch (err) {
-      this.messages.push({ role: "assistente", content: this.describeHandoffError(err) });
+      this.messages.push({ role: "assistente", content: describeHandoffError(err) });
       this.renderMessages();
     }
-  }
-
-  /** O 409 aqui significa "sem WhatsApp configurado", nao "assistente fora do
-   * ar" como em /messages. Reusar describeError diria ao visitante que o
-   * atendimento quebrou, quando o chat esta funcionando normalmente. */
-  private describeHandoffError(err: unknown): string {
-    if (err instanceof ChatRagApiError) {
-      if (err.status === 409)
-        return "O encaminhamento para atendente nao esta disponivel neste atendimento.";
-      if (err.status === 422) return "Nao consegui identificar o setor escolhido. Tente novamente.";
-    }
-    return this.describeError(err);
   }
 
   private async chooseSector(sectorId: string) {
     if (!this.conversationId) return;
     try {
       const result = await this.api.requestHandoff(this.options.key, this.conversationId, sectorId);
-      if (!result.needsSectorSelection)
+      if (!("inbox" in result) && !result.needsSectorSelection)
         window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
-      this.messages.push({ role: "assistente", content: this.describeError(err) });
+      this.messages.push({ role: "assistente", content: describeError(err) });
       this.renderMessages();
     }
   }
@@ -270,66 +269,40 @@ export class ChatRagWidget {
     this.sendBtn.disabled = value;
   }
 
-  private describeError(err: unknown): string {
-    if (err instanceof ChatRagApiError) {
-      if (err.status === 429)
-        return "Muitas mensagens em pouco tempo. Tente novamente em instantes.";
-      if (err.status === 409) return "Este assistente esta temporariamente indisponivel.";
-      if (err.status === 401 || err.status === 403)
-        return "Este atendimento nao esta disponivel neste site.";
-    }
-    return "Nao foi possivel enviar sua mensagem agora. Tente novamente.";
+  /** Tempo real so com a caixa de entrada ligada: e por aqui que a resposta
+   * do atendente chega. O EventSource reconecta sozinho se a rede cair. */
+  private connectEvents() {
+    if (!this.options.humanInbox || !this.conversationId || this.events) return;
+    this.events = new EventSource(this.api.eventsUrl(this.options.key, this.conversationId));
+    this.events.onmessage = (e) => {
+      let event: InboxEvent;
+      try {
+        event = JSON.parse(e.data) as InboxEvent;
+      } catch {
+        return;
+      }
+      this.handleInboxEvent(event);
+    };
   }
 
-  /** "Fontes" abaixo da resposta: documento de origem + trecho (expansivel). */
-  private renderCitations(citations: Citation[]): HTMLElement {
-    return el("div", { class: "chatrag-citations" }, [
-      el("span", { class: "chatrag-citations-label" }, ["Fontes"]),
-      ...citations.map((c) =>
-        el("details", { class: "chatrag-citation" }, [
-          el("summary", {}, [`[${c.index}] ${c.sourceTitle}`]),
-          el("p", {}, [c.excerpt]),
-        ]),
-      ),
-    ]);
+  private handleInboxEvent(event: InboxEvent) {
+    if (event.kind === "agent_message") {
+      this.messages.push({ role: "atendente", content: event.content });
+    } else if (event.status === "resolvida") {
+      this.messages.push({
+        role: "aviso",
+        content: "Atendimento encerrado. Obrigado pelo contato!",
+      });
+    } else {
+      return;
+    }
+    this.renderMessages();
   }
 
   private renderMessages() {
-    this.messagesEl.innerHTML = "";
-    this.messages.forEach((msg, index) => {
-      const bubble = el("div", { class: `chatrag-msg ${msg.role}` }, [msg.content]);
-
-      if (msg.role === "assistente" && this.options.avatarUrl) {
-        const avatar = el("img", {
-          src: this.options.avatarUrl,
-          class: "chatrag-msg-avatar",
-          alt: "Avatar",
-        });
-        const msgContainer = el("div", { style: "display: flex; flex-direction: column; max-width: 82%;" }, [bubble]);
-        if (msg.citations?.length) msgContainer.append(this.renderCitations(msg.citations));
-        if (index > 0) {
-          const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
-          up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
-          const down = el("button", { "data-active": String(msg.feedback === "negativo") }, ["👎"]);
-          down.addEventListener("click", () => this.handleFeedback(index, "negativo"));
-          msgContainer.append(el("div", { class: "chatrag-feedback" }, [up, down]));
-        }
-        const row = el("div", { class: "chatrag-msg-row assistente" }, [avatar, msgContainer]);
-        this.messagesEl.append(row);
-      } else {
-        this.messagesEl.append(bubble);
-        if (msg.role === "assistente" && msg.citations?.length) {
-          this.messagesEl.append(this.renderCitations(msg.citations));
-        }
-        if (msg.role === "assistente" && index > 0) {
-          const up = el("button", { "data-active": String(msg.feedback === "positivo") }, ["👍"]);
-          up.addEventListener("click", () => this.handleFeedback(index, "positivo"));
-          const down = el("button", { "data-active": String(msg.feedback === "negativo") }, ["👎"]);
-          down.addEventListener("click", () => this.handleFeedback(index, "negativo"));
-          this.messagesEl.append(el("div", { class: "chatrag-feedback" }, [up, down]));
-        }
-      }
+    renderMessages(this.messagesEl, this.messages, {
+      avatarUrl: this.options.avatarUrl,
+      onFeedback: (index, rating) => this.handleFeedback(index, rating),
     });
-    this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
   }
 }

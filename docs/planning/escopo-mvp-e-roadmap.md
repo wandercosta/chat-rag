@@ -20,7 +20,7 @@
 - Cobranca, assinatura e autoatendimento comercial.
 - Audio, video, imagem, planilha e sincronizacao de APIs.
 - Login integrado a sistemas externos (SSO).
-- Atendimento humano nativo; o primeiro canal sera WhatsApp.
+- Atendimento humano nativo e canais de mensagem: entram depois do MVP, na Fase 3 (ADR-006).
 
 ## Evolucao
 
@@ -29,8 +29,30 @@
 | 0    | Documentacao, Docker local, painel Master, fundacao multi-tenant e autenticacao propria |
 | 1    | Base de conhecimento, RAG e chat de teste interno                                       |
 | 2    | Widget externo, chaves, dominios e identificacao opcional                               |
-| 3    | Governanca SaaS: planos, limites, autoatendimento e SSO                                 |
-| 4    | Canais, acoes autorizadas e conectores de dados                                         |
+| 3    | Atendimento omnichannel e CRM de contatos (ADR-006), em etapas — ver abaixo             |
+| 4    | Governanca SaaS: planos, limites, autoatendimento, cobranca e SSO                       |
+| 5    | Acoes autorizadas do assistente e conectores de dados de sistemas externos              |
+
+A Fase 3 era "Governanca SaaS" e os canais estavam na antiga Fase 4; o ADR-006 trouxe os canais para antes da governanca, porque sem atendimento humano e canais o tenant precisa de outra ferramenta para atender o que a IA nao resolve.
+
+## Fase 3: atendimento omnichannel e CRM (ADR-006)
+
+| Etapa | Entrega                                                                                              | Depende de |
+| ----- | ---------------------------------------------------------------------------------------------------- | ---------- |
+| 1     | ADR-006 e documentacao do novo escopo                                                                | —          |
+| 2     | Tempo real e caixa de entrada compartilhada: status, atribuicao, notas internas e respostas prontas  | 1          |
+| 3     | CRM de contatos: identidades por canal, etiquetas, campos personalizados, segmentos e importacao CSV | 1          |
+| 4     | WhatsApp pela Cloud API oficial: conexao do tenant, webhook, templates, janela de 24h e recibos      | 2 e 3      |
+| 5     | Telegram, Instagram Direct e Messenger, sobre a mesma camada de canal                                | 4          |
+| 6     | Campanhas: publico por segmento, opt-in, agendamento, ritmo por organizacao e metricas               | 3 e 4      |
+| 7     | Automacao sem codigo: fluxos deterministicos publicados por humano, com log de execucao              | 2 e 3      |
+| 8     | Verificacao em duas etapas, exportacao de dados (LGPD), API publica com token e webhooks de saida    | —          |
+
+Feitas: etapas 1 (documentacao) e 2 (caixa de entrada para o widget, com o papel Atendente). Da etapa 2 ficou para depois a atribuicao a setor.
+
+Fora da Fase 3: e-commerce (Shopify, WooCommerce), agendamento de posts em redes sociais, e-mail e SMS como canal, e acoes do assistente em sistemas externos.
+
+Etapas 4 e 5 dependem de passos que so o tenant (ou quem opera o deploy) pode fazer na Meta: criar o app, verificar a empresa e passar pela revisao de permissoes. Esses prazos nao sao controlados pelo codigo.
 
 ## Criterio de sucesso do MVP
 

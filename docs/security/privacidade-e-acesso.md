@@ -24,6 +24,16 @@ Rotacao de KEK e barata (re-envelopa so a DEK). Rotacao de DEK exige job de re-c
 
 O Master pode consultar apenas o estado da configuracao (ausente, valida, invalida, substituida ou removida) e executar remocao/suporte auditado. Ele nao pode revelar nem copiar a chave de um tenant. O tenant escolhe se usa a mesma credencial em teste e producao ou credenciais distintas; a configuracao e auditada sem expor o segredo.
 
+## Canais, campanhas e automacoes (ADR-006, planejado)
+
+- Token de canal (WhatsApp, Instagram/Messenger, Telegram) segue as mesmas regras da chave de IA: envelope encryption, nunca devolvido por API, interface, log ou auditoria; o Master ve so o estado.
+- Webhook de entrada e publico, entao valida a assinatura do provedor antes de qualquer processamento, resolve a organizacao pela conexao do canal (nunca por parametro enviado pelo chamador) e e idempotente pelo id da mensagem no provedor.
+- Campanha so alcanca contato com opt-in registrado (origem e data) e sem opt-out. Fora da janela de 24 horas do WhatsApp, so template aprovado.
+- Toda mensagem enviada tem um responsavel humano identificavel (quem respondeu, publicou o fluxo ou disparou a campanha) e entra na auditoria, sem o conteudo da mensagem.
+- Nota interna nunca e enviada ao contato, por nenhum canal.
+- Eventos em tempo real sao escopados por organizacao; um evento nunca chega a sessao de outro tenant.
+- Somente APIs oficiais dos provedores; nada de automacao de WhatsApp Web.
+
 ## Auditoria append-only
 
 A tabela `audit_events` e gravada apenas por INSERT pela role de aplicacao; UPDATE e DELETE nao sao permitidos a essa role no banco (restricao de permissao de banco, nao so regra de aplicacao). Correcao ou expurgacao legal segue caminho administrativo separado, fora do fluxo normal da API. Ver ADR-002.

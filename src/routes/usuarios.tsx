@@ -54,7 +54,7 @@ export const Route = createFileRoute("/usuarios")({
   component: UsersPage,
 });
 
-const roles: TenantRole[] = ["Administrador", "Editor de base", "Analista"];
+const roles: TenantRole[] = ["Administrador", "Editor de base", "Analista", "Atendente"];
 
 function UsersPage() {
   const { can, tenantId, userEmail } = useSession();
@@ -207,7 +207,10 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
   const create = useMutation({
     mutationFn: () => {
       if (!tenantId) {
-        throw new ApiError(400, "Selecione uma organização no menu superior antes de criar um acesso.");
+        throw new ApiError(
+          400,
+          "Selecione uma organização no menu superior antes de criar um acesso.",
+        );
       }
       return membersApi.create(tenantId, { email, password, role });
     },
@@ -292,7 +295,10 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!tenantId || create.isPending || password.length < 8 || !email}>
+            <Button
+              type="submit"
+              disabled={!tenantId || create.isPending || password.length < 8 || !email}
+            >
               {create.isPending ? "Criando..." : "Criar acesso"}
             </Button>
           </DialogFooter>
