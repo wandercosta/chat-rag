@@ -41,6 +41,8 @@ export default defineConfig({
       // (src/test/fake-graph-api.ts), no mesmo servidor.
       META_GRAPH_URL: "http://127.0.0.1:4599/v21.0",
       TELEGRAM_API_URL: "http://127.0.0.1:4599",
+      // Teto baixo para o teste de arquivo grande (src/test/fake-graph-api.ts).
+      CHANNEL_MEDIA_MAX_BYTES: "4096",
     },
   },
 });

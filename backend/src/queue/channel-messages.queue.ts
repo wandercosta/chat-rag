@@ -1,9 +1,21 @@
 import crypto from "node:crypto";
 import { Queue } from "bullmq";
 import { env } from "../config/env.js";
-import type { DeliveryStatus } from "../db/types.js";
+import type { AttachmentKind, DeliveryStatus } from "../db/types.js";
 
 export const CHANNEL_MESSAGES_QUEUE = "channel-messages";
+
+/**
+ * Midia de uma mensagem recebida. `ref` e como o provedor entrega o arquivo:
+ * id da midia no WhatsApp, file_id no Telegram, URL do CDN no Messenger e
+ * no Instagram. O worker baixa e guarda (channels/media.ts).
+ */
+export interface InboundMedia {
+  kind: AttachmentKind;
+  ref: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+}
 
 /** Mensagem recebida de um canal, ja normalizada (ver channels/*.webhook.ts). */
 export interface InboundMessage {
@@ -12,6 +24,7 @@ export interface InboundMessage {
   from: string;
   name: string | null;
   text: string;
+  media?: InboundMedia[];
 }
 
 /**

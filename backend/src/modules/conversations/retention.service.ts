@@ -1,5 +1,6 @@
 import { assistantsService } from "../assistants/index.js";
 import { auditService } from "../audit/index.js";
+import { attachmentsService } from "./attachments.service.js";
 import { conversationsRepository } from "./conversations.repository.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -16,6 +17,7 @@ export const retentionService = {
 
     for (const assistant of assistants) {
       const cutoff = new Date(Date.now() - assistant.retentionDays * DAY_MS);
+      await attachmentsService.deleteFilesFor({ assistantId: assistant.id, before: cutoff });
       const deleted = await conversationsRepository.deleteOlderThan(assistant.id, cutoff);
       if (deleted > 0) {
         byOrganization.set(

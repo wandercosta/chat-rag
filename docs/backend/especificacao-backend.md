@@ -36,7 +36,7 @@ Todos os modulos do ADR-006 ja existem no codigo, com as mesmas regras de fronte
 - **Login:** com 2FA ativo, `POST /auth/login` sem `code` responde 401 com `twoFactorRequired: true`; o painel pede o codigo e reenvia. O mesmo codigo nao vale duas vezes (passo usado guardado no Redis por 2 minutos). Entrar com codigo de recuperacao fica na auditoria.
 - **Limite de tentativas:** 10 erros (senha ou codigo) em 15 minutos para o mesmo e-mail bloqueiam o login com 429 ate a janela passar. Acerto zera a contagem.
 - **Master:** com `MASTER_2FA_REQUIRED=true` (recomendado em producao; padrao `false` para dev e seed), o Master sem 2FA ativo recebe 403 com `twoFactorSetupRequired` nas rotas de plataforma e no acesso de suporte.
-- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), conversas com as mensagens e notas internas. Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
+- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), conversas com as mensagens e notas internas (a midia recebida pelos canais nao entra: so o texto das mensagens). Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
 
 ## API publica, webhooks e metricas por atendente (ADR-006, etapa 8)
 
@@ -89,7 +89,8 @@ Detalhes de comportamento e configuracao na Meta em `integrations/whatsapp.md`. 
 - **Resposta da IA:** `answerService.answer` recebe `providerMessageId` e `handoff: "automatico"` (sem botao no WhatsApp: sem resposta na base e com caixa de entrada ligada, a propria resposta avisa e a conversa vai para a fila) e devolve o id da mensagem gravada, que e enviada pela Graph API com as fontes no fim do texto.
 - **Janela de 24 horas:** a regra fica no modulo `inbox` (`reply.ts`), para WhatsApp, Instagram e Messenger; o detalhe da conversa traz `replyWindowEndsAt`. Fora da janela, so `POST .../inbox/:id/template` (modulo `channels`), que exige modelo `APPROVED` da mesma conexao com todas as variaveis.
 - **Segredos:** token e chave secreta do app num unico envelope (`src/crypto/envelope.ts`, o mesmo da chave de IA, agora fora do modulo `organizations` para os dois usarem); o painel so ve o final do token.
-- **Ainda nao:** baixar midia recebida, Embedded Signup (conectar sem copiar ids e token), estado do canal na tela do Master.
+- **Midia recebida:** o parser de cada canal devolve a referencia do arquivo (`media` no job de entrada); depois de responder, o worker baixa (`channels/media.ts`, teto `CHANNEL_MEDIA_MAX_BYTES`) e entrega os bytes ao modulo `conversations`, que guarda no storage (`media/<organizacao>/<anexo>`) e registra em `message_attachments` (pendente > pronto ou falhou). O painel baixa por `GET .../conversations/:id/attachments/:attachmentId`, sempre como `attachment` com `nosniff` (o arquivo vem de fora e pode ter script). Retencao e exclusao de contato apagam os arquivos no storage antes das linhas.
+- **Ainda nao:** Embedded Signup (conectar sem copiar ids e token), estado do canal na tela do Master.
 
 ## Contatos (ADR-006, etapa 3)
 

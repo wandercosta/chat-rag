@@ -8,6 +8,7 @@ Etapa 5 da Fase 3 (ADR-006). Os tres canais usam a mesma camada do WhatsApp (`in
 - **Endereco publico:** o Telegram so entrega em HTTPS publico. Sem `PUBLIC_API_URL` acessivel, o canal fica em **erro** com o motivo; corrigido o endereco, "Testar conexao" registra de novo.
 - **Atendimento:** so conversas privadas com o bot (grupos e canais sao ignorados; `/start` tambem). Nao ha janela de 24 horas nem modelos. Nao ha recibo de entrega/leitura: a mensagem fica como "enviada".
 - **Contato:** pelo id do chat; o nome vem do perfil do Telegram. O Telegram nao revela telefone.
+- **Midia:** foto (o maior tamanho), audio, voz, video, documento e figurinha sao baixados pelo `getFile` e guardados como no WhatsApp. O link de download do Telegram leva o token do bot: nunca e gravado nem logado (o erro guardado e so a mensagem do Telegram). A Bot API so entrega arquivos de ate 20 MB.
 
 ## Messenger (Pagina do Facebook) e Instagram Direct
 
@@ -17,6 +18,7 @@ Etapa 5 da Fase 3 (ADR-006). Os tres canais usam a mesma camada do WhatsApp (`in
 - **Janela de 24 horas:** vale nos dois. Fora dela o painel avisa que so da para responder quando o cliente escrever de novo (tags de mensagem da Meta ainda nao sao usadas).
 - **Recibos:** o Messenger manda recibo de entrega (vira "entregue"); o de leitura nao traz os ids e e ignorado. O Instagram nao manda recibo.
 - **Contato:** pelo id da pessoa na Pagina (PSID/IGSID). Sem nome por enquanto: a API de perfil exige permissao a mais.
+- **Midia:** imagem, audio, video e arquivo chegam como URL do CDN da Meta dentro do webhook. Como o webhook e assinado pelo app do proprio tenant, o worker so baixa de `*.fbcdn.net`, `*.fbsbx.com` e `*.cdninstagram.com` (ou do host da Graph configurada); qualquer outro endereco vira anexo "nao recebido", para o worker nao servir de ponte para a rede interna.
 
 ## Checklist de validacao com contas reais
 

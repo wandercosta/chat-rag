@@ -8,6 +8,7 @@ import type { ChannelProvider, DeliveryStatus } from "../../db/types.js";
 import type { InboundMessage } from "../../queue/channel-messages.queue.js";
 import { connectionsRepository } from "./connections.repository.js";
 import { deliverMessage } from "./delivery.service.js";
+import { saveInboundMedia } from "./media.js";
 import { providers } from "./providers.js";
 
 /** Depois de um dia sem mensagens, a proxima abre uma conversa nova. */
@@ -69,6 +70,15 @@ export async function processInbound(connectionId: string, message: InboundMessa
     return;
   }
 
+  await routeInbound(connection, message);
+  // Depois da resposta: baixar o arquivo nao atrasa o atendimento.
+  await saveInboundMedia(organizationId, connection, message);
+}
+
+type Connection = NonNullable<Awaited<ReturnType<typeof connectionsRepository.findByIdForWebhook>>>;
+
+async function routeInbound(connection: Connection, message: InboundMessage) {
+  const organizationId = connection.organization_id;
   const contactId = await contactsService.resolveForChannel(
     organizationId,
     connection.provider,

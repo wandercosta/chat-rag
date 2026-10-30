@@ -10,7 +10,7 @@ Etapa 4 da Fase 3 (ADR-006). O tenant conecta um numero da **propria** conta do 
 - **Atendente:** responde pela caixa de entrada; o envio vai pela fila, com ate 3 tentativas em erro temporario (5xx ou limite da Meta). Erro de dado (numero invalido etc.) fica marcado na mensagem.
 - **Janela de 24 horas:** depois de 24 horas sem mensagem do cliente, texto livre e recusado (422) e o painel troca a caixa de resposta pelo envio de **modelo aprovado**, com as variaveis `{{1}}`, `{{2}}`... preenchidas pelo atendente.
 - **Recibos:** enviada, entregue, lida ou falhou, mostrados embaixo de cada mensagem e atualizados em tempo real. Um recibo atrasado nunca rebaixa o status (lida nao volta para entregue).
-- **Midia:** imagem, audio, video, documento e localizacao aparecem como `[imagem recebida]` etc.; o arquivo ainda nao e baixado.
+- **Midia:** imagem, audio, video, documento e figurinha sao baixados pelo worker (`GET /{media-id}` na Graph e download com o token do numero) e guardados no storage da plataforma; o texto da mensagem e a legenda ou, sem legenda, o tipo (`[imagem recebida]` etc.). No painel o arquivo aparece na mensagem: imagem em miniatura, audio e video com player, documento para baixar. Acima de `CHANNEL_MEDIA_MAX_BYTES` (padrao 25 MB) ou com erro da Meta, o anexo fica como "nao recebido" com o motivo; a conversa segue normal. Localizacao e contato compartilhado continuam so como rotulo.
 
 ## Configurar na Meta (uma vez por numero)
 

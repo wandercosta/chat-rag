@@ -201,6 +201,23 @@ export interface MessagesTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export type AttachmentKind = "imagem" | "audio" | "video" | "documento" | "figurinha";
+export type AttachmentStatus = "pendente" | "pronto" | "falhou";
+
+export interface MessageAttachmentsTable {
+  id: Generated<string>;
+  organization_id: string;
+  message_id: string;
+  kind: AttachmentKind;
+  mime_type: string | null;
+  file_name: string | null;
+  size_bytes: number | null;
+  storage_key: string | null;
+  status: ColumnType<AttachmentStatus, AttachmentStatus | undefined>;
+  error: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface ChannelConnectionsTable {
   id: Generated<string>;
   organization_id: string;
@@ -541,6 +558,7 @@ export interface Database {
   visitors: VisitorsTable;
   conversations: ConversationsTable;
   messages: MessagesTable;
+  message_attachments: MessageAttachmentsTable;
   feedbacks: FeedbacksTable;
   knowledge_gaps: KnowledgeGapsTable;
   source_chunks: SourceChunksTable;

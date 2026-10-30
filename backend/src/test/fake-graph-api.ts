@@ -34,6 +34,13 @@ export interface TelegramCall {
   body: Record<string, unknown>;
 }
 
+/** Arquivos que o provedor simulado serve; "grande" passa do teto dos testes. */
+export const FAKE_FILES: Record<string, { body: Buffer; type: string }> = {
+  "foto.jpg": { body: Buffer.from("conteudo-da-foto"), type: "image/jpeg" },
+  "nota.pdf": { body: Buffer.from("%PDF-1.4 conteudo"), type: "application/pdf" },
+  grande: { body: Buffer.alloc(8192, 1), type: "video/mp4" },
+};
+
 export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   // Testes usam os ids fixos (wamid.out.1...); quem roda a API simulada a mao
   // contra um banco que ja tem mensagens passa um prefixo unico.
@@ -45,12 +52,40 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   const app: FastifyInstance = Fastify({ logger: false });
 
   const refuse = (auth?: string) => auth === `Bearer ${BAD_TOKEN}`;
+  const base = `http://127.0.0.1:${FAKE_GRAPH_PORT}`;
+
+  // Arquivo de midia. No WhatsApp a URL exige o token; no CDN, nao.
+  app.get<{ Params: { name: string } }>("/files/:name", async (request, reply) => {
+    const file = FAKE_FILES[request.params.name];
+    if (!file) return reply.code(404).send();
+    return reply.type(file.type).send(file.body);
+  });
+  app.get<{ Params: { name: string } }>("/wa-files/:name", async (request, reply) => {
+    const file = FAKE_FILES[request.params.name];
+    if (!file || !request.headers.authorization?.startsWith("Bearer ")) {
+      return reply.code(401).send();
+    }
+    return reply.type(file.type).send(file.body);
+  });
+  app.get<{ Params: { token: string; name: string } }>(
+    "/file/bot:token/docs/:name",
+    async (request, reply) => {
+      const file = FAKE_FILES[request.params.name];
+      if (!file) return reply.code(404).send();
+      return reply.type(file.type).send(file.body);
+    },
+  );
 
   app.get<{ Params: { id: string }; Querystring: { fields?: string } }>(
     "/v21.0/:id",
     async (request, reply) => {
       if (refuse(request.headers.authorization)) {
         return reply.code(401).send({ error: { message: "Invalid OAuth access token" } });
+      }
+      // Midia do WhatsApp: "media.<arquivo>" devolve a URL curta para baixar.
+      if (request.params.id.startsWith("media.")) {
+        const name = request.params.id.slice("media.".length);
+        return { url: `${base}/wa-files/${name}`, mime_type: FAKE_FILES[name]?.type };
       }
       if (request.query.fields === "name") return { name: "Pagina Teste" };
       if (request.query.fields === "username") return { username: "loja.teste" };
@@ -108,6 +143,9 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
       }
       telegram.push({ token, method, body: request.body ?? {} });
       if (method === "getMe") return { ok: true, result: { id: 7001, username: "loja_bot" } };
+      if (method === "getFile") {
+        return { ok: true, result: { file_path: `docs/${String(request.body.file_id)}` } };
+      }
       if (method === "sendMessage") {
         counter += 1;
         return { ok: true, result: { message_id: counter } };
