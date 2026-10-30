@@ -36,6 +36,7 @@ export type Permission =
   | "contacts"
   | "contacts_write"
   | "channels"
+  | "campaigns"
   | "write";
 
 const matrix: Record<Profile, Permission[]> = {
@@ -52,6 +53,7 @@ const matrix: Record<Profile, Permission[]> = {
     "inbox",
     "contacts",
     "channels",
+    "campaigns",
     "write",
   ],
   Administrador: [
@@ -68,10 +70,11 @@ const matrix: Record<Profile, Permission[]> = {
     "contacts",
     "contacts_write",
     "channels",
+    "campaigns",
     "write",
   ],
   "Editor de base": ["assistants", "knowledge", "write"],
-  Analista: ["conversations", "gaps", "inbox", "contacts"],
+  Analista: ["conversations", "gaps", "inbox", "contacts", "campaigns"],
   // Responde e resolve conversas; nao mexe em base, chaves nem usuarios.
   Atendente: ["inbox", "inbox_reply", "contacts", "contacts_write"],
 };

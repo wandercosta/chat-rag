@@ -133,4 +133,44 @@ export const channelMessagesRepository = {
       .returning("conversation_id")
       .executeTakeFirst();
   },
+
+  /**
+   * Recibos e respostas de um conjunto de mensagens enviadas (campanhas):
+   * quantas foram entregues, lidas e quantas tiveram mensagem do cliente
+   * depois, na mesma conversa.
+   */
+  async outcomes(messageIds: string[]) {
+    if (messageIds.length === 0) return { delivered: 0, read: 0, replied: 0 };
+    const row = await db
+      .selectFrom("messages as m")
+      .select([
+        sql<string>`count(*) filter (where m.delivery_status in ('entregue', 'lida'))`.as(
+          "delivered",
+        ),
+        sql<string>`count(*) filter (where m.delivery_status = 'lida')`.as("read"),
+        sql<string>`count(*) filter (where exists (
+          select 1 from messages v
+          where v.conversation_id = m.conversation_id
+            and v.role = 'visitante'
+            and v.created_at > m.created_at
+        ))`.as("replied"),
+      ])
+      .where("m.id", "in", messageIds)
+      .executeTakeFirstOrThrow();
+    return {
+      delivered: Number(row.delivered),
+      read: Number(row.read),
+      replied: Number(row.replied),
+    };
+  },
+
+  async deliveryOf(messageIds: string[]) {
+    if (messageIds.length === 0) return new Map<string, DeliveryStatus | null>();
+    const rows = await db
+      .selectFrom("messages")
+      .select(["id", "delivery_status"])
+      .where("id", "in", messageIds)
+      .execute();
+    return new Map(rows.map((r) => [r.id, r.delivery_status]));
+  },
 };

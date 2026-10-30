@@ -34,7 +34,10 @@ export interface TelegramCall {
   body: Record<string, unknown>;
 }
 
-export async function startFakeGraphApi() {
+export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
+  // Testes usam os ids fixos (wamid.out.1...); quem roda a API simulada a mao
+  // contra um banco que ja tem mensagens passa um prefixo unico.
+  const idPrefix = options.idPrefix ?? "";
   const sent: SentMessage[] = [];
   const metaMessages: MetaMessage[] = [];
   const telegram: TelegramCall[] = [];
@@ -62,14 +65,17 @@ export async function startFakeGraphApi() {
       if ("recipient" in request.body) {
         metaMessages.push({ pageId: request.params.id, body: request.body });
         counter += 1;
-        return { recipient_id: request.body.recipient.id, message_id: `m_out_${counter}` };
+        return {
+          recipient_id: request.body.recipient.id,
+          message_id: `${idPrefix}m_out_${counter}`,
+        };
       }
       if (request.body.to === "5500000000000") {
         return reply.code(400).send({ error: { message: "Recipient phone number not valid" } });
       }
       sent.push({ phoneNumberId: request.params.id, body: request.body });
       counter += 1;
-      return { messages: [{ id: `wamid.out.${counter}` }] };
+      return { messages: [{ id: `${idPrefix}wamid.out.${counter}` }] };
     },
   );
 

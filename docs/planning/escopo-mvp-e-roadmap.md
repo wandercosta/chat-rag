@@ -48,7 +48,7 @@ A Fase 3 era "Governanca SaaS" e os canais estavam na antiga Fase 4; o ADR-006 t
 | 7     | Automacao sem codigo: fluxos deterministicos publicados por humano, com log de execucao              | 2 e 3      |
 | 8     | Verificacao em duas etapas, exportacao de dados (LGPD), API publica com token e webhooks de saida    | —          |
 
-Feitas: etapas 1 (documentacao), 2 (caixa de entrada para o widget, com o papel Atendente) 3 (CRM de contatos) 4 (WhatsApp pela Cloud API) e 5 (Telegram, Instagram e Messenger), validadas contra APIs simuladas; a validacao com contas reais segue os checklists em `integrations/`. Da etapa 2 ficou para depois a atribuicao a setor.
+Feitas: etapas 1 (documentacao), 2 (caixa de entrada para o widget, com o papel Atendente) 3 (CRM de contatos) 4 (WhatsApp pela Cloud API), 5 (Telegram, Instagram e Messenger), validadas contra APIs simuladas, e 6 (campanhas); a validacao com contas reais segue os checklists em `integrations/`. Da etapa 2 ficou para depois a atribuicao a setor.
 
 Fora da Fase 3: e-commerce (Shopify, WooCommerce), agendamento de posts em redes sociais, e-mail e SMS como canal, e acoes do assistente em sistemas externos.
 

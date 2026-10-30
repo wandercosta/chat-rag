@@ -22,6 +22,19 @@ export const identitiesRepository = {
       .execute();
   },
 
+  /** Endereco de cada contato num canal (publico de campanha). */
+  async addressesFor(organizationId: string, contactIds: string[], channel: ContactChannel) {
+    if (contactIds.length === 0) return new Map<string, string>();
+    const rows = await db
+      .selectFrom("contact_identities")
+      .select(["contact_id", "value"])
+      .where("organization_id", "=", organizationId)
+      .where("channel", "=", channel)
+      .where("contact_id", "in", contactIds)
+      .execute();
+    return new Map(rows.map((r) => [r.contact_id, r.value]));
+  },
+
   /** Idempotente: a mesma identidade chegando duas vezes (duas abas do widget
    * ao mesmo tempo) nao quebra pela restricao de unicidade. */
   async link(organizationId: string, contactId: string, channel: ContactChannel, value: string) {

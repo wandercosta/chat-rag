@@ -15,6 +15,9 @@ const CONVERSATION_IDLE_MS = 24 * 60 * 60 * 1000;
 /** "Quero falar com um atendente", "tem algum humano?"... */
 const ASKS_FOR_HUMAN = /\b(atendente|humano|humana|falar com (uma )?pessoa)\b/i;
 
+/** Pedido de sair das campanhas, sozinho na mensagem (ADR-006 #9). */
+const OPT_OUT = /^\s*(sair|parar|stop|descadastrar)\s*[.!]?\s*$/i;
+
 /** Nos canais nao ha painel de fontes: as citacoes vao no fim do texto. */
 function withSources(answer: string, citations: { index: number; sourceTitle: string }[]) {
   if (citations.length === 0) return answer;
@@ -72,6 +75,22 @@ export async function processInbound(connectionId: string, message: InboundMessa
     { name: message.name, phone: providers[connection.provider].phoneFrom(message.from) },
   );
   const conversation = await conversationFor(organizationId, connection, contactId);
+
+  if (OPT_OUT.test(message.text)) {
+    await contactsService.optOut(organizationId, contactId);
+    await conversationsService.addVisitorMessage(
+      conversation.id,
+      message.text,
+      message.providerMessageId,
+    );
+    const reply = await conversationsService.addAssistantMessage(
+      conversation.id,
+      "Pronto! Voce nao vai mais receber nossas campanhas. Se precisar de algo, e so escrever.",
+    );
+    await deliverMessage(organizationId, reply.id);
+    await inboxService.touched(organizationId, conversation.id);
+    return;
+  }
 
   if (await inboxService.isWithHuman(organizationId, conversation.id)) {
     await conversationsService.addVisitorMessage(
