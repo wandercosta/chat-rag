@@ -12,6 +12,11 @@ const schema = z.object({
   APP_MASTER_KEY: z.string().min(32, "APP_MASTER_KEY precisa ter pelo menos 32 caracteres"),
   SESSION_COOKIE_NAME: z.string().default("chatrag_session"),
   SESSION_TTL_HOURS: z.coerce.number().default(12),
+  // Master so age com verificacao em duas etapas ativa (ligar em producao).
+  MASTER_2FA_REQUIRED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   // Origem(ns) do painel autorizadas a mandar cookie de sessao entre portas
   // diferentes em dev (localhost:8080 -> localhost:3333). Lista separada por
   // virgula; nunca usar "*" aqui porque a rota usa credentials/cookie.

@@ -30,4 +30,14 @@ export const notesRepository = {
       .returningAll()
       .executeTakeFirstOrThrow();
   },
+
+  /** Exportacao da organizacao (LGPD). */
+  listForOrganization(organizationId: string) {
+    return db
+      .selectFrom("conversation_notes")
+      .select(["conversation_id", "author_user_id", "content", "created_at"])
+      .where("organization_id", "=", organizationId)
+      .orderBy("created_at")
+      .execute();
+  },
 };

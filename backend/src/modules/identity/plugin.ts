@@ -34,11 +34,22 @@ export async function requireSession(request: FastifyRequest, reply: FastifyRepl
   }
 }
 
+/** Master sem 2FA nao age quando MASTER_2FA_REQUIRED esta ligado (producao). */
+function masterNeeds2fa(request: FastifyRequest) {
+  return env.MASTER_2FA_REQUIRED && !!request.auth?.isPlatform && !request.auth.twoFactorEnabled;
+}
+
+const MASTER_2FA_ERROR = {
+  error: "ative a verificacao em duas etapas para agir como Master",
+  twoFactorSetupRequired: true,
+};
+
 /** Bloqueia a rota se o usuario nao for Master (papel de plataforma). */
 export async function requireMaster(request: FastifyRequest, reply: FastifyReply) {
   if (!request.auth?.isPlatform) {
     return reply.code(403).send({ error: "acesso restrito ao Master" });
   }
+  if (masterNeeds2fa(request)) return reply.code(403).send(MASTER_2FA_ERROR);
 }
 
 /**
@@ -68,6 +79,7 @@ export function requireOrgRole(minRoles: readonly TenantRole[]) {
           ? await supportSessionsService.hasActive(request.auth.userId, organizationId)
           : false;
       if (!isSupporting) return reply.code(403).send({ error: "sem acesso a esta organizacao" });
+      if (masterNeeds2fa(request)) return reply.code(403).send(MASTER_2FA_ERROR);
       return;
     }
     if (!minRoles.includes(membership.role)) {
@@ -83,7 +95,12 @@ export async function requireMasterSupportSession(
   reply: FastifyReply,
 ) {
   const organizationId = request.params?.organizationId;
-  if (!request.auth?.isPlatform || !organizationId || organizationId === "null" || organizationId === "undefined") {
+  if (
+    !request.auth?.isPlatform ||
+    !organizationId ||
+    organizationId === "null" ||
+    organizationId === "undefined"
+  ) {
     return reply.code(403).send({ error: "acesso restrito ao Master" });
   }
   const active = await supportSessionsService.hasActive(request.auth.userId, organizationId);

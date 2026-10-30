@@ -8,7 +8,8 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 ## Modulos
 
-- `identity`: login proprio, sessoes, usuarios e papeis.
+- `identity`: login proprio, sessoes, usuarios e papeis, verificacao em duas etapas (TOTP) e limite de tentativas de login.
+- `privacy`: exportacao dos dados da organizacao (LGPD).
 - `organizations`: tenant, configuracoes, limites e credencial de provedor de IA.
 - `assistants`: instrucoes, comportamento, colecoes, widget e encaminhamento.
 - `knowledge`: topicos, fontes, versoes futuras, extracao e publicacao.
@@ -26,6 +27,14 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## Verificacao em duas etapas e exportacao LGPD (ADR-006, etapa 8)
+
+- **TOTP (RFC 6238):** HMAC-SHA1, 6 digitos, passo de 30 segundos, tolerancia de um passo para cada lado; implementado em `identity/totp.ts` e testado com os vetores da RFC. O segredo fica num envelope cifrado (`src/crypto/envelope.ts`); ativar exige confirmar um codigo e gera 10 codigos de recuperacao, mostrados uma vez e guardados em hash (cada um vale uma vez).
+- **Login:** com 2FA ativo, `POST /auth/login` sem `code` responde 401 com `twoFactorRequired: true`; o painel pede o codigo e reenvia. O mesmo codigo nao vale duas vezes (passo usado guardado no Redis por 2 minutos). Entrar com codigo de recuperacao fica na auditoria.
+- **Limite de tentativas:** 10 erros (senha ou codigo) em 15 minutos para o mesmo e-mail bloqueiam o login com 429 ate a janela passar. Acerto zera a contagem.
+- **Master:** com `MASTER_2FA_REQUIRED=true` (recomendado em producao; padrao `false` para dev e seed), o Master sem 2FA ativo recebe 403 com `twoFactorSetupRequired` nas rotas de plataforma e no acesso de suporte.
+- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), conversas com as mensagens e notas internas. Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
 
 ## Automacoes (ADR-006, etapa 7)
 

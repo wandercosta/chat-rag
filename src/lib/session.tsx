@@ -14,7 +14,9 @@ interface SessionValue {
   userId: string | null;
   tenantId: string | null;
   tenantName: string;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, code?: string) => Promise<void>;
+  twoFactorEnabled: boolean;
+  refresh: () => Promise<void>;
   logout: () => Promise<void>;
   theme: "light" | "dark";
   toggleTheme: () => void;
@@ -138,10 +140,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       userId: auth?.userId ?? null,
       tenantId: auth?.memberships[0]?.organizationId ?? null,
       tenantName,
-      login: async (email, password) => {
-        await authApi.login(email, password);
+      login: async (email, password, code) => {
+        await authApi.login(email, password, code);
         await refresh();
       },
+      twoFactorEnabled: auth?.twoFactorEnabled ?? false,
+      refresh,
       logout: async () => {
         await authApi.logout();
         setAuth(null);

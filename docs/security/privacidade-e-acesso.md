@@ -24,6 +24,13 @@ Rotacao de KEK e barata (re-envelopa so a DEK). Rotacao de DEK exige job de re-c
 
 O Master pode consultar apenas o estado da configuracao (ausente, valida, invalida, substituida ou removida) e executar remocao/suporte auditado. Ele nao pode revelar nem copiar a chave de um tenant. O tenant escolhe se usa a mesma credencial em teste e producao ou credenciais distintas; a configuracao e auditada sem expor o segredo.
 
+## Login e verificacao em duas etapas (ADR-006, etapa 8)
+
+- Cada pessoa pode ativar a verificacao em duas etapas por aplicativo autenticador (TOTP) em "Minha conta". O segredo fica cifrado; os codigos de recuperacao so aparecem uma vez e ficam em hash.
+- O mesmo codigo nao vale duas vezes, e 10 erros em 15 minutos para o mesmo e-mail bloqueiam o login.
+- Em producao, `MASTER_2FA_REQUIRED=true` obriga o Master a ter 2FA ativo para agir na plataforma ou em sessao de suporte.
+- A exportacao LGPD da organizacao e so do Administrador e fica na auditoria.
+
 ## Contatos (ADR-006, etapa 3)
 
 - Contato e dado pessoal: exportar e so do Administrador e fica na auditoria (evento de seguranca, com a quantidade, nunca o conteudo).

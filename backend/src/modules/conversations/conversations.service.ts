@@ -206,6 +206,11 @@ export const conversationsService = {
     return new Map(rows.map((r) => [r.conversation_id, { role: r.role, at: r.created_at }]));
   },
 
+  /** Exportacao da organizacao (LGPD). */
+  exportAll(organizationId: string) {
+    return conversationsRepository.exportAll(organizationId);
+  },
+
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {
     return conversationsRepository.addFeedback(conversationId, rating);
   },

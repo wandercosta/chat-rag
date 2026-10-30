@@ -39,7 +39,13 @@ describe("requireMaster", () => {
   it("blocks a request without platform role", async () => {
     const { reply, calls } = fakeReply();
     await requireMaster(
-      fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] }),
+      fakeRequest({
+        userId: "u1",
+        email: "u1@example.com",
+        twoFactorEnabled: false,
+        isPlatform: false,
+        memberships: [],
+      }),
       reply,
     );
     expect(calls.code).toBe(403);
@@ -48,7 +54,13 @@ describe("requireMaster", () => {
   it("allows a request with platform role", async () => {
     const { reply, calls } = fakeReply();
     await requireMaster(
-      fakeRequest({ userId: "u1", email: "u1@example.com", isPlatform: true, memberships: [] }),
+      fakeRequest({
+        userId: "u1",
+        email: "u1@example.com",
+        twoFactorEnabled: false,
+        isPlatform: true,
+        memberships: [],
+      }),
       reply,
     );
     expect(calls.code).toBeUndefined();
@@ -62,6 +74,7 @@ describe("requireOrgRole", () => {
     const auth: AuthContext = {
       userId: "u1",
       email: "u1@example.com",
+      twoFactorEnabled: false,
       isPlatform: false,
       memberships: [{ organizationId: "org-a", role: "Administrador" }],
     };
@@ -75,6 +88,7 @@ describe("requireOrgRole", () => {
     const auth: AuthContext = {
       userId: "u1",
       email: "u1@example.com",
+      twoFactorEnabled: false,
       isPlatform: false,
       memberships: [{ organizationId: "org-a", role: "Analista" }],
     };
@@ -88,6 +102,7 @@ describe("requireOrgRole", () => {
     const auth: AuthContext = {
       userId: "u1",
       email: "u1@example.com",
+      twoFactorEnabled: false,
       isPlatform: false,
       memberships: [{ organizationId: "org-a", role: "Administrador" }],
     };
@@ -102,6 +117,7 @@ describe("requireOrgRole", () => {
     const auth: AuthContext = {
       userId: "master-1",
       email: "master@example.com",
+      twoFactorEnabled: false,
       isPlatform: true,
       memberships: [],
     };
@@ -116,6 +132,7 @@ describe("requireOrgRole", () => {
     const auth: AuthContext = {
       userId: "master-1",
       email: "master@example.com",
+      twoFactorEnabled: false,
       isPlatform: true,
       memberships: [],
     };
@@ -130,7 +147,13 @@ describe("requireMasterSupportSession", () => {
     const { reply, calls } = fakeReply();
     await requireMasterSupportSession(
       fakeRequest(
-        { userId: "u1", email: "u1@example.com", isPlatform: false, memberships: [] },
+        {
+          userId: "u1",
+          email: "u1@example.com",
+          twoFactorEnabled: false,
+          isPlatform: false,
+          memberships: [],
+        },
         "org-a",
       ),
       reply,
@@ -143,7 +166,13 @@ describe("requireMasterSupportSession", () => {
     const { reply, calls } = fakeReply();
     await requireMasterSupportSession(
       fakeRequest(
-        { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] },
+        {
+          userId: "master-1",
+          email: "master@example.com",
+          twoFactorEnabled: false,
+          isPlatform: true,
+          memberships: [],
+        },
         "org-a",
       ),
       reply,
@@ -156,7 +185,13 @@ describe("requireMasterSupportSession", () => {
     const { reply, calls } = fakeReply();
     await requireMasterSupportSession(
       fakeRequest(
-        { userId: "master-1", email: "master@example.com", isPlatform: true, memberships: [] },
+        {
+          userId: "master-1",
+          email: "master@example.com",
+          twoFactorEnabled: false,
+          isPlatform: true,
+          memberships: [],
+        },
         "org-a",
       ),
       reply,
