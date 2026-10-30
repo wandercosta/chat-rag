@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
@@ -44,6 +45,11 @@ const AtendimentoRoute = AtendimentoRouteImport.update({
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomacoesRoute = AutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CanaisRoute = CanaisRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/'
     | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
@@ -283,6 +295,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
+  AutomacoesRoute: typeof AutomacoesRoute
   CanaisRoute: typeof CanaisRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ConhecimentoRoute: typeof ConhecimentoRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automacoes': {
+      id: '/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AutomacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/canais': {
@@ -459,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtendimentoRoute: AtendimentoRoute,
   AuditoriaRoute: AuditoriaRoute,
+  AutomacoesRoute: AutomacoesRoute,
   CanaisRoute: CanaisRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ConhecimentoRoute: ConhecimentoRoute,

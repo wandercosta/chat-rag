@@ -3,6 +3,7 @@ import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { inboxService } from "../inbox/index.js";
 import { answerService } from "../rag/index.js";
+import { onIncomingMessage } from "../automations/index.js";
 import type { ChannelProvider, DeliveryStatus } from "../../db/types.js";
 import type { InboundMessage } from "../../queue/channel-messages.queue.js";
 import { connectionsRepository } from "./connections.repository.js";
@@ -99,6 +100,32 @@ export async function processInbound(connectionId: string, message: InboundMessa
       message.providerMessageId,
     );
     await inboxService.onVisitorMessage(organizationId, conversation.id);
+    return;
+  }
+
+  // Automacoes (ADR-006 #4) antes do assistente; a resposta da regra sai
+  // pelo mesmo caminho de entrega do canal.
+  const automation = await onIncomingMessage(organizationId, {
+    conversationId: conversation.id,
+    contactId,
+    channel: connection.provider,
+    text: message.text,
+    isFirstMessage: !(await conversationsService.lastVisitorMessageAt(conversation.id)),
+  });
+  if (automation.suppressAssistant) {
+    await conversationsService.addVisitorMessage(
+      conversation.id,
+      message.text,
+      message.providerMessageId,
+    );
+    if (automation.reply) {
+      const reply = await conversationsService.addAssistantMessage(
+        conversation.id,
+        automation.reply,
+      );
+      await deliverMessage(organizationId, reply.id);
+    }
+    await inboxService.touched(organizationId, conversation.id);
     return;
   }
 

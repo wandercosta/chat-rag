@@ -11,6 +11,8 @@ import { CHANNEL_MESSAGES_QUEUE, type ChannelJob } from "./queue/channel-message
 import { processChannelJob } from "./modules/channels/index.js";
 import { CAMPAIGNS_QUEUE, type CampaignTickJob } from "./queue/campaigns.queue.js";
 import { runCampaignTick } from "./modules/campaigns/index.js";
+import { AUTOMATIONS_QUEUE, scheduleNoReplyScan } from "./queue/automations.queue.js";
+import { scanAllNoReply } from "./modules/automations/index.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -116,6 +118,17 @@ campaignWorker.on("failed", (job, err) => {
   console.error(`lote de campanha falhou (${job?.data.campaignId}):`, err.message);
 });
 
-await scheduleRetentionSweep();
+// Automacoes (ADR-006 #4): varredura do gatilho "sem resposta" a cada minuto.
+const automationWorker = new Worker(AUTOMATIONS_QUEUE, async () => scanAllNoReply(), {
+  connection: { url: env.REDIS_URL },
+  concurrency: 1,
+});
 
-console.log("worker de indexacao, retencao, canais e campanhas iniciado");
+automationWorker.on("failed", (_job, err) => {
+  console.error("varredura de automacoes falhou:", err.message);
+});
+
+await scheduleRetentionSweep();
+await scheduleNoReplyScan();
+
+console.log("worker de indexacao, retencao, canais, campanhas e automacoes iniciado");

@@ -199,6 +199,13 @@ export const conversationsService = {
     return channelMessagesRepository.deliveryOf(messageIds);
   },
 
+  /** Ultima mensagem de cada conversa (quem falou por ultimo e quando). */
+  async lastMessageOf(conversationIds: string[]) {
+    if (conversationIds.length === 0) return new Map();
+    const rows = await conversationsRepository.lastMessages(conversationIds);
+    return new Map(rows.map((r) => [r.conversation_id, { role: r.role, at: r.created_at }]));
+  },
+
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {
     return conversationsRepository.addFeedback(conversationId, rating);
   },

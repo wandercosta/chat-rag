@@ -13,7 +13,12 @@ export const notesRepository = {
       .execute();
   },
 
-  insert(organizationId: string, conversationId: string, authorUserId: string, content: string) {
+  insert(
+    organizationId: string,
+    conversationId: string,
+    authorUserId: string | null,
+    content: string,
+  ) {
     return db
       .insertInto("conversation_notes")
       .values({

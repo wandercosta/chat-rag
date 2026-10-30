@@ -4,6 +4,7 @@ import { conversationsService, visitorsService } from "../conversations/index.js
 import { answerService } from "../rag/index.js";
 import { inboxService } from "../inbox/index.js";
 import { contactsService } from "../contacts/index.js";
+import { onIncomingMessage } from "../automations/index.js";
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
@@ -147,6 +148,24 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           await conversationsService.addVisitorMessage(conversation.id, body.message);
           await inboxService.onVisitorMessage(resolved.organizationId, conversation.id);
           return { answer: null, citations: [], humanHandling: true };
+        }
+
+        // Automacoes (ADR-006 #4) antes do assistente: uma regra que responde
+        // ou passa para humano deixa o assistente quieto nessa mensagem.
+        const automation = await onIncomingMessage(resolved.organizationId, {
+          conversationId: conversation.id,
+          contactId: conversation.contact_id,
+          channel: "widget",
+          text: body.message,
+          isFirstMessage: !conversation.messages.some((m) => m.role === "visitante"),
+        });
+        if (automation.suppressAssistant) {
+          await conversationsService.addVisitorMessage(conversation.id, body.message);
+          if (automation.reply) {
+            await conversationsService.addAssistantMessage(conversation.id, automation.reply);
+          }
+          await inboxService.touched(resolved.organizationId, conversation.id);
+          return { answer: automation.reply, citations: [], humanHandling: automation.handedOff };
         }
 
         const result = await answerService.answer(

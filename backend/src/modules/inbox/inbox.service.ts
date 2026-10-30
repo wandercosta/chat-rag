@@ -6,6 +6,7 @@ import { realtime, type InboxEvent } from "../../realtime/events.js";
 import type { InboxStatus, TenantRole } from "../../db/types.js";
 import { assignmentsRepository, type AssignmentView } from "./assignments.repository.js";
 import { notesRepository } from "./notes.repository.js";
+import { inboxSystemActions } from "./system-actions.js";
 import {
   AssignedToAnotherUserError,
   ChannelNotSupportedError,
@@ -74,7 +75,7 @@ async function notify(organizationId: string, conversationId: string, extra?: In
   if (extra) await realtime.publish(organizationId, extra);
 }
 
-export const inboxService = {
+const inboxCore = {
   async list(organizationId: string, view: InboxView, userId: string) {
     if (view === "assistente") {
       const recent = await conversationsService.listSummaries(organizationId, {
@@ -293,3 +294,6 @@ export const inboxService = {
     return note;
   },
 };
+
+/** Interface publica: acoes de quem atende (acima) e de automacoes. */
+export const inboxService = { ...inboxCore, ...inboxSystemActions };

@@ -4,7 +4,7 @@ import { isTruthy, normalizeEmail, normalizeKey, normalizePhone } from "./normal
 
 describe("parseCsv", () => {
   it("detecta o ponto e virgula do Excel em portugues e ignora o BOM", () => {
-    expect(parseCsv("﻿nome;email\r\nMaria;maria@x.com\r\n")).toEqual([
+    expect(parseCsv("\uFEFFnome;email\r\nMaria;maria@x.com\r\n")).toEqual([
       ["nome", "email"],
       ["Maria", "maria@x.com"],
     ]);
@@ -23,7 +23,7 @@ describe("parseCsv", () => {
 describe("toCsv", () => {
   it("neutraliza formula e escapa aspas", () => {
     const csv = toCsv(["nome", "obs"], [["=HYPERLINK(1)", 'disse "oi"; tchau']]);
-    expect(csv).toBe('﻿nome;obs\r\n\'=HYPERLINK(1);"disse ""oi""; tchau"\r\n');
+    expect(csv).toBe('\uFEFFnome;obs\r\n\'=HYPERLINK(1);"disse ""oi""; tchau"\r\n');
   });
 
   it("volta igual pelo parser", () => {
