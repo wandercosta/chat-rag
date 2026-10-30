@@ -67,6 +67,7 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `GET|POST /organizations/:organizationId/members`, `PATCH|DELETE .../members/:membershipId` (acessos do tenant; senha provisoria definida pelo administrador, sem cadastro publico; a organizacao nunca fica sem administrador)
 - `GET /organizations/:organizationId/audit`
 - `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)
+- `GET /master/usage?days=1..90` (so Master; padrao 30): consumo cruzando tenants, so contagens — `totals` (organizacoes com atividade, conversas, mensagens recebidas, respostas do assistente e de atendentes, perguntas ao assistente, sem contexto, latencia media), `conversationsByChannel`, `messagesReceivedPerDay` e `organizations[]` com as mesmas contagens por `organizationId`, da mais ativa para a menos. Nenhum conteudo de conversa ou dado de contato; custo estimado fica de fora ate existir tabela de precos por modelo.
 - `GET /organizations/:organizationId/inbox?view=fila|minhas|abertas|resolvidas|assistente` (caixa de entrada, ADR-006; leitura para Administrador, Atendente e Analista)
 - `GET /organizations/:organizationId/inbox/events` (SSE: avisa qual conversa mudou; o painel recarrega pelas rotas normais)
 - `GET /organizations/:organizationId/inbox/:conversationId` (mensagens com autor, atribuicao e notas internas)

@@ -16,7 +16,7 @@ humana, notas internas, respostas prontas, tempo real por SSE + Redis
 pub/sub em `src/realtime/`; metricas por atendente), `public-api` (tokens com escopo e
 rotas `/api/v1`), `webhooks` (eventos assinados com novas tentativas), `privacy`
 (exportacao LGPD), `audit` (append-only) e `analytics` (usage_events +
-resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a
+resumo agregado por organizacao e consumo da plataforma para o Master). Ver `docs/README.md` (Estado atual) para a
 lista completa do que falta.
 
 Validado ponta a ponta contra Postgres/Redis/storage S3 reais (nao so

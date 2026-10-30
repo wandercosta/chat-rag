@@ -32,12 +32,9 @@ Todas as tabelas de dominio multi-tenant devem ter `organization_id` e consultas
 
 Todas as entidades acima ja existem em `backend/migrations/` (ver `docs/README.md` - Estado atual para o que cada modulo cobre de fato).
 
-## Entidades planejadas (ADR-006)
+## Entidades do ADR-006
 
-Ainda nao existem em `backend/migrations/`. Nomes indicativos; cada uma tem `organization_id` e segue a mesma regra de filtro obrigatorio.
-
-| Entidade | Responsabilidade |
-| -------- | ---------------- |
+Todas ja existem em `backend/migrations/` e tem `organization_id` com a mesma regra de filtro obrigatorio.
 
 `conversation_assignments`, `conversation_notes` e `canned_responses` ja existem (etapa 2, migration `1722270300000_inbox`); a atribuicao a setor ainda nao.
 

@@ -36,7 +36,7 @@ Widget JS em site ------- API TypeScript ---- PostgreSQL + pgvector
                             |---- worker de extracao e indexacao
 ```
 
-Com o ADR-006 (planejado, ainda nao implementado), entram:
+Com o ADR-006 (implementado nas etapas 2 a 8), entraram:
 
 ```text
 Meta (WhatsApp/Instagram/Messenger) --webhook--> API ---- envio pelo canal (fila, ritmo por tenant)

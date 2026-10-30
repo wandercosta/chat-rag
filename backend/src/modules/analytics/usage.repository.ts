@@ -32,6 +32,27 @@ export const usageRepository = {
       .execute();
   },
 
+  /** Toda a plataforma (visao do Master): contagem por organizacao e tipo. */
+  countByOrganizationAndType(since: Date) {
+    return db
+      .selectFrom("usage_events")
+      .select(["organization_id", "type", sql<string>`count(*)`.as("count")])
+      .where("created_at", ">=", since)
+      .groupBy(["organization_id", "type"])
+      .execute();
+  },
+
+  platformAverageRagLatencyMs(since: Date) {
+    return sql<{ avg_latency_ms: string | null }>`
+      select avg((payload->>'latencyMs')::numeric) as avg_latency_ms
+      from usage_events
+      where type = 'rag_query'
+        and created_at >= ${since}
+    `
+      .execute(db)
+      .then((r) => r.rows[0]?.avg_latency_ms ?? null);
+  },
+
   averageRagLatencyMs(organizationId: string, since: Date) {
     return sql<{ avg_latency_ms: string | null }>`
       select avg((payload->>'latencyMs')::numeric) as avg_latency_ms
