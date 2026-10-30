@@ -14,7 +14,7 @@ function detectDelimiter(text: string): string {
 }
 
 export function parseCsv(input: string): string[][] {
-  const text = input.replace(/^﻿/, "");
+  const text = input.replace(/^\uFEFF/, "");
   const delimiter = detectDelimiter(text);
   const rows: string[][] = [];
   let row: string[] = [];
@@ -67,5 +67,5 @@ function safeCell(value: string): string {
 /** ";" e BOM: o Excel em portugues abre com acento e colunas certas. */
 export function toCsv(header: string[], rows: string[][]): string {
   const lines = [header, ...rows].map((r) => r.map(safeCell).join(";"));
-  return `﻿${lines.join("\r\n")}\r\n`;
+  return `\uFEFF${lines.join("\r\n")}\r\n`;
 }

@@ -17,6 +17,7 @@ import {
   Contact,
   RadioTower,
   Megaphone,
+  Workflow,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const tenantItems: Item[] = [
   { title: "Caixa de entrada", url: "/atendimento", icon: Inbox, perm: "inbox" },
   { title: "Contatos", url: "/contatos", icon: Contact, perm: "contacts" },
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, perm: "campaigns" },
+  { title: "Automações", url: "/automacoes", icon: Workflow, perm: "automations" },
   { title: "Conversas", url: "/conversas", icon: MessageSquare, perm: "conversations" },
   { title: "Lacunas e feedbacks", url: "/lacunas", icon: SearchX, perm: "gaps" },
   { title: "Canais", url: "/canais", icon: RadioTower, perm: "channels" },

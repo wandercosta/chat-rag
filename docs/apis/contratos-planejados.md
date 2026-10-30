@@ -22,8 +22,6 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 
 ## Planejado pelo ADR-006 (ainda sem rotas)
 
-- Painel: automacoes.
-
 ## Regras
 
 - Nao existe endpoint publico de registro de tenant ou usuario; provisionamento requer sessao Master.
@@ -69,6 +67,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET /organizations/:organizationId/channels` (Administrador; inclui a URL de webhook e o token de verificacao, nunca o token de acesso), `POST .../channels/{whatsapp|messenger|instagram|telegram}` (confere as credenciais no provedor antes de salvar; 409 se a conta ja esta conectada; no Telegram tambem registra o webhook e, se falhar, salva com estado `erro` e o motivo), `POST .../channels/:id/check`, `DELETE .../channels/:id`
 - `GET .../channels/:id/templates` (Administrador e Atendente), `POST .../channels/:id/templates/sync` (Administrador), `POST .../inbox/:conversationId/template` (`{ templateId, params }`, envio de modelo aprovado fora da janela de 24 horas; Administrador e Atendente)
 - `POST .../inbox/:conversationId/messages` responde 422 em conversa de WhatsApp fora da janela de 24 horas
+- `GET|POST /organizations/:organizationId/automations` (ler: Administrador e Analista; criar: Administrador; regra invalida para o gatilho da 400), `PUT .../automations/:id` (nova versao), `POST .../automations/:id/enabled` (`{ enabled }`), `DELETE .../automations/:id`, `GET .../automations/:id/runs` (ultimas 50 execucoes)
 - `GET|POST /organizations/:organizationId/campaigns` (ler: Administrador e Analista; criar rascunho: Administrador), `POST .../campaigns/preview` (`{ connectionId, segmentId }` → elegiveis e quantos ficam de fora), `GET .../campaigns/:id` (metricas e destinatarios), `POST .../campaigns/:id/schedule` (`{ at? }`; fixa o publico; 422 se ninguem tem opt-in no canal), `POST .../campaigns/:id/cancel`
 - `GET|POST /organizations/:organizationId/canned-responses`, `DELETE .../canned-responses/:responseId` (respostas prontas; criar e remover so Administrador)
 

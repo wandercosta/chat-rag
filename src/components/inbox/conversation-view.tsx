@@ -176,7 +176,7 @@ export function ConversationView({
               className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
             >
               <p className="mb-1 text-xs font-medium">
-                Nota interna · {entry.item.author_email ?? "removido"} · o visitante não vê
+                Nota interna · {entry.item.author_email ?? "automação"} · o visitante não vê
               </p>
               <p className="whitespace-pre-wrap">{entry.item.content}</p>
             </div>

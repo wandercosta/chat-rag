@@ -28,7 +28,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
 export function normalizeKey(raw: string): string {
   return raw
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")

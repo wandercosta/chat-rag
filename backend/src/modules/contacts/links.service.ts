@@ -2,6 +2,7 @@ import type { ContactChannel, ContactFilter } from "../../db/types.js";
 import { contactsRepository } from "./contacts.repository.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
+import { taxonomyRepository } from "./taxonomy.repository.js";
 
 /**
  * Como o CRM se liga ao resto: visitante do widget, remetente de canal,
@@ -130,5 +131,19 @@ export const contactLinks = {
   async labelsFor(organizationId: string, ids: string[]) {
     const contacts = await contactsRepository.findByIds(organizationId, [...new Set(ids)]);
     return new Map(contacts.map((c) => [c.id, c.name ?? c.email ?? c.phone ?? "Contato"]));
+  },
+
+  /** Etiquetas do contato (condicao de automacao). */
+  async tagIdsOf(contactId: string) {
+    const tags = await taxonomyRepository.tagsOf([contactId]);
+    return tags.map((t) => t.id);
+  },
+
+  /** Acao de automacao: so etiqueta da propria organizacao. */
+  async addTag(organizationId: string, contactId: string, tagId: string) {
+    const tags = await taxonomyRepository.listTags(organizationId);
+    if (!tags.some((t) => t.id === tagId)) return false;
+    await taxonomyRepository.addContactTags(contactId, [tagId]);
+    return true;
   },
 };

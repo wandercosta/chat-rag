@@ -17,6 +17,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `embed`: chaves, dominios, configuracao publica e validacao de origem.
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
+- `automations`: automacoes (ADR-006, etapa 7) — regras "quando / se / entao" sem IA, com historico de execucoes.
 - `campaigns`: campanhas (ADR-006, etapa 6) — publico por segmento com opt-in, modelo (WhatsApp) ou texto (Telegram), agendamento, ritmo e metricas.
 - `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
@@ -24,9 +25,21 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
-- `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
-
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## Automacoes (ADR-006, etapa 7)
+
+Regras em formulario ("quando / se / entao"), nao fluxo em grafo: mais simples de montar, testar e auditar. Nada e decidido pela IA (ADR-006 #4); a regra faz exatamente o que esta nela.
+
+- **Gatilhos:** _mensagem recebida_ (roda antes do assistente, so em conversa sem humano) e _sem resposta_ (conversa com humano em que o cliente falou por ultimo ha X minutos; varredura `automations` no worker a cada minuto).
+- **Condicoes** (todas precisam valer): canal; mensagem contem palavra (sem diferenca de acento ou maiuscula); contato tem etiqueta; primeira mensagem da conversa; fora do horario de atendimento (inicio/fim e dias, no fuso de Sao Paulo, inclusive virando a meia-noite); minutos sem resposta.
+- **Acoes:** responder com texto, adicionar etiqueta, passar para a fila, atribuir a alguem, nota interna (sem autor; o painel mostra "automacao") e, no "sem resposta", devolver para a fila. O que vale para cada gatilho e validado na API (`rules.ts`), e o painel so oferece o que vale.
+- **Assistente quieto:** se alguma regra respondeu ou passou para humano, o assistente nao responde aquela mensagem. Varias regras podem casar; todas rodam, em ordem de criacao, mas so a primeira que responde manda texto.
+- **Quem entrega:** a regra devolve o texto e quem recebeu a mensagem (widget ou canal) grava e entrega pelo proprio caminho; assim `automations` nao depende de `channels` nem de `embed` e nao ha ciclo.
+- **Sem laco:** a resposta da regra e mensagem do assistente, que nao dispara regra. O "sem resposta" roda uma vez por silencio: so de novo depois de uma mensagem nova do cliente.
+- **Versao e historico:** editar sobe a versao; cada execucao guarda a versao que rodou, a conversa e o que fez (ou o erro). Ligar, desligar, editar e excluir vao para a auditoria com quem fez, que e quem responde pela regra.
+- **Papeis:** so Administrador cria, edita, liga e exclui; Analista ve as regras e o historico.
+- **Ainda nao:** gatilho "etiqueta adicionada" (hoje a etiqueta e condicao), chamar a IA como acao, enviar modelo do WhatsApp como acao, editor em grafo.
 
 ## Campanhas (ADR-006, etapa 6)
 

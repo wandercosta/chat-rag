@@ -332,6 +332,31 @@ export interface CampaignRecipientsTable {
   sent_at: Date | null;
 }
 
+export interface AutomationRulesTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  enabled: ColumnType<boolean, boolean | undefined, boolean>;
+  trigger: "mensagem_recebida" | "sem_resposta";
+  conditions: ColumnType<import("../modules/automations/rules.js").Condition[], string, string>;
+  actions: ColumnType<import("../modules/automations/rules.js").Action[], string, string>;
+  version: ColumnType<number, number | undefined, number>;
+  updated_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface AutomationRunsTable {
+  id: Generated<string>;
+  organization_id: string;
+  rule_id: string;
+  rule_version: number;
+  conversation_id: string | null;
+  status: "ok" | "erro";
+  detail: ColumnType<string, string | undefined, string>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface CannedResponsesTable {
   id: Generated<string>;
   organization_id: string;
@@ -480,4 +505,6 @@ export interface Database {
   channel_templates: ChannelTemplatesTable;
   campaigns: CampaignsTable;
   campaign_recipients: CampaignRecipientsTable;
+  automation_rules: AutomationRulesTable;
+  automation_runs: AutomationRunsTable;
 }
