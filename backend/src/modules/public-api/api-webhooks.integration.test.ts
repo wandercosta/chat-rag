@@ -15,8 +15,7 @@ import {
   createTenant,
   startWidgetConversation,
 } from "../../test/tenant-fixture.js";
-import { processWebhookDelivery } from "../webhooks/index.js";
-import { isPrivateAddress } from "../webhooks/url-guard.js";
+import { isPrivateAddress, processWebhookDelivery } from "../webhooks/index.js";
 
 type Received = { headers: http.IncomingHttpHeaders; body: string };
 

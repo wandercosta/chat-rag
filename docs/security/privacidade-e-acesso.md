@@ -6,6 +6,8 @@ O tenant e uma fronteira de seguranca, nao apenas filtro visual. A API deve vali
 
 O Master opera no escopo da plataforma e tem auditoria reforcada. Uma sessao de tenant nao pode informar ou trocar livremente `organization_id`; esse contexto vem da associacao do usuario e da selecao autorizada. Tenant suspenso nao aceita logins operacionais, indexacao ou requisicoes do widget.
 
+Na visao geral da plataforma o Master ve consumo agregado de todos os tenants (`GET /master/usage`): so contagens por organizacao, canal e dia, nunca conteudo de conversa ou dado de contato. Por isso essa rota nao exige sessao de suporte; qualquer leitura de dado operacional de um tenant continua exigindo.
+
 Nao ha auto cadastro publico no MVP. Endpoints de provisionamento de tenant exigem Master; endpoints de usuarios exigem Master ou administrador autorizado no proprio tenant. Convites devem expirar e ser de uso unico.
 
 ## Dados

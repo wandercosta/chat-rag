@@ -6,3 +6,4 @@ export { webhooksService } from "./webhooks.service.js";
 export { webhooksRoutes } from "./webhooks.routes.js";
 export { processWebhookDelivery, signPayload } from "./delivery.js";
 export { WEBHOOK_EVENTS, type WebhookEvent } from "./events.js";
+export { isPrivateAddress } from "./url-guard.js";
