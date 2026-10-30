@@ -1,6 +1,6 @@
 # ChatRAG — instruções para o Claude Code
 
-A pasta `docs/` é a fonte oficial de verdade do produto (ver [`docs/README.md`](docs/README.md) para o índice completo e o estado atual da Fase 0). Raiz do repo = painel (TanStack Start/React/TypeScript, gerado no Lovable). `backend/` = API (Fastify/TypeScript, ver `backend/README.md`). `docker-compose.yml` = stack completa com seed (Postgres+pgvector, Redis, storage S3/SeaweedFS, API, worker, painel); `docker-compose.infra.yml` = só a infraestrutura, para desenvolver com hot reload. Provedor de IA da plataforma por `.env` (ADR-005).
+A pasta `docs/` é a fonte oficial de verdade do produto (ver [`docs/README.md`](docs/README.md) para o índice completo e o estado atual da Fase 0). Raiz do repo = painel (TanStack Start/React/TypeScript, gerado no Lovable). `backend/` = API (Fastify/TypeScript, ver `backend/README.md`). `docker-compose.yml` = stack completa com seed (Postgres+pgvector, Redis, storage S3/SeaweedFS, API, worker, painel); `docker-compose.infra.yml` = só a infraestrutura, para desenvolver com hot reload. Provedor de IA da plataforma por `.env` (ADR-005). Rumo do produto: atendimento omnichannel com CRM de contatos (ADR-006, Fase 3 do roadmap em etapas).
 
 ## Regra permanente: documentação acompanha toda mudança
 
@@ -28,7 +28,8 @@ Isso vale tanto para código quanto para decisões de arquitetura discutidas ape
 - Produto independente: login, dados e deploy próprios.
 - Comportamento por cliente/assistente é configuração, não fork de código.
 - Master (control plane) e Tenant (painel) são escopos de administração distintos e não podem se misturar.
-- Chave OpenAI do tenant (BYOK) nunca é devolvida por API/log/auditoria; chaves da plataforma ficam só no `.env` (ADR-005).
+- Chave OpenAI do tenant (BYOK) nunca é devolvida por API/log/auditoria; chaves da plataforma ficam só no `.env` (ADR-005). O mesmo vale para tokens de canal (ADR-006).
+- Ação externa permitida é só comunicação pelos canais que o tenant conectou, com responsável humano e auditoria; o assistente não decide ações nem lê ou altera dados de sistemas do cliente (ADR-006).
 
 ## Estado atual do projeto
 

@@ -20,6 +20,12 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 - Registrar feedback.
 - Gerar encaminhamento para WhatsApp.
 
+## Planejado pelo ADR-006 (ainda sem rotas)
+
+- Painel: caixa de entrada (fila, assumir, atribuir, responder, nota interna, resolver), respostas prontas, contatos (CRUD, etiquetas, campos, segmentos, importacao/exportacao CSV), conexoes de canal (sem leitura do token), templates, campanhas e automacoes.
+- Tempo real: eventos da caixa de entrada para o painel, com a mesma autenticacao da rota HTTP equivalente; resposta humana para o widget, com a autenticacao das rotas publicas da conversa.
+- Webhooks de entrada por provedor (Meta, Telegram): publicos, com validacao de assinatura e idempotencia; a organizacao vem da conexao do canal, nunca do payload.
+
 ## Regras
 
 - Nao existe endpoint publico de registro de tenant ou usuario; provisionamento requer sessao Master.

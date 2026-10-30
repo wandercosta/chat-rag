@@ -22,6 +22,26 @@ Todas as tabelas de dominio multi-tenant devem ter `organization_id` e consultas
 
 Todas as entidades acima ja existem em `backend/migrations/` (ver `docs/README.md` - Estado atual para o que cada modulo cobre de fato).
 
+## Entidades planejadas (ADR-006)
+
+Ainda nao existem em `backend/migrations/`. Nomes indicativos; cada uma tem `organization_id` e segue a mesma regra de filtro obrigatorio.
+
+| Entidade                                       | Responsabilidade                                                                                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| contacts                                       | Pessoa no CRM da organizacao: nome, dados de contato, opt-in de campanha (origem e data) e opt-out                                      |
+| contact_identities                             | Identidade do contato por canal (telefone, id do Instagram, id do Telegram, visitante do widget), unica por organizacao + canal + valor |
+| contact_tags, contact_fields, contact_segments | Etiquetas, definicao de campos personalizados e segmentos salvos (filtros) por organizacao                                              |
+| channel_connections                            | Canal conectado pelo tenant e token criptografado (envelope encryption), nunca devolvido por API; estado visivel ao Master              |
+| channel_templates                              | Templates aprovados sincronizados do provedor (WhatsApp)                                                                                |
+| conversation_assignments                       | Status (aberta, pendente, resolvida) e atribuicao da conversa a usuario ou setor                                                        |
+| conversation_notes, canned_responses           | Notas internas (nunca enviadas ao contato) e respostas prontas                                                                          |
+| campaigns, campaign_recipients                 | Campanha, publico, agendamento e status de envio por destinatario                                                                       |
+| automation_flows, automation_runs              | Fluxo versionado (gatilho, condicoes, acoes) e log de cada execucao                                                                     |
+
+`visitors` continua existindo: e quem abriu o widget. Quando identificado, o visitante vira uma identidade (`contact_identities`) de um contato. `conversations` ganha o canal de origem e o contato; `messages` ganha o autor (contato, assistente ou atendente) e o id da mensagem no provedor, usado para idempotencia do webhook e para o status de entrega.
+
+A politica de retencao passa a cobrir contatos e mensagens de canal. Excluir um contato remove suas identidades e conversas.
+
 ## Visitantes e agrupamento
 
 Um visitante pode conter `external_user_id` (unico por `organization_id`, quando presente), `name`, `email` e `context` (jsonb livre). Hoje esses campos chegam sem assinatura, via atributos `data-*` do widget (ver `docs/integrations/widget-embed.md` - Identidade e contexto do visitante); para integracao autenticada, a identidade deveria ser recebida por token assinado pelo backend do sistema hospedeiro — ainda nao implementado. `context` e usado apenas para personalizar o prompt do assistente, nunca como fonte de fatos da base. Cada carregamento do widget cria uma `conversation` nova; quando `external_user_id` se repete, todas apontam para o mesmo `visitor`, permitindo ao painel distinguir e agrupar atendimentos por cliente/id externo em vez de uma massa de sessoes anonimas. Conversas mantem historico limitado e retencao configuravel.

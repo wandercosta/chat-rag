@@ -32,6 +32,16 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 10. Configuracoes do tenant: chave OpenAI de teste/producao ou reutilizada, estado da conexao, modelos permitidos, limites, privacidade e WhatsApp. O valor da chave nao pode ser exibido apos ser salvo.
 11. Estado de ativacao da base: fontes podem ser cadastradas sem chave; o painel alerta que indexacao, playground e widget permanecem indisponiveis ate existir chave valida.
 
+## Telas planejadas (ADR-006)
+
+12. **Caixa de entrada:** fila de conversas de todos os canais, filtros por status, canal e atribuicao; assumir, atribuir, responder, nota interna (visualmente distinta da resposta) e resolver; atualiza sem recarregar.
+13. **Contatos:** lista com etiquetas e segmentos, detalhe com linha do tempo de conversas de todos os canais, importacao e exportacao CSV.
+14. **Canais:** conectar e desconectar WhatsApp, Instagram, Messenger e Telegram; estado da conexao; o token nunca aparece depois de salvo.
+15. **Campanhas:** publico por segmento (so contatos com opt-in), template, agendamento e metricas de entrega.
+16. **Automacoes:** editor visual de fluxo, publicar/despublicar e log de execucoes.
+
+O papel de quem atende (responder e resolver conversas, sem gerir base, chaves ou usuarios) sera definido na etapa da caixa de entrada.
+
 ## Perfis iniciais
 
 | Perfil         | Alcance                                                            |

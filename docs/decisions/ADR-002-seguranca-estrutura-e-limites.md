@@ -1,6 +1,6 @@
 # ADR-002: Seguranca de segredos, estrutura de modulos e limites operacionais
 
-**Status:** Aceita em planejamento
+**Status:** Aceita em planejamento. A lista de modulos do item 2 foi estendida pelo ADR-006 (`inbox`, `channels`, `contacts`, `campaigns`, `automations`), com as mesmas regras de fronteira.
 
 ## Contexto
 

@@ -18,6 +18,16 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
 
+Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
+
+- `inbox`: status da conversa (aberta, pendente, resolvida), atribuicao a usuario ou setor, notas internas, respostas prontas e fila. Enquanto ha humano atribuido, o assistente nao responde na conversa.
+- `channels`: conexao de canal por tenant (WhatsApp Cloud API, Instagram/Messenger pela Graph API, Telegram Bot API), webhooks de entrada com validacao de assinatura e idempotencia pelo id do provedor, envio, templates e status de entrega. Token de canal com envelope encryption, como a chave de IA.
+- `contacts`: contatos, identidades por canal (unicas por organizacao e canal), etiquetas, campos personalizados, segmentos, importacao e exportacao.
+- `campaigns`: publico por segmento com opt-in, agendamento, envio pela fila com ritmo por organizacao e metricas de entrega.
+- `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
+
+`conversations` continua dono de conversa e mensagem e passa a registrar o canal de origem e o autor de cada mensagem (contato, assistente ou atendente). O tempo real do painel usa Redis pub/sub entre instancias da API, com eventos escopados por organizacao.
+
 ## Processamento de fonte
 
 1. Validar tipo, tamanho, permissao e associacao com organizacao/topico.
