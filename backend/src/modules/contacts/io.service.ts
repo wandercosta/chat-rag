@@ -1,6 +1,7 @@
 import { auditService } from "../audit/index.js";
 import type { ContactFilter } from "../../db/types.js";
 import { contactsRepository, type ContactValues } from "./contacts.repository.js";
+import { insertContact } from "./created.js";
 import { parseCsv, toCsv } from "./csv.js";
 import { isTruthy, normalizeEmail, normalizeKey, normalizePhone } from "./normalize.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
@@ -124,7 +125,7 @@ export async function importContacts(
 
     const contact = existing
       ? await contactsRepository.update(organizationId, existing.id, values)
-      : await contactsRepository.insert(organizationId, values);
+      : await insertContact(organizationId, values);
     if (existing) report.updated++;
     else report.created++;
 

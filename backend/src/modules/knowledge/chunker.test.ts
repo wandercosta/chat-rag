@@ -30,7 +30,8 @@ describe("chunkText", () => {
 });
 
 describe("chunkText boundaries", () => {
-  const sentence = (i: number) => `Art. ${i}. O consumidor tem o direito numero ${i} garantido por lei.`;
+  const sentence = (i: number) =>
+    `Art. ${i}. O consumidor tem o direito numero ${i} garantido por lei.`;
   const text = Array.from({ length: 60 }, (_, i) => sentence(i + 1)).join(" ");
 
   it("ends chunks at a sentence boundary when one is close", () => {
@@ -47,7 +48,10 @@ describe("chunkText boundaries", () => {
 
 describe("chunkText sentence starts", () => {
   it("starts follow-up chunks at the beginning of a sentence", () => {
-    const text = Array.from({ length: 60 }, (_, i) => `Art. ${i + 1}. Regra de numero ${i + 1} do codigo.`).join(" ");
+    const text = Array.from(
+      { length: 60 },
+      (_, i) => `Art. ${i + 1}. Regra de numero ${i + 1} do codigo.`,
+    ).join(" ");
     for (const chunk of chunkText(text).slice(1)) expect(chunk).toMatch(/^Art\. \d+\./);
   });
 });

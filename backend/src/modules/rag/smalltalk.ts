@@ -55,15 +55,45 @@ export function detectSmalltalk(message: string): SmalltalkKind | null {
       // Checar par de palavras primeiro (ex.: "bom dia", "ate logo", "muito obrigado")
       if (i + 1 < parts.length) {
         const pair = `${parts[i]} ${parts[i + 1]}`;
-        if (GREETING.test(pair)) { detectedKind = detectedKind ?? "saudacao"; i += 2; matched = true; continue; }
-        if (THANKS.test(pair)) { detectedKind = detectedKind ?? "agradecimento"; i += 2; matched = true; continue; }
-        if (FAREWELL.test(pair)) { detectedKind = detectedKind ?? "despedida"; i += 2; matched = true; continue; }
+        if (GREETING.test(pair)) {
+          detectedKind = detectedKind ?? "saudacao";
+          i += 2;
+          matched = true;
+          continue;
+        }
+        if (THANKS.test(pair)) {
+          detectedKind = detectedKind ?? "agradecimento";
+          i += 2;
+          matched = true;
+          continue;
+        }
+        if (FAREWELL.test(pair)) {
+          detectedKind = detectedKind ?? "despedida";
+          i += 2;
+          matched = true;
+          continue;
+        }
       }
       // Checar palavra individual
       const single = parts[i];
-      if (GREETING.test(single)) { detectedKind = detectedKind ?? "saudacao"; i += 1; matched = true; continue; }
-      if (THANKS.test(single)) { detectedKind = detectedKind ?? "agradecimento"; i += 1; matched = true; continue; }
-      if (FAREWELL.test(single)) { detectedKind = detectedKind ?? "despedida"; i += 1; matched = true; continue; }
+      if (GREETING.test(single)) {
+        detectedKind = detectedKind ?? "saudacao";
+        i += 1;
+        matched = true;
+        continue;
+      }
+      if (THANKS.test(single)) {
+        detectedKind = detectedKind ?? "agradecimento";
+        i += 1;
+        matched = true;
+        continue;
+      }
+      if (FAREWELL.test(single)) {
+        detectedKind = detectedKind ?? "despedida";
+        i += 1;
+        matched = true;
+        continue;
+      }
 
       if (!matched) return null;
     }

@@ -2,6 +2,7 @@ import { auditService } from "../audit/index.js";
 import { conversationsService } from "../conversations/index.js";
 import type { ContactChannel, ContactFilter } from "../../db/types.js";
 import { contactsRepository, type ContactValues } from "./contacts.repository.js";
+import { insertContact } from "./created.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
@@ -109,7 +110,7 @@ const contactsCore = {
   async create(actorUserId: string, organizationId: string, input: ContactInput) {
     const values = prepare(input);
     await assertUnique(organizationId, values);
-    const contact = await contactsRepository.insert(organizationId, {
+    const contact = await insertContact(organizationId, {
       ...values,
       ...optInChange(null, input.optIn, "painel"),
     });

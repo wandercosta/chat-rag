@@ -13,7 +13,9 @@ agendamento, ritmo e metricas), `channels` (WhatsApp, Telegram, Instagram e Mess
 conexao, webhook autenticado, fila de entrada/envio, recibos e modelos), `contacts` (CRM: contatos, etiquetas, campos,
 segmentos, importacao/exportacao CSV), `inbox` (caixa de entrada: atribuicao, resposta
 humana, notas internas, respostas prontas, tempo real por SSE + Redis
-pub/sub em `src/realtime/`), `audit` (append-only) e `analytics` (usage_events +
+pub/sub em `src/realtime/`; metricas por atendente), `public-api` (tokens com escopo e
+rotas `/api/v1`), `webhooks` (eventos assinados com novas tentativas), `privacy`
+(exportacao LGPD), `audit` (append-only) e `analytics` (usage_events +
 resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a
 lista completa do que falta.
 

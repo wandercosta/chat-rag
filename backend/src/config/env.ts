@@ -17,6 +17,12 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  // Webhooks de saida: so https para endereco publico. "true" libera http e
+  // rede privada/localhost, apenas para testes e desenvolvimento local.
+  WEBHOOKS_ALLOW_PRIVATE_NETWORK: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   // Origem(ns) do painel autorizadas a mandar cookie de sessao entre portas
   // diferentes em dev (localhost:8080 -> localhost:3333). Lista separada por
   // virgula; nunca usar "*" aqui porque a rota usa credentials/cookie.

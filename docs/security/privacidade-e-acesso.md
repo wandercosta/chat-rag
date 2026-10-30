@@ -31,6 +31,12 @@ O Master pode consultar apenas o estado da configuracao (ausente, valida, invali
 - Em producao, `MASTER_2FA_REQUIRED=true` obriga o Master a ter 2FA ativo para agir na plataforma ou em sessao de suporte.
 - A exportacao LGPD da organizacao e so do Administrador e fica na auditoria.
 
+## API publica e webhooks (ADR-006, etapa 8)
+
+- Token de API: guardado so em hash, mostrado uma vez, com escopos minimos escolhidos pelo Administrador, revogavel e com limite por minuto. A organizacao vem do token; nao ha como pedir dado de outro tenant.
+- Quem cria o token responde pelo que ele faz; escrita pela API vai para a auditoria com o nome do token.
+- Webhooks: so https e so para endereco publico (protecao contra SSRF, conferida a cada entrega). O segredo de assinatura fica cifrado e aparece uma vez. Os dados enviados (mensagens, contato) vao para a URL que o proprio cliente cadastrou, e o cadastro fica na auditoria.
+
 ## Contatos (ADR-006, etapa 3)
 
 - Contato e dado pessoal: exportar e so do Administrador e fica na auditoria (evento de seguranca, com a quantidade, nunca o conteudo).

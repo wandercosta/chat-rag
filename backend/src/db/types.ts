@@ -483,6 +483,47 @@ export interface UsageEventsTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface ApiTokensTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  token_prefix: string;
+  token_hash: string;
+  scopes: ColumnType<string[], string, string>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  last_used_at: Date | null;
+  revoked_at: Date | null;
+}
+
+export interface WebhookEndpointsTable {
+  id: Generated<string>;
+  organization_id: string;
+  url: string;
+  events: ColumnType<string[], string, string>;
+  secret: ColumnType<import("../crypto/envelope.js").SerializedEnvelope, string, string>;
+  enabled: Generated<boolean>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export type WebhookDeliveryStatus = "pendente" | "entregue" | "falhou";
+
+export interface WebhookDeliveriesTable {
+  id: Generated<string>;
+  organization_id: string;
+  endpoint_id: string;
+  event: string;
+  payload: ColumnType<Record<string, unknown>, string, string>;
+  status: Generated<WebhookDeliveryStatus>;
+  attempts: Generated<number>;
+  last_status_code: number | null;
+  last_error: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  delivered_at: Date | null;
+}
+
 export interface Database {
   organizations: OrganizationsTable;
   users: UsersTable;
@@ -523,4 +564,7 @@ export interface Database {
   campaign_recipients: CampaignRecipientsTable;
   automation_rules: AutomationRulesTable;
   automation_runs: AutomationRunsTable;
+  api_tokens: ApiTokensTable;
+  webhook_endpoints: WebhookEndpointsTable;
+  webhook_deliveries: WebhookDeliveriesTable;
 }

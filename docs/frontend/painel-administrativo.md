@@ -42,6 +42,8 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 17. **Minha conta** (`/conta`, ja existe; icone no topo): ativar a verificacao em duas etapas (chave para digitar no aplicativo, confirmacao com codigo, codigos de recuperacao mostrados uma vez) e desativar. O login pede o codigo do aplicativo quando o 2FA esta ativo.
 18. **Exportar dados (LGPD)** em Configuracoes, so para Administrador: baixa o JSON da organizacao.
+19. **API e webhooks** (`/api-webhooks`, ja existe; so Administrador): criar e revogar tokens com escopos (o token aparece uma vez), cadastrar webhooks por evento, ligar/desligar, testar, trocar segredo e ver as ultimas entregas.
+20. **Desempenho da equipe** (`/desempenho`, ja existe; Administrador e Analista): pedidos de atendimento, fila, resolvidas e tempo de primeira resposta da equipe e por atendente, em 7, 30 ou 90 dias.
 
 O papel de quem atende e o **Atendente** (tabela abaixo).
 

@@ -34,6 +34,16 @@ export const assignmentsRepository = {
     return query.orderBy("updated_at", "desc").limit(limit).execute();
   },
 
+  /** Pedidos de atendimento e resolucoes do periodo, para as metricas. */
+  touchedSince(organizationId: string, since: Date) {
+    return db
+      .selectFrom("conversation_assignments")
+      .select(["conversation_id", "assigned_user_id", "status", "requested_at", "updated_at"])
+      .where("organization_id", "=", organizationId)
+      .where((eb) => eb.or([eb("requested_at", ">=", since), eb("updated_at", ">=", since)]))
+      .execute();
+  },
+
   /** Quais destas conversas estao com humano agora (status nao resolvido). */
   async activeAmong(organizationId: string, conversationIds: string[]): Promise<string[]> {
     if (conversationIds.length === 0) return [];

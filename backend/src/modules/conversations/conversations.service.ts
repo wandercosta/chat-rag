@@ -1,4 +1,6 @@
 import type { ConversationChannel, DeliveryStatus, MessageCitation } from "../../db/types.js";
+import { webhooksService } from "../webhooks/index.js";
+import { agentStatsRepository } from "./agent-stats.repository.js";
 import { channelMessagesRepository } from "./channel-messages.repository.js";
 import { conversationsRepository, type ConversationFilters } from "./conversations.repository.js";
 
@@ -54,10 +56,27 @@ export const conversationsService = {
   },
 
   /** `providerMessageId`: id no canal (WhatsApp...), para o webhook ser idempotente. */
-  addVisitorMessage(conversationId: string, content: string, providerMessageId?: string) {
-    return conversationsRepository.addMessage(conversationId, "visitante", content, [], null, {
-      providerMessageId,
-    });
+  async addVisitorMessage(conversationId: string, content: string, providerMessageId?: string) {
+    const message = await conversationsRepository.addMessage(
+      conversationId,
+      "visitante",
+      content,
+      [],
+      null,
+      { providerMessageId },
+    );
+    const conversation = await conversationsRepository.findAnyById(conversationId);
+    if (conversation) {
+      await webhooksService.emit(conversation.organization_id, "mensagem.recebida", {
+        conversationId,
+        messageId: message.id,
+        channel: conversation.channel,
+        contactId: conversation.contact_id,
+        content,
+        createdAt: message.created_at,
+      });
+    }
+    return message;
   },
 
   addAssistantMessage(conversationId: string, content: string, citations: MessageCitation[] = []) {
@@ -207,6 +226,17 @@ export const conversationsService = {
   },
 
   /** Exportacao da organizacao (LGPD). */
+  /** Respostas de atendentes desde `since`, para as metricas da caixa de entrada. */
+  async agentRepliesSince(organizationId: string, since: Date) {
+    const rows = await agentStatsRepository.repliesSince(organizationId, since);
+    return rows.map((r) => ({
+      conversationId: r.conversation_id,
+      userId: r.author_user_id!,
+      firstAt: new Date(r.first_at as unknown as string | Date),
+      count: Number(r.count),
+    }));
+  },
+
   exportAll(organizationId: string) {
     return conversationsRepository.exportAll(organizationId);
   },

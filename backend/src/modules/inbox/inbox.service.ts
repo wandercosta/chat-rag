@@ -2,6 +2,7 @@ import { auditService } from "../audit/index.js";
 import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { membersService } from "../identity/index.js";
+import { webhooksService } from "../webhooks/index.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
 import type { InboxStatus, TenantRole } from "../../db/types.js";
 import { assignmentsRepository, type AssignmentView } from "./assignments.repository.js";
@@ -233,6 +234,14 @@ const inboxCore = {
       type: "conteudo",
       target: conversationId,
     });
+    if (status === "resolvida" && current?.status !== "resolvida") {
+      await webhooksService.emit(organizationId, "conversa.resolvida", {
+        conversationId,
+        resolvedBy: actor.userId,
+        assignedUserId: row.assigned_user_id,
+        resolvedAt: new Date().toISOString(),
+      });
+    }
     await notify(organizationId, conversationId, { kind: "status", conversationId, status });
     return row;
   },

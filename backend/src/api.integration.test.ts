@@ -88,7 +88,11 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("API: auth, upload e pergunta", () => {
     });
     expect(anonymous.statusCode).toBe(401);
 
-    const me = await app.inject({ method: "GET", url: "/auth/me", headers: { cookie: tenantCookie } });
+    const me = await app.inject({
+      method: "GET",
+      url: "/auth/me",
+      headers: { cookie: tenantCookie },
+    });
     expect(me.statusCode).toBe(200);
   });
 
@@ -137,7 +141,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("API: auth, upload e pergunta", () => {
 
     // Mesmo trabalho que o worker faz ao consumir a fila (src/worker.ts).
     const { chunks } = await extractionService.extractAndChunk(organizationId, source.id);
-    const count = await indexingService.embedAndStoreChunks(organizationId, source.id, topicId, chunks);
+    const count = await indexingService.embedAndStoreChunks(
+      organizationId,
+      source.id,
+      topicId,
+      chunks,
+    );
     await sourcesService.markReady(organizationId, source.id, count);
     // A lei inteira (~130 artigos) vira dezenas de trechos.
     expect(count).toBeGreaterThan(50);

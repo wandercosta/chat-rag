@@ -13,6 +13,8 @@ import { CAMPAIGNS_QUEUE, type CampaignTickJob } from "./queue/campaigns.queue.j
 import { runCampaignTick } from "./modules/campaigns/index.js";
 import { AUTOMATIONS_QUEUE, scheduleNoReplyScan } from "./queue/automations.queue.js";
 import { scanAllNoReply } from "./modules/automations/index.js";
+import { WEBHOOKS_QUEUE, type WebhookDeliveryJob } from "./queue/webhooks.queue.js";
+import { processWebhookDelivery } from "./modules/webhooks/index.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -128,7 +130,19 @@ automationWorker.on("failed", (_job, err) => {
   console.error("varredura de automacoes falhou:", err.message);
 });
 
+// Webhooks de saida (etapa 8): uma tentativa por job; a fila refaz com espera
+// crescente (queue/webhooks.queue.ts).
+const webhookWorker = new Worker<WebhookDeliveryJob>(
+  WEBHOOKS_QUEUE,
+  async (job) => processWebhookDelivery(job.data.deliveryId, job.attemptsMade + 1),
+  { connection: { url: env.REDIS_URL }, concurrency: 10 },
+);
+
+webhookWorker.on("failed", (job, err) => {
+  console.error(`entrega de webhook falhou (${job?.data.deliveryId}):`, err.message);
+});
+
 await scheduleRetentionSweep();
 await scheduleNoReplyScan();
 
-console.log("worker de indexacao, retencao, canais, campanhas e automacoes iniciado");
+console.log("worker de indexacao, retencao, canais, campanhas, automacoes e webhooks iniciado");

@@ -13,7 +13,9 @@ type Environment = "teste" | "producao";
 function platformChat(): ChatProvider | null {
   switch (env.AI_PROVIDER) {
     case "openai":
-      return env.OPENAI_API_KEY ? createOpenAiChat(env.OPENAI_API_KEY, env.OPENAI_CHAT_MODEL) : null;
+      return env.OPENAI_API_KEY
+        ? createOpenAiChat(env.OPENAI_API_KEY, env.OPENAI_CHAT_MODEL)
+        : null;
     case "anthropic":
       return env.ANTHROPIC_API_KEY
         ? createAnthropicChat(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL)

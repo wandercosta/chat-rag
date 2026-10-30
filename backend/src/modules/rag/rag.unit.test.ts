@@ -112,6 +112,8 @@ describe("bestExcerpt", () => {
   });
 
   it("keeps the beginning when the first sentence is the best one", () => {
-    expect(bestExcerpt(content, "declaracoes de vontade em escritos particulares")).toMatch(/^Art\. 48\./);
+    expect(bestExcerpt(content, "declaracoes de vontade em escritos particulares")).toMatch(
+      /^Art\. 48\./,
+    );
   });
 });

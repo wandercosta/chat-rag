@@ -10,6 +10,8 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 
 - `identity`: login proprio, sessoes, usuarios e papeis, verificacao em duas etapas (TOTP) e limite de tentativas de login.
 - `privacy`: exportacao dos dados da organizacao (LGPD).
+- `public-api`: API REST publica (ADR-006, etapa 8) — tokens por organizacao com escopos, revogacao e limite por minuto, rotas `/api/v1`.
+- `webhooks`: webhooks de saida (ADR-006, etapa 8) — eventos assinados com HMAC, entregues pela fila `webhooks` com novas tentativas e protecao contra SSRF.
 - `organizations`: tenant, configuracoes, limites e credencial de provedor de IA.
 - `assistants`: instrucoes, comportamento, colecoes, widget e encaminhamento.
 - `knowledge`: topicos, fontes, versoes futuras, extracao e publicacao.
@@ -24,7 +26,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
-Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
+Todos os modulos do ADR-006 ja existem no codigo, com as mesmas regras de fronteira:
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
 
@@ -35,6 +37,15 @@ Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de f
 - **Limite de tentativas:** 10 erros (senha ou codigo) em 15 minutos para o mesmo e-mail bloqueiam o login com 429 ate a janela passar. Acerto zera a contagem.
 - **Master:** com `MASTER_2FA_REQUIRED=true` (recomendado em producao; padrao `false` para dev e seed), o Master sem 2FA ativo recebe 403 com `twoFactorSetupRequired` nas rotas de plataforma e no acesso de suporte.
 - **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), conversas com as mensagens e notas internas. Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
+
+## API publica, webhooks e metricas por atendente (ADR-006, etapa 8)
+
+Detalhes de uso em `docs/integrations/api-e-webhooks.md`.
+
+- **Tokens:** `crg_` + 32 bytes aleatorios; o banco guarda o sha256 e um prefixo. `requireApiScope` (em `public-api/api-auth.ts`) autentica, confere escopo, organizacao suspensa e o limite de 120 chamadas por minuto por token (contador no Redis). A organizacao vem do token, nunca de quem chama.
+- **Rotas v1** montam a resposta com formato proprio (camelCase) a partir das interfaces publicas de `contacts` e `conversations`; escrita exige que o token ainda tenha a pessoa responsavel e vai para a auditoria com o nome do token.
+- **Webhooks:** `webhooksService.emit` (best effort) e chamado por `contacts` (todo contato novo passa por `contacts/created.ts`), `conversations` (mensagem do visitante) e `inbox` (conversa resolvida). Grava uma linha em `webhook_deliveries` por webhook que assina o evento e poe na fila `webhooks`; o worker entrega (`webhooks/delivery.ts`), assina `t=,v1=` com HMAC-SHA256 e repete com espera exponencial ate 6 tentativas. Sem seguir redirecionamento, timeout de 10 segundos e destino conferido contra rede interna a cada tentativa (`webhooks/url-guard.ts`; `WEBHOOKS_ALLOW_PRIVATE_NETWORK` so para teste e dev).
+- **Metricas por atendente:** `inbox/metrics.service.ts` cruza `conversation_assignments` (pedidos e resolucoes do periodo) com as respostas de atendente que `conversations` agrega por conversa e autor (`agent-stats.repository.ts`).
 
 ## Automacoes (ADR-006, etapa 7)
 

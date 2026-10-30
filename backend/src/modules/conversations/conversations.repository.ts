@@ -30,6 +30,16 @@ export const conversationsRepository = {
     return query.execute();
   },
 
+  /** So para quem ja tem o id por um caminho confiavel (ex.: a mensagem
+   * acabou de ser gravada nela) e precisa saber de qual organizacao e. */
+  findAnyById(id: string) {
+    return db
+      .selectFrom("conversations")
+      .select(["organization_id", "channel", "contact_id"])
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
   findById(organizationId: string, id: string) {
     return db
       .selectFrom("conversations")

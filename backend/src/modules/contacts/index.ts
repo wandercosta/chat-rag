@@ -3,7 +3,11 @@
  * etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
  * Interface publica do modulo (ADR-002 #2).
  */
-export { contactsService } from "./contacts.service.js";
+export {
+  contactsService,
+  DuplicateContactError,
+  InvalidContactFieldError,
+} from "./contacts.service.js";
 export { contactsRoutes } from "./contacts.routes.js";
 export { contactTaxonomyRoutes } from "./taxonomy.routes.js";
 export { taxonomyService as contactTaxonomy } from "./taxonomy.service.js";
