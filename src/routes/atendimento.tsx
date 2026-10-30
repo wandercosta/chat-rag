@@ -125,7 +125,12 @@ function ConversationRow({
   active: boolean;
   onOpen: () => void;
 }) {
-  const who = c.visitor_name ?? c.visitor_email ?? c.external_user_id ?? "Visitante anônimo";
+  const who =
+    c.contact_label ??
+    c.visitor_name ??
+    c.visitor_email ??
+    c.external_user_id ??
+    "Visitante anônimo";
   return (
     <li>
       <button

@@ -23,6 +23,7 @@ import {
   type InboxStatus,
 } from "@/lib/inbox-api";
 import { useSession } from "@/lib/session";
+import { ConversationContact } from "./save-contact-dialog";
 
 type TimelineItem =
   | { kind: "message"; at: string; item: InboxConversationDetail["messages"][number] }
@@ -90,6 +91,12 @@ export function ConversationView({
 
   return (
     <Card className="flex max-h-[70vh] flex-col overflow-hidden p-0">
+      <ConversationContact
+        tenantId={tenantId}
+        conversationId={detail.id}
+        contactId={detail.contact_id}
+        contactLabel={detail.contact_label}
+      />
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
         <Badge variant="outline">
           {assignment ? inboxStatusLabel[assignment.status] : "Com o assistente"}

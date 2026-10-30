@@ -7,7 +7,8 @@ credencial OpenAI/BYOK com envelope encryption + politica de retencao),
 `knowledge` (topicos/fontes/extracao/chunking), `rag` (provedor de IA,
 recuperacao vetorial, politica de resposta), `conversations`
 (mensagens/feedback/lacunas), `embed` (chaves de widget, dominios, rate
-limit, handoff WhatsApp), `inbox` (caixa de entrada: atribuicao, resposta
+limit, handoff WhatsApp), `contacts` (CRM: contatos, etiquetas, campos,
+segmentos, importacao/exportacao CSV), `inbox` (caixa de entrada: atribuicao, resposta
 humana, notas internas, respostas prontas, tempo real por SSE + Redis
 pub/sub em `src/realtime/`), `audit` (append-only) e `analytics` (usage_events +
 resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a

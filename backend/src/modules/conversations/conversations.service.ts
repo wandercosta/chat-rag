@@ -77,7 +77,12 @@ export const conversationsService = {
    */
   async listSummaries(
     organizationId: string,
-    options: { ids?: string[]; channel?: ConversationChannel; limit?: number },
+    options: {
+      ids?: string[];
+      channel?: ConversationChannel;
+      contactId?: string;
+      limit?: number;
+    },
   ) {
     if (options.ids && options.ids.length === 0) return [];
     const conversations = await conversationsRepository.listWithVisitor(organizationId, {
@@ -101,6 +106,20 @@ export const conversationsService = {
         };
       })
       .sort((a, b) => +new Date(b.last_activity_at) - +new Date(a.last_activity_at));
+  },
+
+  /** Liga a conversa a um contato do CRM (ADR-006 #8). */
+  setContact(organizationId: string, conversationId: string, contactId: string) {
+    return conversationsRepository.setContact(organizationId, conversationId, contactId);
+  },
+
+  setContactForVisitor(organizationId: string, visitorId: string, contactId: string) {
+    return conversationsRepository.setContactForVisitor(organizationId, visitorId, contactId);
+  },
+
+  /** Excluir um contato apaga as conversas dele (LGPD). */
+  deleteForContact(organizationId: string, contactId: string) {
+    return conversationsRepository.deleteForContact(organizationId, contactId);
   },
 
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {

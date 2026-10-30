@@ -23,6 +23,8 @@ import { Route as TesteWidgetRouteImport } from './routes/teste-widget'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
+import { Route as ContatosIndexRouteImport } from './routes/contatos.index'
+import { Route as ContatosContactIdRouteImport } from './routes/contatos.$contactId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
 import { Route as TenantsTenantIdRouteImport } from './routes/tenants.$tenantId'
 
@@ -96,6 +98,16 @@ const AssistentesAssistantIdRoute = AssistentesAssistantIdRouteImport.update({
   path: '/assistentes/$assistantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContatosIndexRoute = ContatosIndexRouteImport.update({
+  id: '/contatos/',
+  path: '/contatos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatosContactIdRoute = ContatosContactIdRouteImport.update({
+  id: '/contatos/$contactId',
+  path: '/contatos/$contactId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantsIndexRoute = TenantsIndexRouteImport.update({
   id: '/tenants/',
   path: '/tenants/',
@@ -121,8 +133,10 @@ export interface FileRoutesByFullPath {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -139,8 +153,10 @@ export interface FileRoutesByTo {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes': typeof AssistentesIndexRoute
+  '/contatos': typeof ContatosIndexRoute
   '/tenants': typeof TenantsIndexRoute
 }
 export interface FileRoutesById {
@@ -158,8 +174,10 @@ export interface FileRoutesById {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRouteTypes {
@@ -178,8 +196,10 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/contatos/'
     | '/tenants/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -196,8 +216,10 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes'
+    | '/contatos'
     | '/tenants'
   id:
     | '__root__'
@@ -214,8 +236,10 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/contatos/'
     | '/tenants/'
   fileRoutesById: FileRoutesById
 }
@@ -233,8 +257,10 @@ export interface RootRouteChildren {
   TesteWidgetRoute: typeof TesteWidgetRoute
   UsuariosRoute: typeof UsuariosRoute
   AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
+  ContatosContactIdRoute: typeof ContatosContactIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
   AssistentesIndexRoute: typeof AssistentesIndexRoute
+  ContatosIndexRoute: typeof ContatosIndexRoute
   TenantsIndexRoute: typeof TenantsIndexRoute
 }
 
@@ -338,6 +364,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistentesAssistantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contatos/': {
+      id: '/contatos/'
+      path: '/contatos'
+      fullPath: '/contatos/'
+      preLoaderRoute: typeof ContatosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contatos/$contactId': {
+      id: '/contatos/$contactId'
+      path: '/contatos/$contactId'
+      fullPath: '/contatos/$contactId'
+      preLoaderRoute: typeof ContatosContactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tenants/': {
       id: '/tenants/'
       path: '/tenants'
@@ -369,8 +409,10 @@ const rootRouteChildren: RootRouteChildren = {
   TesteWidgetRoute: TesteWidgetRoute,
   UsuariosRoute: UsuariosRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
+  ContatosContactIdRoute: ContatosContactIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,
+  ContatosIndexRoute: ContatosIndexRoute,
   TenantsIndexRoute: TenantsIndexRoute,
 }
 export const routeTree = rootRouteImport

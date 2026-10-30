@@ -30,6 +30,8 @@ export interface InboxConversation {
   visitor_name: string | null;
   visitor_email: string | null;
   external_user_id: string | null;
+  contact_id: string | null;
+  contact_label: string | null;
   last_message: { role: ConversationMessage["role"]; content: string; created_at: string } | null;
   last_activity_at: string;
   assignment: InboxAssignment | null;
@@ -47,6 +49,8 @@ export interface InboxConversationDetail {
   assistant_id: string;
   channel: InboxConversation["channel"];
   started_at: string;
+  contact_id: string | null;
+  contact_label: string | null;
   messages: (ConversationMessage & { author_email: string | null })[];
   assignment: InboxAssignment | null;
   notes: InboxNote[];

@@ -17,16 +17,27 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `embed`: chaves, dominios, configuracao publica e validacao de origem.
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
+- `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
 - `channels`: conexao de canal por tenant (WhatsApp Cloud API, Instagram/Messenger pela Graph API, Telegram Bot API), webhooks de entrada com validacao de assinatura e idempotencia pelo id do provedor, envio, templates e status de entrega. Token de canal com envelope encryption, como a chave de IA.
-- `contacts`: contatos, identidades por canal (unicas por organizacao e canal), etiquetas, campos personalizados, segmentos, importacao e exportacao.
 - `campaigns`: publico por segmento com opt-in, agendamento, envio pela fila com ritmo por organizacao e metricas de entrega.
 - `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## Contatos (ADR-006, etapa 3)
+
+- **Visitante vira contato:** ao abrir conversa no widget com e-mail ou id externo, o visitante e ligado a um contato: pela identidade `widget` ja conhecida, por um contato com o mesmo e-mail ou por um contato novo. Visitante anonimo continua anonimo; na caixa de entrada, "Salvar como contato" cria o contato (ou liga a um existente com o mesmo e-mail/telefone) e leva junto todas as conversas daquele visitante.
+- **Unicidade:** e-mail (minusculo) e telefone (E.164; numero brasileiro sem DDI ganha +55) sao unicos por organizacao. Cadastro duplicado da 409; valor invalido, 422.
+- **Opt-in:** marcar registra data e origem (`painel` ou `importacao`); desmarcar registra o opt-out, que vence o opt-in. A importacao so marca opt-in, nunca desfaz um opt-out.
+- **Filtro e segmento:** busca (nome, e-mail, telefone), etiquetas (todas ou qualquer uma), opt-in e campos personalizados por igualdade. O segmento guarda o filtro, nao a lista: e recalculado a cada uso (base das campanhas da etapa 6).
+- **Importacao CSV:** ate 5 mil linhas por arquivo, enviada como texto no corpo (o painel le o arquivo). Reconhece `nome`, `email`, `telefone`, `etiquetas` (separadas por `|`), `opt_in` e os campos personalizados pela chave ou rotulo; `;` ou `,` como separador. Atualiza por e-mail e depois por telefone; cada linha com problema volta no relatorio com o numero da linha e o resto segue.
+- **Exportacao CSV:** `;` e BOM (Excel em portugues), com celulas que comecam com `=`, `+`, `-` ou `@` prefixadas por apostrofo contra injecao de formula. So administrador; auditada como evento de seguranca.
+- **Exclusao (LGPD):** so administrador; apaga o contato, identidades, etiquetas e as conversas dele. A auditoria guarda o id, nunca nome ou e-mail.
+- **Papeis:** Administrador e Atendente criam e editam contatos; Analista so le. Importar, exportar, excluir e gerir etiquetas, campos e segmentos e so do Administrador.
 
 ## Caixa de entrada (ADR-006, etapa 2)
 

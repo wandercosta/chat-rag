@@ -24,6 +24,13 @@ Rotacao de KEK e barata (re-envelopa so a DEK). Rotacao de DEK exige job de re-c
 
 O Master pode consultar apenas o estado da configuracao (ausente, valida, invalida, substituida ou removida) e executar remocao/suporte auditado. Ele nao pode revelar nem copiar a chave de um tenant. O tenant escolhe se usa a mesma credencial em teste e producao ou credenciais distintas; a configuracao e auditada sem expor o segredo.
 
+## Contatos (ADR-006, etapa 3)
+
+- Contato e dado pessoal: exportar e so do Administrador e fica na auditoria (evento de seguranca, com a quantidade, nunca o conteudo).
+- Excluir um contato a pedido do titular apaga identidades, etiquetas e as conversas dele; a auditoria guarda so o id.
+- O CSV exportado neutraliza celulas que o Excel trataria como formula.
+- Opt-out vence opt-in, e uma importacao nunca desfaz um opt-out.
+
 ## Canais, campanhas e automacoes (ADR-006, planejado)
 
 - Token de canal (WhatsApp, Instagram/Messenger, Telegram) segue as mesmas regras da chave de IA: envelope encryption, nunca devolvido por API, interface, log ou auditoria; o Master ve so o estado.

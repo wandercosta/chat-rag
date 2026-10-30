@@ -3,6 +3,7 @@ import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
 import { answerService } from "../rag/index.js";
 import { inboxService } from "../inbox/index.js";
+import { contactsService } from "../contacts/index.js";
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
@@ -93,6 +94,17 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         "widget",
         visitor?.id ?? null,
       );
+      // Visitante identificado (e-mail ou id externo) vira contato do CRM.
+      if (visitor) {
+        const contactId = await contactsService.resolveForVisitor(resolved.organizationId, visitor);
+        if (contactId && conversation.contact_id !== contactId) {
+          await conversationsService.setContact(
+            resolved.organizationId,
+            conversation.id,
+            contactId,
+          );
+        }
+      }
       return reply.code(isResumed ? 200 : 201).send({
         conversationId: conversation.id,
         isResumed,

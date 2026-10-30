@@ -22,7 +22,7 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 
 ## Planejado pelo ADR-006 (ainda sem rotas)
 
-- Painel: contatos (CRUD, etiquetas, campos, segmentos, importacao/exportacao CSV), conexoes de canal (sem leitura do token), templates, campanhas e automacoes.
+- Painel: conexoes de canal (sem leitura do token), templates, campanhas e automacoes.
 - Webhooks de entrada por provedor (Meta, Telegram): publicos, com validacao de assinatura e idempotencia; a organizacao vem da conexao do canal, nunca do payload.
 
 ## Regras
@@ -63,6 +63,9 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET /organizations/:organizationId/inbox/events` (SSE: avisa qual conversa mudou; o painel recarrega pelas rotas normais)
 - `GET /organizations/:organizationId/inbox/:conversationId` (mensagens com autor, atribuicao e notas internas)
 - `POST .../inbox/:conversationId/assign` (`{ userId | null }`), `POST .../status` (`aberta|pendente|resolvida`), `POST .../messages` (resposta ao visitante; 409 se outra pessoa assumiu), `POST .../notes` (nota interna) — Administrador e Atendente; Master em suporte recebe 403
+- `GET|POST /organizations/:organizationId/contacts` (lista paginada com `search`, `tagIds`, `tagMatch`, `optIn`, `segmentId`, `page`; criar: Administrador e Atendente), `GET|PATCH|DELETE .../contacts/:contactId` (detalhe com identidades e conversas; excluir so Administrador e apaga as conversas)
+- `POST .../contacts/from-conversation` (salva o visitante da conversa como contato ou liga a um existente; 200 quando juntou, 201 quando criou), `POST .../contacts/import` (`{ csv }`, relatorio por linha), `GET .../contacts/export` (CSV com o mesmo filtro da lista) — importar e exportar so Administrador
+- `GET|POST /organizations/:organizationId/contact-tags`, `.../contact-fields`, `.../contact-segments` e `DELETE .../:id` em cada um (ler: Administrador, Atendente e Analista; criar e remover: Administrador)
 - `GET|POST /organizations/:organizationId/canned-responses`, `DELETE .../canned-responses/:responseId` (respostas prontas; criar e remover so Administrador)
 
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):

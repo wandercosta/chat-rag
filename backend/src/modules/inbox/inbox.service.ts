@@ -1,4 +1,5 @@
 import { auditService } from "../audit/index.js";
+import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { membersService } from "../identity/index.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
@@ -45,6 +46,19 @@ function toAssignment(row: AssignmentRow, emails: Map<string, string>) {
   };
 }
 
+/** Nome do contato do CRM (etapa 3) no lugar do "visitante anonimo". */
+async function withContactLabels<T extends { contact_id: string | null }>(
+  organizationId: string,
+  conversations: T[],
+) {
+  const ids = conversations.flatMap((c) => (c.contact_id ? [c.contact_id] : []));
+  const labels = await contactsService.labelsFor(organizationId, ids);
+  return conversations.map((c) => ({
+    ...c,
+    contact_label: c.contact_id ? (labels.get(c.contact_id) ?? null) : null,
+  }));
+}
+
 async function requireReplyable(organizationId: string, conversationId: string) {
   const conversation = await conversationsService.get(organizationId, conversationId);
   if (!conversation) throw new ConversationNotFoundError();
@@ -70,10 +84,11 @@ export const inboxService = {
           recent.map((c) => c.id),
         ),
       );
-      return recent
-        .filter((c) => !withHuman.has(c.id))
-        .slice(0, 50)
-        .map((c) => ({ ...c, assignment: null }));
+      const free = recent.filter((c) => !withHuman.has(c.id)).slice(0, 50);
+      return (await withContactLabels(organizationId, free)).map((c) => ({
+        ...c,
+        assignment: null,
+      }));
     }
 
     const rows = await assignmentsRepository.list(organizationId, view, userId);
@@ -82,7 +97,10 @@ export const inboxService = {
       conversationsService.listSummaries(organizationId, { ids: [...byId.keys()] }),
       memberEmails(organizationId),
     ]);
-    return summaries.map((c) => ({ ...c, assignment: toAssignment(byId.get(c.id)!, emails) }));
+    return (await withContactLabels(organizationId, summaries)).map((c) => ({
+      ...c,
+      assignment: toAssignment(byId.get(c.id)!, emails),
+    }));
   },
 
   async get(organizationId: string, conversationId: string) {
@@ -95,9 +113,10 @@ export const inboxService = {
       memberEmails(organizationId),
     ]);
     const emailOf = (id: string | null) => (id ? (emails.get(id) ?? null) : null);
+    const [withLabel] = await withContactLabels(organizationId, [conversation]);
 
     return {
-      ...conversation,
+      ...withLabel,
       messages: conversation.messages.map((m) => ({
         ...m,
         author_email: emailOf(m.author_user_id),
