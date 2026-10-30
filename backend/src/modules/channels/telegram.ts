@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { env } from "../../config/env.js";
-import { requestJson } from "./http.js";
+import type { AttachmentKind } from "../../db/types.js";
+import type { InboundMedia } from "../../queue/channel-messages.queue.js";
+import { ChannelApiError, requestJson } from "./http.js";
 import type { ParsedWebhook } from "./whatsapp.webhook.js";
 
 /** Bot API do Telegram (ADR-006 #6). O token do bot vai na URL: nunca logar a URL. */
@@ -31,6 +33,13 @@ export const telegramClient = {
     return call<boolean>(token, "deleteWebhook");
   },
 
+  /** Caminho do arquivo para baixar; o link leva o token, nunca logar. */
+  async fileUrl(token: string, fileId: string) {
+    const file = await call<{ file_path?: string }>(token, "getFile", { file_id: fileId });
+    if (!file.file_path) throw new ChannelApiError(404, "o Telegram nao devolveu o arquivo");
+    return `${env.TELEGRAM_API_URL}/file/bot${token}/${file.file_path}`;
+  },
+
   /** Id composto "chat:mensagem": o message_id do Telegram so e unico no chat. */
   async sendText(token: string, chatId: string, text: string) {
     const message = await call<{ message_id: number }>(token, "sendMessage", {
@@ -57,6 +66,40 @@ const MEDIA_LABEL: Record<(typeof MEDIA)[number], string> = {
   location: "[localizacao recebida]",
 };
 
+const MEDIA_KIND: Partial<Record<(typeof MEDIA)[number], AttachmentKind>> = {
+  photo: "imagem",
+  voice: "audio",
+  audio: "audio",
+  video: "video",
+  document: "documento",
+  sticker: "figurinha",
+};
+
+interface TelegramFile {
+  file_id?: string;
+  file_name?: string;
+  mime_type?: string;
+}
+
+/** Foto chega em varios tamanhos; vale o maior (o ultimo). */
+function mediaOf(
+  kind: (typeof MEDIA)[number] | undefined,
+  value: unknown,
+): InboundMedia[] | undefined {
+  const attachmentKind = kind && MEDIA_KIND[kind];
+  if (!attachmentKind) return undefined;
+  const file = (Array.isArray(value) ? value.at(-1) : value) as TelegramFile | undefined;
+  if (!file?.file_id) return undefined;
+  return [
+    {
+      kind: attachmentKind,
+      ref: file.file_id,
+      fileName: file.file_name ?? null,
+      mimeType: file.mime_type ?? null,
+    },
+  ];
+}
+
 interface TelegramUpdate {
   message?: {
     message_id: number;
@@ -69,7 +112,8 @@ interface TelegramUpdate {
 
 /**
  * So conversas privadas com o bot: mensagem de grupo ou canal nao e
- * atendimento. Midia vira o rotulo do tipo (o arquivo ainda nao e baixado).
+ * atendimento. Midia sem legenda vira o rotulo do tipo; o arquivo e baixado
+ * pelo worker.
  */
 export function parseTelegramUpdate(payload: unknown): ParsedWebhook {
   const message = (payload as TelegramUpdate)?.message;
@@ -87,6 +131,7 @@ export function parseTelegramUpdate(payload: unknown): ParsedWebhook {
         from: String(message.chat.id),
         name: name || message.from?.username || null,
         text,
+        media: mediaOf(media, media ? message[media] : undefined),
       },
     ],
     statuses: [],

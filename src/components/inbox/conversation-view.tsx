@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CitationList } from "@/components/citation-list";
+import { MessageAttachments } from "@/components/conversations/message-attachments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -181,7 +182,12 @@ export function ConversationView({
               <p className="whitespace-pre-wrap">{entry.item.content}</p>
             </div>
           ) : (
-            <MessageBubble key={`m-${entry.item.id}`} message={entry.item} />
+            <MessageBubble
+              key={`m-${entry.item.id}`}
+              message={entry.item}
+              organizationId={tenantId!}
+              conversationId={conversationId}
+            />
           ),
         )}
       </div>
@@ -225,7 +231,15 @@ export function ConversationView({
   );
 }
 
-function MessageBubble({ message: m }: { message: InboxConversationDetail["messages"][number] }) {
+function MessageBubble({
+  message: m,
+  organizationId,
+  conversationId,
+}: {
+  message: InboxConversationDetail["messages"][number];
+  organizationId: string;
+  conversationId: string;
+}) {
   const ours = m.role !== "visitante";
   const label =
     m.role === "visitante"
@@ -247,6 +261,11 @@ function MessageBubble({ message: m }: { message: InboxConversationDetail["messa
       >
         {m.content}
         {m.citations?.length ? <CitationList citations={m.citations} /> : null}
+        <MessageAttachments
+          organizationId={organizationId}
+          conversationId={conversationId}
+          attachments={m.attachments}
+        />
       </div>
       {m.delivery_status && (
         <span

@@ -61,7 +61,8 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `GET|POST /organizations/:organizationId/topics`, `PATCH .../topics/:topicId` (inclusive mover o topico entre colecoes)
 - `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`, `POST .../sources/activate-pending` (destrava fontes presas em `aguardando_ativacao` apos uma chave de IA valida existir)
 - `POST /organizations/:organizationId/assistants/:assistantId/playground-messages`
-- `GET /organizations/:organizationId/conversations[/:conversationId]`, `POST .../feedback`
+- `GET /organizations/:organizationId/conversations[/:conversationId]`, `POST .../feedback` (o detalhe traz `attachments` em cada mensagem: id, tipo, nome, tamanho, estado e erro, sem a chave do storage; o detalhe da caixa de entrada tambem)
+- `GET /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId` (arquivo recebido pelo canal; Administrador, Atendente e Analista, ou Master em sessao de suporte; sempre `Content-Disposition: attachment` e `X-Content-Type-Options: nosniff`; 404 se o anexo nao e daquela conversa e organizacao ou ainda nao esta pronto)
 - `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`, `POST .../gaps/:gapId/answer` (responder a lacuna cria uma fonte de texto no topico indicado — mesmo pipeline de qualquer outra fonte — e marca a lacuna como resolvida; papeis Administrador/Editor de base)
 - `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]`
 - `GET|POST /organizations/:organizationId/members`, `PATCH|DELETE .../members/:membershipId` (acessos do tenant; senha provisoria definida pelo administrador, sem cadastro publico; a organizacao nunca fica sem administrador)

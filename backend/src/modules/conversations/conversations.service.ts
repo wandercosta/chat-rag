@@ -1,6 +1,7 @@
 import type { ConversationChannel, DeliveryStatus, MessageCitation } from "../../db/types.js";
 import { webhooksService } from "../webhooks/index.js";
 import { agentStatsRepository } from "./agent-stats.repository.js";
+import { attachmentsService } from "./attachments.service.js";
 import { channelMessagesRepository } from "./channel-messages.repository.js";
 import { conversationsRepository, type ConversationFilters } from "./conversations.repository.js";
 
@@ -17,7 +18,14 @@ export const conversationsService = {
     const conversation = await conversationsRepository.findById(organizationId, id);
     if (!conversation) return null;
     const messages = await conversationsRepository.messagesFor(id);
-    return { ...conversation, messages };
+    const attachments = await attachmentsService.listForMessages(messages.map((m) => m.id));
+    return {
+      ...conversation,
+      messages: messages.map((m) => ({
+        ...m,
+        attachments: attachments.filter((a) => a.message_id === m.id),
+      })),
+    };
   },
 
   start(
@@ -140,8 +148,9 @@ export const conversationsService = {
     return conversationsRepository.setContactForVisitor(organizationId, visitorId, contactId);
   },
 
-  /** Excluir um contato apaga as conversas dele (LGPD). */
-  deleteForContact(organizationId: string, contactId: string) {
+  /** Excluir um contato apaga as conversas dele (LGPD), com os arquivos. */
+  async deleteForContact(organizationId: string, contactId: string) {
+    await attachmentsService.deleteFilesFor({ organizationId, contactId });
     return conversationsRepository.deleteForContact(organizationId, contactId);
   },
 

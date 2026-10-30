@@ -1,4 +1,5 @@
 export { conversationsService } from "./conversations.service.js";
+export { attachmentsService } from "./attachments.service.js";
 export { conversationsRoutes } from "./conversations.routes.js";
 export { gapsService } from "./gaps.service.js";
 export { platformStatsService } from "./platform-stats.service.js";

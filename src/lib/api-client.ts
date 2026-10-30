@@ -521,7 +521,19 @@ export interface ConversationMessage {
   delivery_status?: "enviando" | "enviada" | "entregue" | "lida" | "falhou" | null;
   delivery_error?: string | null;
   provider_message_id?: string | null;
+  /** Midia recebida pelos canais (o arquivo e baixado a parte). */
+  attachments?: MessageAttachment[];
   created_at: string;
+}
+
+export interface MessageAttachment {
+  id: string;
+  kind: "imagem" | "audio" | "video" | "documento" | "figurinha";
+  mime_type: string | null;
+  file_name: string | null;
+  size_bytes: number | null;
+  status: "pendente" | "pronto" | "falhou";
+  error: string | null;
 }
 
 export const conversationsApi = {
@@ -531,6 +543,15 @@ export const conversationsApi = {
     get<Conversation & { messages: ConversationMessage[] }>(
       `/organizations/${organizationId}/conversations/${conversationId}`,
     ),
+  /** O arquivo vem sempre como download; o painel monta a pre-visualizacao. */
+  async attachment(organizationId: string, conversationId: string, attachmentId: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
+      { credentials: "include" },
+    );
+    if (!response.ok) throw new ApiError(response.status, "não foi possível abrir o arquivo");
+    return response.blob();
+  },
 };
 
 // --- organizations: AI credentials ------------------------------------------------

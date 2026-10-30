@@ -1,3 +1,5 @@
+import type { AttachmentKind } from "../../db/types.js";
+import type { InboundMedia } from "../../queue/channel-messages.queue.js";
 import type { ParsedWebhook } from "./whatsapp.webhook.js";
 import { graph } from "./whatsapp.client.js";
 
@@ -40,13 +42,30 @@ const ATTACHMENT_LABEL: Record<string, string> = {
   file: "[documento recebido]",
 };
 
+const ATTACHMENT_KIND: Record<string, AttachmentKind> = {
+  image: "imagem",
+  audio: "audio",
+  video: "video",
+  file: "documento",
+};
+
+/** O arquivo vem por URL do CDN da Meta (conferida de novo no download, media.ts). */
+function mediaOf(attachments: { type?: string; payload?: { url?: string } }[] = []) {
+  const media: InboundMedia[] = attachments.flatMap((a) => {
+    const kind = ATTACHMENT_KIND[a.type ?? ""];
+    const url = a.payload?.url;
+    return kind && url ? [{ kind, ref: url }] : [];
+  });
+  return media.length ? media : undefined;
+}
+
 interface MessagingEvent {
   sender?: { id?: string };
   message?: {
     mid?: string;
     text?: string;
     is_echo?: boolean;
-    attachments?: { type?: string }[];
+    attachments?: { type?: string; payload?: { url?: string } }[];
   };
   delivery?: { mids?: string[] };
 }
@@ -75,6 +94,7 @@ export function parseMessagingWebhook(payload: unknown, accountId: string): Pars
             from: event.sender.id,
             name: null,
             text,
+            media: mediaOf(message.attachments),
           });
         }
       }

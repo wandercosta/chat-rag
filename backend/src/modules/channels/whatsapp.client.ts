@@ -27,6 +27,11 @@ export const whatsappClient = {
     );
   },
 
+  /** Midia recebida: a Graph devolve uma URL curta, baixada com o mesmo token. */
+  mediaInfo(mediaId: string, token: string) {
+    return graph<{ url?: string; mime_type?: string }>(`/${encodeURIComponent(mediaId)}`, token);
+  },
+
   async sendText(phoneNumberId: string, token: string, to: string, body: string) {
     const result = await graph<{ messages?: { id: string }[] }>(
       `/${encodeURIComponent(phoneNumberId)}/messages`,

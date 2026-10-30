@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { DeliveryStatus } from "../../db/types.js";
-import type { InboundMessage } from "../../queue/channel-messages.queue.js";
+import type { AttachmentKind } from "../../db/types.js";
+import type { InboundMedia, InboundMessage } from "../../queue/channel-messages.queue.js";
 
 /**
  * Assinatura do webhook da Meta: `X-Hub-Signature-256: sha256=<hmac>` do corpo
@@ -26,7 +27,7 @@ const STATUS_MAP: Record<string, DeliveryStatus> = {
   failed: "falhou",
 };
 
-/** Midia ainda nao e baixada: o painel mostra o tipo para o atendente saber. */
+/** Sem legenda, o texto da mensagem e o tipo da midia (o arquivo vem a parte). */
 const MEDIA_LABEL: Record<string, string> = {
   image: "[imagem recebida]",
   audio: "[audio recebido]",
@@ -38,11 +39,33 @@ const MEDIA_LABEL: Record<string, string> = {
   contacts: "[contato compartilhado]",
 };
 
+const MEDIA_KIND: Record<string, AttachmentKind> = {
+  image: "imagem",
+  audio: "audio",
+  voice: "audio",
+  video: "video",
+  document: "documento",
+  sticker: "figurinha",
+};
+
+interface WaMedia {
+  id?: string;
+  mime_type?: string;
+  caption?: string;
+  filename?: string;
+}
+
 interface WaMessage {
   id: string;
   from: string;
   type: string;
   text?: { body?: string };
+  image?: WaMedia;
+  audio?: WaMedia;
+  voice?: WaMedia;
+  video?: WaMedia;
+  document?: WaMedia;
+  sticker?: WaMedia;
   button?: { text?: string };
   interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
 }
@@ -66,7 +89,27 @@ function textOf(message: WaMessage): string | null {
       message.interactive?.button_reply?.title ?? message.interactive?.list_reply?.title ?? null
     );
   }
-  return MEDIA_LABEL[message.type] ?? null;
+  const caption = mediaOf(message)?.caption?.trim();
+  return caption || (MEDIA_LABEL[message.type] ?? null);
+}
+
+function mediaOf(message: WaMessage): WaMedia | undefined {
+  return MEDIA_KIND[message.type]
+    ? (message[message.type as keyof WaMessage] as WaMedia | undefined)
+    : undefined;
+}
+
+function attachmentsOf(message: WaMessage): InboundMedia[] | undefined {
+  const media = mediaOf(message);
+  if (!media?.id) return undefined;
+  return [
+    {
+      kind: MEDIA_KIND[message.type],
+      ref: media.id,
+      fileName: media.filename ?? null,
+      mimeType: media.mime_type ?? null,
+    },
+  ];
 }
 
 export interface ParsedWebhook {
@@ -98,6 +141,7 @@ export function parseWhatsAppWebhook(payload: unknown, phoneNumberId: string): P
         from: message.from,
         name: names.get(message.from) ?? null,
         text,
+        media: attachmentsOf(message),
       });
     }
     for (const status of value.statuses ?? []) {

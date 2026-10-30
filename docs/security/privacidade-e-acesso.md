@@ -66,4 +66,6 @@ A tabela `audit_events` e gravada apenas por INSERT pela role de aplicacao; UPDA
 
 Padrao inicial: 90 dias para conversas; organizacao e assistente podem definir politica mais restritiva ou mais longa. A politica efetiva precisa ser mostrada no painel.
 
+Midia recebida pelos canais fica no storage da plataforma (`media/<organizacao>/`) e segue a conversa: o expurgo por retencao e a exclusao de contato apagam os arquivos antes das linhas. O painel so ve o arquivo pela rota da conversa, com as mesmas permissoes de leitura dela.
+
 Um worker agendado expurga/anonimiza conversas alem da politica efetiva de cada organizacao/assistente e gera `audit_event` agregado (organizacao, quantidade, timestamp), sem conteudo de conversa. Ver ADR-002; job criado junto com a funcionalidade de retencao configuravel.
