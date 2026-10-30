@@ -4,14 +4,13 @@ import { buildApp } from "../../app.js";
 import { db } from "../../db/client.js";
 import { redis } from "../../db/redis.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
-import { identityService } from "../identity/index.js";
 import { RUN_INTEGRATION_TESTS, resetDatabase } from "../../test/integration-helpers.js";
-
-const ORIGIN = "https://loja.test";
-
-function cookieFrom(response: { cookies: Array<{ name: string; value: string }> }) {
-  return response.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-}
+import {
+  WIDGET_ORIGIN as ORIGIN,
+  createMaster,
+  createTenant as createTenantWith,
+  startWidgetConversation,
+} from "../../test/tenant-fixture.js";
 
 /**
  * Caixa de entrada (ADR-006, etapa 2): pedido de atendente no widget, IA
@@ -22,79 +21,10 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("caixa de entrada", () => {
   let app: FastifyInstance;
   let masterCookie: string;
 
-  async function login(email: string, password: string) {
-    const res = await app.inject({
-      method: "POST",
-      url: "/auth/login",
-      payload: { email, password },
-    });
-    return cookieFrom(res);
-  }
-
-  /** Tenant com assistente (caixa de entrada ligada), chave de widget e as
-   * pessoas de cada papel. */
-  async function createTenant(slug: string) {
-    const tenant = await app.inject({
-      method: "POST",
-      url: "/master/tenants",
-      headers: { cookie: masterCookie },
-      payload: {
-        name: `Loja ${slug}`,
-        slug,
-        adminEmail: `admin@${slug}.local`,
-        adminPassword: "senha-admin-123",
-      },
-    });
-    const organizationId: string = tenant.json().organization.id;
-    const admin = await login(`admin@${slug}.local`, "senha-admin-123");
-
-    const base = `/organizations/${organizationId}`;
-    const assistant = await app.inject({
-      method: "POST",
-      url: `${base}/assistants`,
-      headers: { cookie: admin },
-      payload: { name: "Assistente", modelId: "gpt-4o-mini" },
-    });
-    const assistantId: string = assistant.json().id;
-    await app.inject({
-      method: "PATCH",
-      url: `${base}/assistants/${assistantId}`,
-      headers: { cookie: admin },
-      payload: { humanInboxEnabled: true },
-    });
-
-    const key = await app.inject({
-      method: "POST",
-      url: `${base}/widget-keys`,
-      headers: { cookie: admin },
-      payload: { assistantId, environment: "producao", domains: ["loja.test"] },
-    });
-
-    const people: Record<string, { cookie: string; userId: string }> = {};
-    for (const role of ["Atendente", "Analista"] as const) {
-      const email = `${role.toLowerCase()}@${slug}.local`;
-      const member = await app.inject({
-        method: "POST",
-        url: `${base}/members`,
-        headers: { cookie: admin },
-        payload: { email, password: "senha-membro-123", role },
-      });
-      people[role] = {
-        cookie: await login(email, "senha-membro-123"),
-        userId: member.json().user_id,
-      };
-    }
-
-    return { organizationId, base, admin, key: key.json().plaintext as string, people };
-  }
+  const createTenant = (slug: string) => createTenantWith(app, masterCookie, slug);
 
   function startWidget(key: string, externalUserId = "cliente-1") {
-    return app.inject({
-      method: "POST",
-      url: "/widget/conversations",
-      headers: { origin: ORIGIN },
-      payload: { key, externalUserId, visitorName: "Maria" },
-    });
+    return startWidgetConversation(app, key, { externalUserId, visitorName: "Maria" });
   }
 
   async function widgetConversation(key: string) {
@@ -113,9 +43,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("caixa de entrada", () => {
   beforeEach(async () => {
     await resetDatabase();
     app = await buildApp({ logger: false });
-    const master = await identityService.createUser(db, "master@teste.local", "senha-master-123");
-    await db.insertInto("platform_roles").values({ user_id: master.id }).execute();
-    masterCookie = await login("master@teste.local", "senha-master-123");
+    masterCookie = await createMaster(app);
   });
 
   afterAll(async () => {

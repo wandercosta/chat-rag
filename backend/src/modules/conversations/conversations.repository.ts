@@ -96,7 +96,7 @@ export const conversationsRepository = {
    * so essas; sem, as mais recentes do canal. */
   listWithVisitor(
     organizationId: string,
-    options: { ids?: string[]; channel?: ConversationChannel; limit: number },
+    options: { ids?: string[]; channel?: ConversationChannel; contactId?: string; limit: number },
   ) {
     let query = db
       .selectFrom("conversations as c")
@@ -106,6 +106,7 @@ export const conversationsRepository = {
         "c.assistant_id",
         "c.channel",
         "c.started_at",
+        "c.contact_id",
         "v.name as visitor_name",
         "v.email as visitor_email",
         "v.external_user_id",
@@ -116,6 +117,7 @@ export const conversationsRepository = {
 
     if (options.ids) query = query.where("c.id", "in", options.ids);
     if (options.channel) query = query.where("c.channel", "=", options.channel);
+    if (options.contactId) query = query.where("c.contact_id", "=", options.contactId);
     return query.execute();
   },
 
@@ -133,6 +135,34 @@ export const conversationsRepository = {
 
   addFeedback(conversationId: string, rating: "positivo" | "negativo") {
     return db.insertInto("feedbacks").values({ conversation_id: conversationId, rating }).execute();
+  },
+
+  async setContact(organizationId: string, conversationId: string, contactId: string) {
+    await db
+      .updateTable("conversations")
+      .set({ contact_id: contactId })
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", conversationId)
+      .execute();
+  },
+
+  /** Todas as conversas do mesmo visitante passam a ser do contato. */
+  async setContactForVisitor(organizationId: string, visitorId: string, contactId: string) {
+    await db
+      .updateTable("conversations")
+      .set({ contact_id: contactId })
+      .where("organization_id", "=", organizationId)
+      .where("visitor_id", "=", visitorId)
+      .execute();
+  },
+
+  async deleteForContact(organizationId: string, contactId: string): Promise<number> {
+    const result = await db
+      .deleteFrom("conversations")
+      .where("organization_id", "=", organizationId)
+      .where("contact_id", "=", contactId)
+      .executeTakeFirst();
+    return Number(result.numDeletedRows);
   },
 
   /** Expurgo por retencao (ADR-002 #6). Mensagens e feedbacks saem junto via

@@ -33,6 +33,8 @@ export type Permission =
   | "audit"
   | "inbox"
   | "inbox_reply"
+  | "contacts"
+  | "contacts_write"
   | "write";
 
 const matrix: Record<Profile, Permission[]> = {
@@ -47,6 +49,7 @@ const matrix: Record<Profile, Permission[]> = {
     "settings",
     "audit",
     "inbox",
+    "contacts",
     "write",
   ],
   Administrador: [
@@ -60,12 +63,14 @@ const matrix: Record<Profile, Permission[]> = {
     "audit",
     "inbox",
     "inbox_reply",
+    "contacts",
+    "contacts_write",
     "write",
   ],
   "Editor de base": ["assistants", "knowledge", "write"],
-  Analista: ["conversations", "gaps", "inbox"],
+  Analista: ["conversations", "gaps", "inbox", "contacts"],
   // Responde e resolve conversas; nao mexe em base, chaves nem usuarios.
-  Atendente: ["inbox", "inbox_reply"],
+  Atendente: ["inbox", "inbox_reply", "contacts", "contacts_write"],
 };
 
 function deriveProfile(auth: ApiAuthContext): Profile {

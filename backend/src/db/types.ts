@@ -163,6 +163,7 @@ export interface ConversationsTable {
   organization_id: string;
   assistant_id: string;
   visitor_id: string | null;
+  contact_id: string | null;
   channel: ConversationChannel;
   started_at: ColumnType<Date, string | undefined, never>;
 }
@@ -192,6 +193,71 @@ export interface ConversationNotesTable {
   conversation_id: string;
   author_user_id: string | null;
   content: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type ContactChannel = "widget" | "whatsapp" | "telegram" | "instagram" | "messenger";
+export type ContactFieldType = "texto" | "numero" | "data";
+
+export interface ContactsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  custom_fields: ColumnType<Record<string, string>, string | undefined, string>;
+  opt_in_at: Date | null;
+  opt_in_source: string | null;
+  opted_out_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ContactIdentitiesTable {
+  id: Generated<string>;
+  organization_id: string;
+  contact_id: string;
+  channel: ContactChannel;
+  value: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ContactTagsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  color: Generated<string>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ContactTagLinksTable {
+  contact_id: string;
+  tag_id: string;
+}
+
+export interface ContactFieldsTable {
+  id: Generated<string>;
+  organization_id: string;
+  key: string;
+  label: string;
+  type: ContactFieldType;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+/** Filtro salvo de contatos. Todos os criterios presentes precisam valer. */
+export interface ContactFilter {
+  search?: string;
+  tagIds?: string[];
+  tagMatch?: "any" | "all";
+  optIn?: boolean;
+  fields?: { key: string; value: string }[];
+}
+
+export interface ContactSegmentsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  filter: ColumnType<ContactFilter, string, string>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -333,4 +399,10 @@ export interface Database {
   conversation_assignments: ConversationAssignmentsTable;
   conversation_notes: ConversationNotesTable;
   canned_responses: CannedResponsesTable;
+  contacts: ContactsTable;
+  contact_identities: ContactIdentitiesTable;
+  contact_tags: ContactTagsTable;
+  contact_tag_links: ContactTagLinksTable;
+  contact_fields: ContactFieldsTable;
+  contact_segments: ContactSegmentsTable;
 }

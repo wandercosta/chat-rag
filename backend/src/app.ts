@@ -22,6 +22,7 @@ import {
   embedPublicRoutes,
 } from "./modules/embed/index.js";
 import { cannedResponsesRoutes, inboxRoutes } from "./modules/inbox/index.js";
+import { contactTaxonomyRoutes, contactsRoutes } from "./modules/contacts/index.js";
 import { analyticsRoutes } from "./modules/analytics/index.js";
 
 /** Fabrica da app, separada de server.ts (que so faz `listen`), para poder
@@ -55,6 +56,8 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(embedPublicEventsRoutes);
   await app.register(inboxRoutes);
   await app.register(cannedResponsesRoutes);
+  await app.register(contactsRoutes);
+  await app.register(contactTaxonomyRoutes);
   await app.register(analyticsRoutes);
   await app.register(demoRoutes);
 
