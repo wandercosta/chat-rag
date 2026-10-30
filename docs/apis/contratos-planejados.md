@@ -20,8 +20,6 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 - Registrar feedback.
 - Gerar encaminhamento para WhatsApp.
 
-## Planejado pelo ADR-006 (ainda sem rotas)
-
 ## Regras
 
 - Nao existe endpoint publico de registro de tenant ou usuario; provisionamento requer sessao Master.
@@ -40,6 +38,16 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `POST /auth/login` (`{ email, password, code? }`; com 2FA ativo e sem `code`: 401 com `twoFactorRequired`; 10 erros em 15 minutos por e-mail: 429), `POST /auth/logout`, `GET /auth/me` (inclui `twoFactorEnabled`)
 - `GET /auth/2fa` (estado), `POST /auth/2fa/setup` (gera a chave; 409 se ja ativo), `POST /auth/2fa/enable` (`{ code }`; devolve os codigos de recuperacao uma unica vez), `POST /auth/2fa/disable` (`{ code }`, do app ou de recuperacao)
 - `GET /organizations/:organizationId/export` (Administrador; JSON da organizacao para LGPD, auditado)
+- `GET|POST /organizations/:organizationId/api-tokens` (`{ name, scopes }`; o texto do token volta so na criacao), `DELETE .../api-tokens/:tokenId` (revoga) — so Administrador
+- `GET|POST /organizations/:organizationId/webhooks` (`{ url, events }`; o segredo volta so na criacao; URL fora de https ou para rede interna: 422), `PATCH .../webhooks/:webhookId` (`url`, `events`, `enabled`), `POST .../webhooks/:webhookId/rotate-secret`, `POST .../webhooks/:webhookId/test` (202), `GET .../webhooks/:webhookId/deliveries`, `DELETE .../webhooks/:webhookId` — so Administrador
+- `GET /organizations/:organizationId/agent-metrics?days=` (1 a 90, padrao 30; Administrador e Analista)
+
+## API publica v1 (token de API)
+
+Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 403 escopo que falta ou organizacao suspensa, 429 acima de 120 chamadas por minuto por token. Detalhes e formato dos webhooks em `docs/integrations/api-e-webhooks.md`.
+
+- `GET /api/v1/contacts` (`contacts:read`; `?search=`, `?page=`), `GET /api/v1/contacts/:id`, `POST /api/v1/contacts` (`contacts:write`; 409 duplicado, 422 e-mail/telefone invalido)
+- `GET /api/v1/conversations` (`conversations:read`; `?from=`, `?to=`), `GET /api/v1/conversations/:id` (com mensagens)
 - `GET|POST /master/tenants`, `POST /master/tenants/:organizationId/status`
 - `GET|POST /master/tenants/:organizationId/support-sessions`, `POST .../support-sessions/:sessionId/end` (justificativa + expiracao, auditado — ADR-001 #14)
 - `GET /organizations/:organizationId` (auto-atendimento do tenant: nome/status da propria organizacao)

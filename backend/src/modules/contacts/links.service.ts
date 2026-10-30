@@ -1,5 +1,6 @@
 import type { ContactChannel, ContactFilter } from "../../db/types.js";
 import { contactsRepository } from "./contacts.repository.js";
+import { insertContact } from "./created.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
@@ -40,7 +41,7 @@ export const contactLinks = {
 
     const contact =
       (email && (await contactsRepository.findByEmail(organizationId, email))) ||
-      (await contactsRepository.insert(organizationId, { name: visitor.name, email }));
+      (await insertContact(organizationId, { name: visitor.name, email }));
     if (!contact.name && visitor.name) {
       await contactsRepository.update(organizationId, contact.id, { name: visitor.name });
     }
@@ -70,7 +71,7 @@ export const contactLinks = {
     const phone = normalizePhone(profile.phone);
     const contact =
       (phone && (await contactsRepository.findByPhone(organizationId, phone))) ||
-      (await contactsRepository.insert(organizationId, { name: profile.name ?? null, phone }));
+      (await insertContact(organizationId, { name: profile.name ?? null, phone }));
     if (!contact.name && profile.name) {
       await contactsRepository.update(organizationId, contact.id, { name: profile.name });
     }

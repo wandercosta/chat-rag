@@ -28,6 +28,8 @@ export default defineConfig({
       // Banco 1 do Redis: as filas dos testes nao se misturam com o worker de dev
       // (que usa o banco 0) rodando na mesma maquina.
       REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://localhost:6379/1",
+      // Os testes de webhook entregam num servidor http local.
+      WEBHOOKS_ALLOW_PRIVATE_NETWORK: "true",
       APP_MASTER_KEY: "test-only-master-key-not-a-secret-32b",
       S3_ENDPOINT: "http://localhost:9000",
       S3_ACCESS_KEY_ID: "test",

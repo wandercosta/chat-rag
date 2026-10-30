@@ -22,12 +22,14 @@ import {
   embedPublicEventsRoutes,
   embedPublicRoutes,
 } from "./modules/embed/index.js";
-import { cannedResponsesRoutes, inboxRoutes } from "./modules/inbox/index.js";
+import { agentMetricsRoutes, cannedResponsesRoutes, inboxRoutes } from "./modules/inbox/index.js";
 import { contactTaxonomyRoutes, contactsRoutes } from "./modules/contacts/index.js";
 import { channelsRoutes, channelsWebhookRoutes } from "./modules/channels/index.js";
 import { campaignsRoutes } from "./modules/campaigns/index.js";
 import { automationsRoutes } from "./modules/automations/index.js";
 import { privacyRoutes } from "./modules/privacy/index.js";
+import { webhooksRoutes } from "./modules/webhooks/index.js";
+import { apiTokensRoutes, publicApiV1Routes } from "./modules/public-api/index.js";
 import { analyticsRoutes } from "./modules/analytics/index.js";
 
 /** Fabrica da app, separada de server.ts (que so faz `listen`), para poder
@@ -76,6 +78,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(embedPublicEventsRoutes);
   await app.register(inboxRoutes);
   await app.register(cannedResponsesRoutes);
+  await app.register(agentMetricsRoutes);
   await app.register(contactsRoutes);
   await app.register(contactTaxonomyRoutes);
   await app.register(channelsRoutes);
@@ -83,6 +86,9 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(campaignsRoutes);
   await app.register(automationsRoutes);
   await app.register(privacyRoutes);
+  await app.register(webhooksRoutes);
+  await app.register(apiTokensRoutes);
+  await app.register(publicApiV1Routes);
   await app.register(analyticsRoutes);
   await app.register(demoRoutes);
 

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiWebhooksRouteImport } from './routes/api-webhooks'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
@@ -18,6 +19,7 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ConversasRouteImport } from './routes/conversas'
+import { Route as DesempenhoRouteImport } from './routes/desempenho'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
@@ -36,6 +38,11 @@ import { Route as TenantsTenantIdRouteImport } from './routes/tenants.$tenantId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksRoute = ApiWebhooksRouteImport.update({
+  id: '/api-webhooks',
+  path: '/api-webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtendimentoRoute = AtendimentoRouteImport.update({
@@ -76,6 +83,11 @@ const ContaRoute = ContaRouteImport.update({
 const ConversasRoute = ConversasRouteImport.update({
   id: '/conversas',
   path: '/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesempenhoRoute = DesempenhoRouteImport.update({
+  id: '/desempenho',
+  path: '/desempenho',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegracoesRoute = IntegracoesRouteImport.update({
@@ -151,6 +163,7 @@ const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
@@ -159,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/conhecimento': typeof ConhecimentoRoute
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -176,6 +190,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
@@ -184,6 +199,7 @@ export interface FileRoutesByTo {
   '/conhecimento': typeof ConhecimentoRoute
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -202,6 +218,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
   '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
@@ -210,6 +227,7 @@ export interface FileRoutesById {
   '/conhecimento': typeof ConhecimentoRoute
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -229,6 +247,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api-webhooks'
     | '/atendimento'
     | '/auditoria'
     | '/automacoes'
@@ -237,6 +256,7 @@ export interface FileRouteTypes {
     | '/conhecimento'
     | '/conta'
     | '/conversas'
+    | '/desempenho'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -254,6 +274,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api-webhooks'
     | '/atendimento'
     | '/auditoria'
     | '/automacoes'
@@ -262,6 +283,7 @@ export interface FileRouteTypes {
     | '/conhecimento'
     | '/conta'
     | '/conversas'
+    | '/desempenho'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -279,6 +301,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/api-webhooks'
     | '/atendimento'
     | '/auditoria'
     | '/automacoes'
@@ -287,6 +310,7 @@ export interface FileRouteTypes {
     | '/conhecimento'
     | '/conta'
     | '/conversas'
+    | '/desempenho'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -305,6 +329,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiWebhooksRoute: typeof ApiWebhooksRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
   AutomacoesRoute: typeof AutomacoesRoute
@@ -313,6 +338,7 @@ export interface RootRouteChildren {
   ConhecimentoRoute: typeof ConhecimentoRoute
   ContaRoute: typeof ContaRoute
   ConversasRoute: typeof ConversasRoute
+  DesempenhoRoute: typeof DesempenhoRoute
   IntegracoesRoute: typeof IntegracoesRoute
   LacunasRoute: typeof LacunasRoute
   PlataformaRoute: typeof PlataformaRoute
@@ -336,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-webhooks': {
+      id: '/api-webhooks'
+      path: '/api-webhooks'
+      fullPath: '/api-webhooks'
+      preLoaderRoute: typeof ApiWebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/atendimento': {
@@ -392,6 +425,13 @@ declare module '@tanstack/react-router' {
       path: '/conversas'
       fullPath: '/conversas'
       preLoaderRoute: typeof ConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desempenho': {
+      id: '/desempenho'
+      path: '/desempenho'
+      fullPath: '/desempenho'
+      preLoaderRoute: typeof DesempenhoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integracoes': {
@@ -497,6 +537,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiWebhooksRoute: ApiWebhooksRoute,
   AtendimentoRoute: AtendimentoRoute,
   AuditoriaRoute: AuditoriaRoute,
   AutomacoesRoute: AutomacoesRoute,
@@ -505,6 +546,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConhecimentoRoute: ConhecimentoRoute,
   ContaRoute: ContaRoute,
   ConversasRoute: ConversasRoute,
+  DesempenhoRoute: DesempenhoRoute,
   IntegracoesRoute: IntegracoesRoute,
   LacunasRoute: LacunasRoute,
   PlataformaRoute: PlataformaRoute,
