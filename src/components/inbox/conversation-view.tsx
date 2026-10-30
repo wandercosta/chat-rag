@@ -19,7 +19,7 @@ import {
   type InboxStatus,
 } from "@/lib/inbox-api";
 import { useSession } from "@/lib/session";
-import { deliveryLabel } from "@/lib/channels-api";
+import { channelLabel, deliveryLabel } from "@/lib/channels-api";
 import { Composer } from "./composer";
 import { TemplateComposer } from "./template-composer";
 import { ConversationContact } from "./save-contact-dialog";
@@ -186,18 +186,27 @@ export function ConversationView({
         )}
       </div>
 
-      {replyable && windowClosed && detail.channel_connection_id && (
-        <TemplateComposer
-          tenantId={tenantId}
-          conversationId={detail.id}
-          connectionId={detail.channel_connection_id}
-          onSent={() =>
-            void queryClient.invalidateQueries({
-              queryKey: ["inbox-conversation", tenantId, conversationId],
-            })
-          }
-        />
+      {replyable && windowClosed && detail.channel !== "whatsapp" && (
+        <p className="border-t px-4 py-3 text-xs text-muted-foreground">
+          Passaram 24 horas da última mensagem do cliente. Pelo {channelLabel[detail.channel]}, a
+          resposta só volta a ser possível quando ele escrever de novo.
+        </p>
       )}
+      {replyable &&
+        windowClosed &&
+        detail.channel === "whatsapp" &&
+        detail.channel_connection_id && (
+          <TemplateComposer
+            tenantId={tenantId}
+            conversationId={detail.id}
+            connectionId={detail.channel_connection_id}
+            onSent={() =>
+              void queryClient.invalidateQueries({
+                queryKey: ["inbox-conversation", tenantId, conversationId],
+              })
+            }
+          />
+        )}
       {replyable && !windowClosed && (
         <Composer
           tenantId={tenantId}

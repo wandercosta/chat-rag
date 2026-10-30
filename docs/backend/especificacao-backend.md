@@ -17,17 +17,23 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `embed`: chaves, dominios, configuracao publica e validacao de origem.
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
-- `channels`: canais oficiais (ADR-006, etapa 4) — conexao do WhatsApp do tenant, webhook assinado, fila de entrada e envio, recibos e modelos.
+- `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
-- `channels` (restante, etapa 5): Telegram pela Bot API e Instagram/Messenger pela Graph API, sobre a mesma camada do WhatsApp.
 - `campaigns`: publico por segmento com opt-in, agendamento, envio pela fila com ritmo por organizacao e metricas de entrega.
 - `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## Camada de canais (ADR-006, etapa 5)
+
+Cada provedor e um adaptador em `channels/providers.ts` com quatro coisas: autenticar o webhook (assinatura da Meta ou token secreto do Telegram), ler mensagens e recibos so da propria conta da conexao, enviar texto e dizer se o canal revela telefone. Conexao (`connect.ts`), webhook (`POST /webhooks/:provider/:connectionId`), entrada e envio sao os mesmos para todos; so o WhatsApp tem modelos. Detalhes de Telegram, Instagram e Messenger em `integrations/telegram-instagram-messenger.md`.
+
+- **Ids de job:** o id do provedor vai como hash no `jobId` do BullMQ (que nao aceita `:`, e o Telegram usa `chat:mensagem`).
+- **Validacao:** dado invalido em qualquer rota (zod) responde **400** com o motivo do primeiro problema (`app.ts`, `setErrorHandler`); antes virava 500.
 
 ## WhatsApp (ADR-006, etapa 4)
 

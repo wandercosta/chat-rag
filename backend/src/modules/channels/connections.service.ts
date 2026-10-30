@@ -1,42 +1,29 @@
 import crypto from "node:crypto";
 import { assistantsService } from "../assistants/index.js";
 import { auditService } from "../audit/index.js";
-import {
-  decryptSecret,
-  deserializeEnvelope,
-  encryptSecret,
-  maskSecret,
-  serializeEnvelope,
-} from "../../crypto/envelope.js";
+import { encryptSecret, maskSecret, serializeEnvelope } from "../../crypto/envelope.js";
+import { recheckAccount, verifyAccount, type NewConnectionInput } from "./connect.js";
 import { connectionsRepository, templatesRepository } from "./connections.repository.js";
-import { WhatsAppApiError, whatsappClient } from "./whatsapp.client.js";
+import { ChannelApiError } from "./http.js";
+import { secretsOf } from "./providers.js";
+import { telegramClient } from "./telegram.js";
+import { whatsappClient } from "./whatsapp.client.js";
 
 export class AssistantNotFoundError extends Error {}
 export class ConnectionNotFoundError extends Error {}
 export class DuplicateConnectionError extends Error {}
-/** A Meta recusou o numero/token informado: a mensagem dela vai para o painel. */
+/** O provedor recusou as credenciais: a mensagem dele vai para o painel. */
 export class ConnectionCheckError extends Error {}
 
-export interface WhatsAppSecrets {
-  accessToken: string;
-  appSecret: string;
-}
+export { secretsOf };
+export type { NewConnectionInput };
 
-export interface NewWhatsAppConnection {
-  name: string;
-  assistantId: string;
-  phoneNumberId: string;
-  wabaId: string;
-  accessToken: string;
-  appSecret: string;
-}
-
-type ConnectionRow = NonNullable<Awaited<ReturnType<typeof connectionsRepository.findById>>>;
-
-/** Segredos so existem decifrados dentro do processo, na hora do uso. */
-export function secretsOf(connection: Pick<ConnectionRow, "secret">): WhatsAppSecrets {
-  return JSON.parse(decryptSecret(deserializeEnvelope(connection.secret)));
-}
+const PROVIDER_LABEL = {
+  whatsapp: "WhatsApp",
+  messenger: "Messenger",
+  instagram: "Instagram",
+  telegram: "Telegram",
+} as const;
 
 /** Corpo do modelo e quantas variaveis ({{1}}, {{2}}...) ele pede. */
 function templateBody(components: { type: string; text?: string }[] = []) {
@@ -45,80 +32,120 @@ function templateBody(components: { type: string; text?: string }[] = []) {
   return { body, variables: numbers.length ? Math.max(...numbers) : 0 };
 }
 
+function reason(err: unknown) {
+  return err instanceof ChannelApiError ? err.message : "erro desconhecido";
+}
+
+/** O Telegram nao tem tela para colar a URL: o webhook e registrado pela API. */
+async function registerTelegramWebhook(
+  id: string,
+  token: string,
+  webhookSecret: string,
+  webhookUrl: string,
+) {
+  try {
+    await telegramClient.setWebhook(token, webhookUrl, webhookSecret);
+    await connectionsRepository.setStatus(id, "ativo", null);
+    return { status: "ativo" as const, detail: null };
+  } catch (err) {
+    const detail = `webhook nao registrado no Telegram: ${reason(err)}`;
+    await connectionsRepository.setStatus(id, "erro", detail);
+    return { status: "erro" as const, detail };
+  }
+}
+
 export const connectionsService = {
   list(organizationId: string) {
     return connectionsRepository.list(organizationId);
   },
 
   /**
-   * Conecta um numero do WhatsApp Business do proprio tenant (ADR-006 #7). Antes
-   * de salvar, confere na Meta que o token enxerga aquele numero; o token e o
-   * segredo do app ficam cifrados e so o final do token aparece no painel.
+   * Conecta uma conta do proprio tenant (ADR-006 #7): confere as credenciais no
+   * provedor, guarda os segredos cifrados e mostra so o final do token.
    */
-  async createWhatsApp(actorUserId: string, organizationId: string, input: NewWhatsAppConnection) {
+  async create(
+    actorUserId: string,
+    organizationId: string,
+    input: NewConnectionInput,
+    webhookUrlFor: (connectionId: string) => string,
+  ) {
     if (!(await assistantsService.get(organizationId, input.assistantId))) {
       throw new AssistantNotFoundError();
     }
-    if (await connectionsRepository.existsExternal("whatsapp", input.phoneNumberId)) {
+
+    let account;
+    try {
+      account = await verifyAccount(input);
+    } catch (err) {
+      throw new ConnectionCheckError(reason(err));
+    }
+    if (await connectionsRepository.existsExternal(account.provider, account.externalId)) {
       throw new DuplicateConnectionError();
     }
 
-    let info;
-    try {
-      info = await whatsappClient.phoneNumberInfo(input.phoneNumberId, input.accessToken);
-    } catch (err) {
-      const reason = err instanceof WhatsAppApiError ? err.message : "erro desconhecido";
-      throw new ConnectionCheckError(reason);
-    }
-
-    const secrets: WhatsAppSecrets = { accessToken: input.accessToken, appSecret: input.appSecret };
-    const connection = await connectionsRepository.insert({
+    let connection = await connectionsRepository.insert({
       organizationId,
       assistantId: input.assistantId,
-      provider: "whatsapp",
+      provider: account.provider,
       name: input.name,
-      externalId: input.phoneNumberId,
-      config: {
-        wabaId: input.wabaId,
-        displayPhone: info.display_phone_number ?? "",
-        verifiedName: info.verified_name ?? "",
-      },
-      secret: serializeEnvelope(encryptSecret(JSON.stringify(secrets))),
-      secretHint: maskSecret(input.accessToken),
+      externalId: account.externalId,
+      config: account.config,
+      secret: serializeEnvelope(encryptSecret(JSON.stringify(account.secrets))),
+      secretHint: maskSecret(account.secrets.accessToken),
       verifyToken: crypto.randomBytes(18).toString("hex"),
     });
+
+    if (account.provider === "telegram") {
+      const result = await registerTelegramWebhook(
+        connection.id,
+        account.secrets.accessToken,
+        account.secrets.webhookSecret!,
+        webhookUrlFor(connection.id),
+      );
+      connection = { ...connection, status: result.status, status_detail: result.detail };
+    }
 
     await auditService.record({
       actorUserId,
       organizationId,
-      action: "Conectou canal WhatsApp",
+      action: `Conectou canal ${PROVIDER_LABEL[account.provider]}`,
       type: "seguranca",
-      target: `${input.name} · ${info.display_phone_number ?? input.phoneNumberId}`,
+      target: `${input.name} · ${account.label}`,
     });
     return connection;
   },
 
-  /** Testa de novo o token na Meta e atualiza o estado da conexao. */
-  async check(organizationId: string, id: string) {
+  /** Testa de novo as credenciais (e, no Telegram, registra o webhook outra vez). */
+  async check(organizationId: string, id: string, webhookUrlFor: (id: string) => string) {
     const connection = await connectionsRepository.findById(organizationId, id);
     if (!connection) throw new ConnectionNotFoundError();
+    const secrets = secretsOf(connection);
     try {
-      await whatsappClient.phoneNumberInfo(
-        connection.external_id,
-        secretsOf(connection).accessToken,
-      );
-      await connectionsRepository.setStatus(id, "ativo", null);
-      return { status: "ativo" as const, detail: null };
+      await recheckAccount(connection.provider, connection.external_id, connection.config, secrets);
     } catch (err) {
-      const detail = err instanceof WhatsAppApiError ? err.message : "erro desconhecido";
+      const detail = reason(err);
       await connectionsRepository.setStatus(id, "erro", detail);
       return { status: "erro" as const, detail };
     }
+    if (connection.provider === "telegram") {
+      return registerTelegramWebhook(
+        id,
+        secrets.accessToken,
+        secrets.webhookSecret ?? "",
+        webhookUrlFor(id),
+      );
+    }
+    await connectionsRepository.setStatus(id, "ativo", null);
+    return { status: "ativo" as const, detail: null };
   },
 
   async remove(actorUserId: string, organizationId: string, id: string) {
     const connection = await connectionsRepository.findById(organizationId, id);
     if (!connection) throw new ConnectionNotFoundError();
+    if (connection.provider === "telegram") {
+      // Melhor esforco: sem isso o Telegram continua tentando entregar.
+      await telegramClient.deleteWebhook(secretsOf(connection).accessToken).catch(() => {});
+    }
     await connectionsRepository.remove(organizationId, id);
     await auditService.record({
       actorUserId,
@@ -133,10 +160,10 @@ export const connectionsService = {
     return templatesRepository.list(organizationId, connectionId);
   },
 
-  /** Puxa da Meta os modelos da conta (WABA) e guarda o corpo de cada um. */
+  /** Modelos so existem no WhatsApp: puxa da Meta os da conta (WABA). */
   async syncTemplates(actorUserId: string, organizationId: string, id: string) {
     const connection = await connectionsRepository.findById(organizationId, id);
-    if (!connection) throw new ConnectionNotFoundError();
+    if (!connection || connection.provider !== "whatsapp") throw new ConnectionNotFoundError();
     let templates;
     try {
       templates = await whatsappClient.listTemplates(
@@ -144,7 +171,7 @@ export const connectionsService = {
         secretsOf(connection).accessToken,
       );
     } catch (err) {
-      throw new ConnectionCheckError(err instanceof Error ? err.message : "erro desconhecido");
+      throw new ConnectionCheckError(reason(err));
     }
     await templatesRepository.replaceAll(
       organizationId,

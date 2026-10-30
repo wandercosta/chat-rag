@@ -47,7 +47,8 @@ const schema = z.object({
   // webhook que o tenant cola na Meta/Telegram; sem ele, vem do Host da
   // requisicao do painel. As URLs base das APIs oficiais so mudam em teste.
   PUBLIC_API_URL: optional(z.string().url()),
-  WHATSAPP_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
+  META_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
+  TELEGRAM_API_URL: z.string().url().default("https://api.telegram.org"),
 });
 
 export const env = schema

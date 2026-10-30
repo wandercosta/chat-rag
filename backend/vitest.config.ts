@@ -32,8 +32,10 @@ export default defineConfig({
       S3_BUCKET: "chatrag-test",
       AI_PROVIDER: "local",
       EMBEDDING_PROVIDER: "hash",
-      // API da Meta simulada pelos testes de canal (src/test/fake-graph-api.ts).
-      WHATSAPP_GRAPH_URL: "http://127.0.0.1:4599/v21.0",
+      // APIs da Meta e do Telegram simuladas pelos testes de canal
+      // (src/test/fake-graph-api.ts), no mesmo servidor.
+      META_GRAPH_URL: "http://127.0.0.1:4599/v21.0",
+      TELEGRAM_API_URL: "http://127.0.0.1:4599",
     },
   },
 });

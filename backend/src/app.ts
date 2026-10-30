@@ -1,6 +1,7 @@
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import Fastify, { type FastifyInstance } from "fastify";
+import { ZodError } from "zod";
 import { registerCors } from "./cors.js";
 import { registerTenantStatusGuard } from "./tenant-status.js";
 import { platformAiSummary } from "./config/ai.js";
@@ -32,6 +33,21 @@ import { analyticsRoutes } from "./modules/analytics/index.js";
  * fastify-plugin, que nenhum teste unitario dos guards conseguia pegar). */
 export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true });
+
+  // As rotas validam com zod (`schema.parse`). Sem isto, dado invalido virava
+  // 500 sem explicacao; agora e 400 com o motivo do primeiro problema, que o
+  // painel mostra como mensagem de erro.
+  app.setErrorHandler((err, _request, reply) => {
+    if (err instanceof ZodError) {
+      const first = err.issues[0];
+      const where = first?.path.length ? `${first.path.join(".")}: ` : "";
+      return reply.code(400).send({
+        error: first ? `${where}${first.message}` : "dados invalidos",
+        issues: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+      });
+    }
+    return reply.send(err);
+  });
 
   registerCors(app);
   registerTenantStatusGuard(app);
