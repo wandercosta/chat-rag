@@ -179,12 +179,9 @@ async function waitForIndexing(tenant: Session, orgId: string, topicId: string, 
       lastStatus = source.status;
     }
     if (source.status === "pronta") return;
-    if (source.status === "erro")
-      throw new Error(`indexacao falhou: ${source.error_message ?? ""}`);
+    if (source.status === "erro") throw new Error(`indexacao falhou: ${source.error_message ?? ""}`);
     if (source.status === "aguardando_ativacao") {
-      throw new Error(
-        "fonte aguardando ativacao: configure AI_PROVIDER/EMBEDDING_PROVIDER no .env",
-      );
+      throw new Error("fonte aguardando ativacao: configure AI_PROVIDER/EMBEDDING_PROVIDER no .env");
     }
     await new Promise((r) => setTimeout(r, 3000));
   }
