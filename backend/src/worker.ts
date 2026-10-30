@@ -9,6 +9,8 @@ import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-in
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
 import { CHANNEL_MESSAGES_QUEUE, type ChannelJob } from "./queue/channel-messages.queue.js";
 import { processChannelJob } from "./modules/channels/index.js";
+import { CAMPAIGNS_QUEUE, type CampaignTickJob } from "./queue/campaigns.queue.js";
+import { runCampaignTick } from "./modules/campaigns/index.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -102,6 +104,18 @@ channelWorker.on("failed", (job, err) => {
   console.error(`job de canal falhou (${job?.data.kind}):`, err.message);
 });
 
+// Campanhas (ADR-006 #9): um lote por minuto por campanha, com teto por
+// organizacao (modules/campaigns/sender.ts).
+const campaignWorker = new Worker<CampaignTickJob>(
+  CAMPAIGNS_QUEUE,
+  async (job) => runCampaignTick(job.data.organizationId, job.data.campaignId),
+  { connection: { url: env.REDIS_URL }, concurrency: 2 },
+);
+
+campaignWorker.on("failed", (job, err) => {
+  console.error(`lote de campanha falhou (${job?.data.campaignId}):`, err.message);
+});
+
 await scheduleRetentionSweep();
 
-console.log("worker de indexacao, retencao e canais iniciado");
+console.log("worker de indexacao, retencao, canais e campanhas iniciado");

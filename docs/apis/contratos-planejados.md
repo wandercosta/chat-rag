@@ -22,7 +22,7 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 
 ## Planejado pelo ADR-006 (ainda sem rotas)
 
-- Painel: campanhas e automacoes.
+- Painel: automacoes.
 
 ## Regras
 
@@ -69,6 +69,7 @@ Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/member
 - `GET /organizations/:organizationId/channels` (Administrador; inclui a URL de webhook e o token de verificacao, nunca o token de acesso), `POST .../channels/{whatsapp|messenger|instagram|telegram}` (confere as credenciais no provedor antes de salvar; 409 se a conta ja esta conectada; no Telegram tambem registra o webhook e, se falhar, salva com estado `erro` e o motivo), `POST .../channels/:id/check`, `DELETE .../channels/:id`
 - `GET .../channels/:id/templates` (Administrador e Atendente), `POST .../channels/:id/templates/sync` (Administrador), `POST .../inbox/:conversationId/template` (`{ templateId, params }`, envio de modelo aprovado fora da janela de 24 horas; Administrador e Atendente)
 - `POST .../inbox/:conversationId/messages` responde 422 em conversa de WhatsApp fora da janela de 24 horas
+- `GET|POST /organizations/:organizationId/campaigns` (ler: Administrador e Analista; criar rascunho: Administrador), `POST .../campaigns/preview` (`{ connectionId, segmentId }` → elegiveis e quantos ficam de fora), `GET .../campaigns/:id` (metricas e destinatarios), `POST .../campaigns/:id/schedule` (`{ at? }`; fixa o publico; 422 se ninguem tem opt-in no canal), `POST .../campaigns/:id/cancel`
 - `GET|POST /organizations/:organizationId/canned-responses`, `DELETE .../canned-responses/:responseId` (respostas prontas; criar e remover so Administrador)
 
 Webhooks publicos dos canais (sem sessao; ver `integrations/whatsapp.md` e `integrations/telegram-instagram-messenger.md`):

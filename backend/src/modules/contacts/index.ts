@@ -6,3 +6,4 @@
 export { contactsService } from "./contacts.service.js";
 export { contactsRoutes } from "./contacts.routes.js";
 export { contactTaxonomyRoutes } from "./taxonomy.routes.js";
+export { taxonomyService as contactTaxonomy } from "./taxonomy.service.js";

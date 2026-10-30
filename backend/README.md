@@ -7,7 +7,8 @@ credencial OpenAI/BYOK com envelope encryption + politica de retencao),
 `knowledge` (topicos/fontes/extracao/chunking), `rag` (provedor de IA,
 recuperacao vetorial, politica de resposta), `conversations`
 (mensagens/feedback/lacunas), `embed` (chaves de widget, dominios, rate
-limit, handoff WhatsApp), `channels` (WhatsApp, Telegram, Instagram e Messenger:
+limit, handoff WhatsApp), `campaigns` (publico com opt-in, modelo ou texto,
+agendamento, ritmo e metricas), `channels` (WhatsApp, Telegram, Instagram e Messenger:
 conexao, webhook autenticado, fila de entrada/envio, recibos e modelos), `contacts` (CRM: contatos, etiquetas, campos,
 segmentos, importacao/exportacao CSV), `inbox` (caixa de entrada: atribuicao, resposta
 humana, notas internas, respostas prontas, tempo real por SSE + Redis

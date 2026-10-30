@@ -37,7 +37,7 @@ Ja valem para WhatsApp, Instagram, Messenger e Telegram (etapas 4 e 5; no Telegr
 
 - Token de canal (WhatsApp, Instagram/Messenger, Telegram) segue as mesmas regras da chave de IA: envelope encryption, nunca devolvido por API, interface, log ou auditoria; o Master ve so o estado.
 - Webhook de entrada e publico, entao valida a assinatura do provedor antes de qualquer processamento, resolve a organizacao pela conexao do canal (nunca por parametro enviado pelo chamador) e e idempotente pelo id da mensagem no provedor.
-- Campanha so alcanca contato com opt-in registrado (origem e data) e sem opt-out. Fora da janela de 24 horas do WhatsApp, so template aprovado.
+- Campanha so alcanca contato com opt-in registrado (origem e data) e sem opt-out, conferido de novo na hora de cada envio; responder "SAIR" pelo canal registra o opt-out. Fora da janela de 24 horas do WhatsApp, so template aprovado; Instagram e Messenger nao recebem campanha.
 - Toda mensagem enviada tem um responsavel humano identificavel (quem respondeu, publicou o fluxo ou disparou a campanha) e entra na auditoria, sem o conteudo da mensagem.
 - Nota interna nunca e enviada ao contato, por nenhum canal.
 - Eventos em tempo real sao escopados por organizacao; um evento nunca chega a sessao de outro tenant.

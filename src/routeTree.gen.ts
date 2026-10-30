@@ -24,6 +24,8 @@ import { Route as TesteWidgetRouteImport } from './routes/teste-widget'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
+import { Route as CampanhasIndexRouteImport } from './routes/campanhas.index'
+import { Route as CampanhasCampaignIdRouteImport } from './routes/campanhas.$campaignId'
 import { Route as ContatosIndexRouteImport } from './routes/contatos.index'
 import { Route as ContatosContactIdRouteImport } from './routes/contatos.$contactId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
@@ -104,6 +106,16 @@ const AssistentesAssistantIdRoute = AssistentesAssistantIdRouteImport.update({
   path: '/assistentes/$assistantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampanhasIndexRoute = CampanhasIndexRouteImport.update({
+  id: '/campanhas/',
+  path: '/campanhas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampanhasCampaignIdRoute = CampanhasCampaignIdRouteImport.update({
+  id: '/campanhas/$campaignId',
+  path: '/campanhas/$campaignId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContatosIndexRoute = ContatosIndexRouteImport.update({
   id: '/contatos/',
   path: '/contatos/',
@@ -140,9 +152,11 @@ export interface FileRoutesByFullPath {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
   '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/campanhas/': typeof CampanhasIndexRoute
   '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
@@ -161,9 +175,11 @@ export interface FileRoutesByTo {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
   '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes': typeof AssistentesIndexRoute
+  '/campanhas': typeof CampanhasIndexRoute
   '/contatos': typeof ContatosIndexRoute
   '/tenants': typeof TenantsIndexRoute
 }
@@ -183,9 +199,11 @@ export interface FileRoutesById {
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
   '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/campanhas/': typeof CampanhasIndexRoute
   '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
@@ -206,9 +224,11 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
     | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/campanhas/'
     | '/contatos/'
     | '/tenants/'
   fileRoutesByTo: FileRoutesByTo
@@ -227,9 +247,11 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
     | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes'
+    | '/campanhas'
     | '/contatos'
     | '/tenants'
   id:
@@ -248,9 +270,11 @@ export interface FileRouteTypes {
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
     | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/campanhas/'
     | '/contatos/'
     | '/tenants/'
   fileRoutesById: FileRoutesById
@@ -270,9 +294,11 @@ export interface RootRouteChildren {
   TesteWidgetRoute: typeof TesteWidgetRoute
   UsuariosRoute: typeof UsuariosRoute
   AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
+  CampanhasCampaignIdRoute: typeof CampanhasCampaignIdRoute
   ContatosContactIdRoute: typeof ContatosContactIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
   AssistentesIndexRoute: typeof AssistentesIndexRoute
+  CampanhasIndexRoute: typeof CampanhasIndexRoute
   ContatosIndexRoute: typeof ContatosIndexRoute
   TenantsIndexRoute: typeof TenantsIndexRoute
 }
@@ -384,6 +410,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistentesAssistantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campanhas/': {
+      id: '/campanhas/'
+      path: '/campanhas'
+      fullPath: '/campanhas/'
+      preLoaderRoute: typeof CampanhasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campanhas/$campaignId': {
+      id: '/campanhas/$campaignId'
+      path: '/campanhas/$campaignId'
+      fullPath: '/campanhas/$campaignId'
+      preLoaderRoute: typeof CampanhasCampaignIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contatos/': {
       id: '/contatos/'
       path: '/contatos'
@@ -430,9 +470,11 @@ const rootRouteChildren: RootRouteChildren = {
   TesteWidgetRoute: TesteWidgetRoute,
   UsuariosRoute: UsuariosRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
+  CampanhasCampaignIdRoute: CampanhasCampaignIdRoute,
   ContatosContactIdRoute: ContatosContactIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,
+  CampanhasIndexRoute: CampanhasIndexRoute,
   ContatosIndexRoute: ContatosIndexRoute,
   TenantsIndexRoute: TenantsIndexRoute,
 }

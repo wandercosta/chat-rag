@@ -18,12 +18,7 @@ export type SourceStatus =
   | "erro"
   | "arquivada";
 export type ConversationChannel =
-  | "widget"
-  | "whatsapp"
-  | "playground"
-  | "telegram"
-  | "instagram"
-  | "messenger";
+  "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
 export type ChannelProvider = "whatsapp" | "telegram" | "instagram" | "messenger";
 export type DeliveryStatus = "enviando" | "enviada" | "entregue" | "lida" | "falhou";
 export type MessageRole = "visitante" | "assistente" | "atendente";
@@ -303,6 +298,40 @@ export interface ContactSegmentsTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export type CampaignStatus = "rascunho" | "agendada" | "enviando" | "concluida" | "cancelada";
+export type RecipientStatus = "pendente" | "enviada" | "falhou" | "ignorada";
+
+export interface CampaignsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  connection_id: string | null;
+  segment_id: string | null;
+  audience_filter: ColumnType<ContactFilter | null, string | null | undefined, string | null>;
+  template_id: string | null;
+  template_params: ColumnType<string[], string | undefined, string>;
+  text: string | null;
+  status: ColumnType<CampaignStatus, CampaignStatus | undefined, CampaignStatus>;
+  rate_per_minute: ColumnType<number, number | undefined, number>;
+  scheduled_at: Date | null;
+  started_at: Date | null;
+  finished_at: Date | null;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CampaignRecipientsTable {
+  id: Generated<string>;
+  organization_id: string;
+  campaign_id: string;
+  contact_id: string;
+  address: string;
+  status: ColumnType<RecipientStatus, RecipientStatus | undefined, RecipientStatus>;
+  message_id: string | null;
+  error: string | null;
+  sent_at: Date | null;
+}
+
 export interface CannedResponsesTable {
   id: Generated<string>;
   organization_id: string;
@@ -449,4 +478,6 @@ export interface Database {
   contact_segments: ContactSegmentsTable;
   channel_connections: ChannelConnectionsTable;
   channel_templates: ChannelTemplatesTable;
+  campaigns: CampaignsTable;
+  campaign_recipients: CampaignRecipientsTable;
 }

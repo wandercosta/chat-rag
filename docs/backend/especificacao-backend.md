@@ -17,16 +17,27 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `embed`: chaves, dominios, configuracao publica e validacao de origem.
 - `analytics`: agregados de uso, custo estimado e qualidade.
 - `audit`: eventos administrativos e de seguranca.
+- `campaigns`: campanhas (ADR-006, etapa 6) — publico por segmento com opt-in, modelo (WhatsApp) ou texto (Telegram), agendamento, ritmo e metricas.
 - `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
 Planejados pelo ADR-006 (ainda nao existem no codigo), com as mesmas regras de fronteira:
 
-- `campaigns`: publico por segmento com opt-in, agendamento, envio pela fila com ritmo por organizacao e metricas de entrega.
 - `automations`: fluxos deterministicos (gatilho, condicoes, acoes) publicados por humano, versionados, executados no worker com log e protecao contra laco.
 
 `conversations` continua dono de conversa e mensagem e registra o autor de cada mensagem (visitante, assistente ou atendente, com o usuario que respondeu).
+
+## Campanhas (ADR-006, etapa 6)
+
+- **Canais:** WhatsApp (so modelo aprovado da mesma conexao, com todas as variaveis) e Telegram (texto, para quem ja conversou com o bot). Instagram e Messenger ficam de fora pela janela de 24 horas.
+- **Publico:** o segmento filtrado para quem tem opt-in valido e endereco no canal. No WhatsApp, sem identidade do canal, o endereco e o telefone do contato (contato importado por planilha recebe antes de escrever). O preview mostra quantos ficam de fora por falta de opt-in ou de canal. Ao agendar, o publico e fixado (foto do filtro em `audience_filter` e uma linha por destinatario).
+- **Envio:** fila `campaigns` no worker; cada lote envia ate o ritmo da campanha (padrao 30/min) e agenda o proximo para um minuto depois. O teto da organizacao e 120 envios/minuto somando todas as campanhas (contador por minuto no Redis). O opt-in e conferido de novo na hora de cada envio (quem saiu depois do agendamento vira "ignorada"). Cancelar para no lote seguinte.
+- **Mensagem:** cada envio vira uma mensagem de atendente (autor = quem criou a campanha, ADR-006 #3) na conversa do contato naquele canal, entao a resposta cai na caixa de entrada no mesmo lugar. Nas variaveis, `{{nome}}` vira o primeiro nome do contato.
+- **Falhas:** erro temporario do provedor deixa o destinatario pendente com a mesma mensagem para o proximo lote tentar uma vez mais; na segunda falha, ou em erro de dado, vira "falhou" com o motivo. Erro ao gravar o recibo nunca marca falha nem reenvia.
+- **Metricas:** enviadas, falhas e ignoradas vem da propria campanha; entregues, lidas e respostas (mensagem do cliente depois do envio, na mesma conversa) vem do modulo `conversations` (`messageOutcomes`), sem a campanha ler a tabela de mensagens.
+- **Sair:** responder so "SAIR" (ou "parar", "stop", "descadastrar") em qualquer canal registra o opt-out e confirma para o cliente.
+- **Papeis:** so Administrador cria, agenda e cancela; Analista ve.
 
 ## Camada de canais (ADR-006, etapa 5)
 

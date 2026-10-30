@@ -41,19 +41,28 @@ export async function deliverMessage(organizationId: string, messageId: string) 
   }
 
   try {
-    const providerMessageId = await providers[connection.provider].sendText(
-      connection,
-      to,
-      message.content,
-    );
-    await conversationsService.setDelivery(messageId, {
-      providerMessageId: providerMessageId ?? undefined,
-      status: "enviada",
-    });
-  } catch (err) {
-    const error = err instanceof Error ? err.message : "falha no envio";
-    await conversationsService.setDelivery(messageId, { status: "falhou", error });
-    if (err instanceof ChannelApiError && err.retryable) throw err;
+    // So o erro do provedor marca falha; erro ao gravar o recibo nao.
+    let providerMessageId: string | null;
+    try {
+      providerMessageId = await providers[connection.provider].sendText(
+        connection,
+        to,
+        message.content,
+      );
+    } catch (err) {
+      const error = err instanceof Error ? err.message : "falha no envio";
+      await conversationsService.setDelivery(messageId, { status: "falhou", error });
+      if (err instanceof ChannelApiError && err.retryable) throw err;
+      return;
+    }
+    // Se nem o id do provedor der para gravar, a mensagem segue "enviada" sem
+    // ele: tentar de novo mandaria a mesma mensagem duas vezes ao cliente.
+    await conversationsService
+      .setDelivery(messageId, {
+        providerMessageId: providerMessageId ?? undefined,
+        status: "enviada",
+      })
+      .catch(() => conversationsService.setDelivery(messageId, { status: "enviada" }));
   } finally {
     await inboxService.touched(organizationId, message.conversation_id);
   }

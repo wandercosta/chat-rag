@@ -5,6 +5,7 @@ import { contactsRepository, type ContactValues } from "./contacts.repository.js
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
+import { contactLinks } from "./links.service.js";
 
 export class ContactNotFoundError extends Error {}
 export class ConversationNotFoundError extends Error {}
@@ -82,7 +83,7 @@ async function withTags<T extends { id: string }>(contacts: T[]) {
   }));
 }
 
-export const contactsService = {
+const contactsCore = {
   async list(organizationId: string, filter: ContactFilter, page = 1) {
     const offset = (Math.max(page, 1) - 1) * PAGE_SIZE;
     const { items, total } = await contactsRepository.list(
@@ -166,41 +167,6 @@ export const contactsService = {
   },
 
   /**
-   * Visitante identificado no widget (e-mail ou id externo) vira contato
-   * (ADR-006 #8): reaproveita a identidade do widget ou um contato com o mesmo
-   * e-mail; senao, cria. Visitante anonimo nao vira contato sozinho.
-   */
-  async resolveForVisitor(
-    organizationId: string,
-    visitor: {
-      id: string;
-      name: string | null;
-      email: string | null;
-      external_user_id: string | null;
-    },
-  ): Promise<string | null> {
-    const email = normalizeEmail(visitor.email);
-    if (!email && !visitor.external_user_id) return null;
-
-    const identity = await identitiesRepository.find(organizationId, "widget", visitor.id);
-    if (identity) return identity.contact_id;
-
-    const contact =
-      (email && (await contactsRepository.findByEmail(organizationId, email))) ||
-      (await contactsRepository.insert(organizationId, { name: visitor.name, email }));
-    if (!contact.name && visitor.name) {
-      await contactsRepository.update(organizationId, contact.id, { name: visitor.name });
-    }
-    const linked = await identitiesRepository.link(
-      organizationId,
-      contact.id,
-      "widget",
-      visitor.id,
-    );
-    return linked?.contact_id ?? contact.id;
-  },
-
-  /**
    * "Salvar como contato" na caixa de entrada. Se ja existe contato com o mesmo
    * e-mail ou telefone, a conversa e ligada a ele em vez de duplicar.
    */
@@ -219,7 +185,7 @@ export const contactsService = {
       (values.email && (await contactsRepository.findByEmail(organizationId, values.email))) ||
       (values.phone && (await contactsRepository.findByPhone(organizationId, values.phone))) ||
       null;
-    const contact = existing ?? (await contactsService.create(actorUserId, organizationId, input));
+    const contact = existing ?? (await contactsCore.create(actorUserId, organizationId, input));
 
     if (conversation.visitor_id) {
       await identitiesRepository.link(
@@ -237,45 +203,7 @@ export const contactsService = {
     await conversationsService.setContact(organizationId, conversationId, contact.id);
     return { contact, merged: !!existing };
   },
-
-  /**
-   * Quem escreveu por um canal (ADR-006 #8): reaproveita a identidade do canal
-   * ou um contato com o mesmo telefone; senao, cria. Diferente do widget, todo
-   * remetente de canal vira contato, porque o canal ja identifica a pessoa.
-   */
-  async resolveForChannel(
-    organizationId: string,
-    channel: Exclude<ContactChannel, "widget">,
-    externalId: string,
-    profile: { name?: string | null; phone?: string | null },
-  ): Promise<string> {
-    const identity = await identitiesRepository.find(organizationId, channel, externalId);
-    if (identity) return identity.contact_id;
-
-    const phone = normalizePhone(profile.phone);
-    const contact =
-      (phone && (await contactsRepository.findByPhone(organizationId, phone))) ||
-      (await contactsRepository.insert(organizationId, { name: profile.name ?? null, phone }));
-    if (!contact.name && profile.name) {
-      await contactsRepository.update(organizationId, contact.id, { name: profile.name });
-    }
-    const linked = await identitiesRepository.link(organizationId, contact.id, channel, externalId);
-    return linked?.contact_id ?? contact.id;
-  },
-
-  /** Endereco do contato num canal (ex.: o wa_id para responder no WhatsApp). */
-  async channelAddress(
-    organizationId: string,
-    contactId: string,
-    channel: ContactChannel,
-  ): Promise<string | null> {
-    const identities = await identitiesRepository.listFor(organizationId, contactId);
-    return identities.find((i) => i.channel === channel)?.value ?? null;
-  },
-
-  /** Nome para mostrar em outras telas (fila da caixa de entrada). */
-  async labelsFor(organizationId: string, ids: string[]) {
-    const contacts = await contactsRepository.findByIds(organizationId, [...new Set(ids)]);
-    return new Map(contacts.map((c) => [c.id, c.name ?? c.email ?? c.phone ?? "Contato"]));
-  },
 };
+
+/** Interface publica: cadastro (acima) e ligacoes com widget, canais e campanhas. */
+export const contactsService = { ...contactsCore, ...contactLinks };

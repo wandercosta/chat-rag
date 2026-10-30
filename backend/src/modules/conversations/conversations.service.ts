@@ -65,7 +65,7 @@ export const conversationsService = {
   },
 
   /** Resposta de um atendente humano: guarda quem respondeu (ADR-006 #3). */
-  addAgentMessage(conversationId: string, content: string, authorUserId: string) {
+  addAgentMessage(conversationId: string, content: string, authorUserId: string | null) {
     return conversationsRepository.addMessage(
       conversationId,
       "atendente",
@@ -188,6 +188,15 @@ export const conversationsService = {
       status,
       error,
     );
+  },
+
+  /** Entregues, lidas e respondidas entre as mensagens dadas (campanhas). */
+  messageOutcomes(messageIds: string[]) {
+    return channelMessagesRepository.outcomes(messageIds);
+  },
+
+  deliveryOf(messageIds: string[]) {
+    return channelMessagesRepository.deliveryOf(messageIds);
   },
 
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {

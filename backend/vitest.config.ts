@@ -9,6 +9,9 @@ export default defineConfig({
     // corrida real: um arquivo apaga o usuario que outro acabou de criar
     // (achado rodando a suite de verdade, nao e teorico).
     fileParallelism: false,
+    // Integracao cria tenants e usuarios de verdade (argon2 e lento de
+    // proposito); 5s padrao nao basta para os testes com dois tenants.
+    testTimeout: 30_000,
     // resetDatabase() apaga organizations/users/etc. de verdade. Sem isto, a
     // suite ia rodar contra o DATABASE_URL de dev do .env e apagar dados
     // reais criados manualmente (aconteceu uma vez: um `test:integration`
