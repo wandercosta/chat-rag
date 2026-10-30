@@ -14,6 +14,17 @@ export interface SseStream {
  * do ciclo do Fastify, entao os cabecalhos ja definidos pelos hooks (CORS em
  * cors.ts) sao copiados a mao.
  */
+/**
+ * Limpeza de quem desconectou e melhor esforco: se o Redis estiver fora do ar
+ * (ou fechando) nessa hora, o erro fica aqui. Uma rejeicao sem tratamento
+ * derrubaria o processo da API inteiro por causa de um cliente que saiu.
+ */
+function runCleanup(cleanup: () => void | Promise<void>) {
+  Promise.resolve()
+    .then(cleanup)
+    .catch(() => {});
+}
+
 export function startSse(request: FastifyRequest, reply: FastifyReply): SseStream {
   reply.hijack();
   const inherited: Record<string, string> = {};
@@ -36,7 +47,7 @@ export function startSse(request: FastifyRequest, reply: FastifyReply): SseStrea
   request.raw.on("close", () => {
     closed = true;
     clearInterval(heartbeat);
-    for (const cleanup of cleanups) void cleanup();
+    for (const cleanup of cleanups) runCleanup(cleanup);
   });
 
   return {
@@ -44,7 +55,7 @@ export function startSse(request: FastifyRequest, reply: FastifyReply): SseStrea
       if (!closed) reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     },
     onClose(cleanup) {
-      if (closed) void cleanup();
+      if (closed) runCleanup(cleanup);
       else cleanups.push(cleanup);
     },
   };

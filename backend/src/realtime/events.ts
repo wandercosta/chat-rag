@@ -69,7 +69,11 @@ export const realtime = {
       current.delete(listener);
       if (current.size === 0) {
         listeners.delete(channel);
-        await getSubscriber().unsubscribe(channel);
+        try {
+          await subscriber?.unsubscribe(channel);
+        } catch {
+          // conexao ja fechada: nao ha inscricao para desfazer.
+        }
       }
     };
   },
