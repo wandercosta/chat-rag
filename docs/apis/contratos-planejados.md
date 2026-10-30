@@ -37,7 +37,9 @@ Estes contratos definem limites e responsabilidade. Rotas, campos e formatos fin
 
 Painel (sessao via cookie; `:organizationId` sempre resolvido pela sessao/membership, nunca aceito livremente):
 
-- `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
+- `POST /auth/login` (`{ email, password, code? }`; com 2FA ativo e sem `code`: 401 com `twoFactorRequired`; 10 erros em 15 minutos por e-mail: 429), `POST /auth/logout`, `GET /auth/me` (inclui `twoFactorEnabled`)
+- `GET /auth/2fa` (estado), `POST /auth/2fa/setup` (gera a chave; 409 se ja ativo), `POST /auth/2fa/enable` (`{ code }`; devolve os codigos de recuperacao uma unica vez), `POST /auth/2fa/disable` (`{ code }`, do app ou de recuperacao)
+- `GET /organizations/:organizationId/export` (Administrador; JSON da organizacao para LGPD, auditado)
 - `GET|POST /master/tenants`, `POST /master/tenants/:organizationId/status`
 - `GET|POST /master/tenants/:organizationId/support-sessions`, `POST .../support-sessions/:sessionId/end` (justificativa + expiracao, auditado — ADR-001 #14)
 - `GET /organizations/:organizationId` (auto-atendimento do tenant: nome/status da propria organizacao)

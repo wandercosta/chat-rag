@@ -40,4 +40,9 @@ export const inboxSystemActions = {
   activeAssignments(organizationId: string) {
     return assignmentsRepository.list(organizationId, "abertas", "", 500);
   },
+
+  /** Notas internas da organizacao (exportacao LGPD). */
+  exportNotes(organizationId: string) {
+    return notesRepository.listForOrganization(organizationId);
+  },
 };

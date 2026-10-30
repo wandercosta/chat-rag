@@ -146,4 +146,19 @@ export const contactLinks = {
     await taxonomyRepository.addContactTags(contactId, [tagId]);
     return true;
   },
+
+  /** Exportacao da organizacao (LGPD): contatos com canais e etiquetas. */
+  async exportAll(organizationId: string) {
+    const contacts = await contactsRepository.listAll(organizationId, {});
+    const ids = contacts.map((c) => c.id);
+    const [tags, identities] = await Promise.all([
+      taxonomyRepository.tagsOf(ids),
+      Promise.all(ids.map((id) => identitiesRepository.listFor(organizationId, id))),
+    ]);
+    return contacts.map((c, i) => ({
+      ...c,
+      tags: tags.filter((t) => t.contact_id === c.id).map((t) => t.name),
+      identities: identities[i].map(({ channel, value }) => ({ channel, value })),
+    }));
+  },
 };

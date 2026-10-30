@@ -40,6 +40,9 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 15. **Campanhas** (`/campanhas` e `/campanhas/:id`, ja existem): nova campanha com canal, segmento, modelo e variaveis (`{{nome}}`) ou texto, ritmo e quantos vao receber; agendar ou enviar agora; metricas (publico, enviadas, entregues, lidas, responderam, falhas, sairam antes, na fila) e lista de destinatarios, atualizadas enquanto envia; cancelar. Na tela de contatos, "Salvar segmento" guarda os filtros.
 16. **Automacoes** (`/automacoes`, ja existe): lista de regras com resumo "quando / se / entao", versao, ligar/desligar, editar, excluir e historico de execucoes; editor em formulario que so oferece as condicoes e acoes do gatilho escolhido.
 
+17. **Minha conta** (`/conta`, ja existe; icone no topo): ativar a verificacao em duas etapas (chave para digitar no aplicativo, confirmacao com codigo, codigos de recuperacao mostrados uma vez) e desativar. O login pede o codigo do aplicativo quando o 2FA esta ativo.
+18. **Exportar dados (LGPD)** em Configuracoes, so para Administrador: baixa o JSON da organizacao.
+
 O papel de quem atende e o **Atendente** (tabela abaixo).
 
 ## Perfis iniciais

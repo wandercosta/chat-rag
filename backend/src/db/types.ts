@@ -40,6 +40,22 @@ export interface UsersTable {
   id: Generated<string>;
   email: string;
   password_hash: string;
+  totp_secret: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  totp_pending: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  totp_enabled_at: Date | null;
+  recovery_codes: ColumnType<
+    string[],
+    string | undefined,
+    string | import("kysely").RawBuilder<unknown>
+  >;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 

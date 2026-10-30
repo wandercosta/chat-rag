@@ -183,4 +183,37 @@ export const conversationsRepository = {
       .executeTakeFirst();
     return Number(result.numDeletedRows);
   },
+
+  /** Exportacao da organizacao (LGPD): conversas e mensagens, em ordem. */
+  async exportAll(organizationId: string) {
+    const conversations = await db
+      .selectFrom("conversations")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .orderBy("started_at")
+      .execute();
+    const messages = conversations.length
+      ? await db
+          .selectFrom("messages")
+          .select([
+            "conversation_id",
+            "role",
+            "content",
+            "author_user_id",
+            "delivery_status",
+            "created_at",
+          ])
+          .where(
+            "conversation_id",
+            "in",
+            conversations.map((c) => c.id),
+          )
+          .orderBy("created_at")
+          .execute()
+      : [];
+    return conversations.map((c) => ({
+      ...c,
+      messages: messages.filter((m) => m.conversation_id === c.id),
+    }));
+  },
 };

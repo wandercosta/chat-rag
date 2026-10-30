@@ -10,6 +10,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Corpo da resposta de erro (ex.: `twoFactorRequired` no login). */
+    public body: Record<string, unknown> | null = null,
   ) {
     super(message);
   }
@@ -37,6 +39,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new ApiError(
       response.status,
       body?.error ?? body?.message ?? `erro HTTP ${response.status}`,
+      body,
     );
   }
   return body as T;
@@ -51,13 +54,14 @@ const post = <T>(path: string, body?: unknown) =>
 export interface AuthContext {
   userId: string;
   email: string;
+  twoFactorEnabled: boolean;
   isPlatform: boolean;
   memberships: { organizationId: string; role: TenantRole }[];
 }
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    post<{ ok: true }>("/auth/login", { email, password }),
+  login: (email: string, password: string, code?: string) =>
+    post<{ ok: true }>("/auth/login", { email, password, ...(code ? { code } : {}) }),
   logout: () => post<{ ok: true }>("/auth/logout"),
   me: () => get<{ auth: AuthContext }>("/auth/me"),
 };

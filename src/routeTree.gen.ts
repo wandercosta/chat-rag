@@ -16,6 +16,7 @@ import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
+import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as LacunasRouteImport } from './routes/lacunas'
@@ -65,6 +66,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const ConhecimentoRoute = ConhecimentoRouteImport.update({
   id: '/conhecimento',
   path: '/conhecimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContaRoute = ContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConversasRoute = ConversasRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
     | '/integracoes'
     | '/lacunas'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
     | '/integracoes'
     | '/lacunas'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
     | '/integracoes'
     | '/lacunas'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   CanaisRoute: typeof CanaisRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ConhecimentoRoute: typeof ConhecimentoRoute
+  ContaRoute: typeof ContaRoute
   ConversasRoute: typeof ConversasRoute
   IntegracoesRoute: typeof IntegracoesRoute
   LacunasRoute: typeof LacunasRoute
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/conhecimento'
       fullPath: '/conhecimento'
       preLoaderRoute: typeof ConhecimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conta': {
+      id: '/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof ContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conversas': {
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   CanaisRoute: CanaisRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ConhecimentoRoute: ConhecimentoRoute,
+  ContaRoute: ContaRoute,
   ConversasRoute: ConversasRoute,
   IntegracoesRoute: IntegracoesRoute,
   LacunasRoute: LacunasRoute,
