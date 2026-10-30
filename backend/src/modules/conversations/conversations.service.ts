@@ -60,6 +60,49 @@ export const conversationsService = {
     return conversationsRepository.addMessage(conversationId, "assistente", content, citations);
   },
 
+  /** Resposta de um atendente humano: guarda quem respondeu (ADR-006 #3). */
+  addAgentMessage(conversationId: string, content: string, authorUserId: string) {
+    return conversationsRepository.addMessage(
+      conversationId,
+      "atendente",
+      content,
+      [],
+      authorUserId,
+    );
+  },
+
+  /**
+   * Resumo para a fila da caixa de entrada: visitante e ultima mensagem.
+   * Ordem: atividade mais recente primeiro.
+   */
+  async listSummaries(
+    organizationId: string,
+    options: { ids?: string[]; channel?: ConversationChannel; limit?: number },
+  ) {
+    if (options.ids && options.ids.length === 0) return [];
+    const conversations = await conversationsRepository.listWithVisitor(organizationId, {
+      ...options,
+      limit: options.limit ?? 100,
+    });
+    if (conversations.length === 0) return [];
+
+    const last = await conversationsRepository.lastMessages(conversations.map((c) => c.id));
+    const lastById = new Map(last.map((m) => [m.conversation_id, m]));
+
+    return conversations
+      .map((c) => {
+        const message = lastById.get(c.id);
+        return {
+          ...c,
+          last_message: message
+            ? { role: message.role, content: message.content, created_at: message.created_at }
+            : null,
+          last_activity_at: message?.created_at ?? c.started_at,
+        };
+      })
+      .sort((a, b) => +new Date(b.last_activity_at) - +new Date(a.last_activity_at));
+  },
+
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {
     return conversationsRepository.addFeedback(conversationId, rating);
   },

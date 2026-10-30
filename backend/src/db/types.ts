@@ -1,7 +1,7 @@
 import type { ColumnType, Generated } from "kysely";
 
 export type TenantStatus = "ativo" | "suspenso";
-export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista" | "Atendente";
 export type AuditType = "acesso" | "configuracao" | "conteudo" | "seguranca";
 export type CredentialEnvironment = "teste" | "producao" | "ambos";
 export type CredentialStatus = "valida" | "invalida" | "substituida" | "removida";
@@ -18,7 +18,8 @@ export type SourceStatus =
   | "erro"
   | "arquivada";
 export type ConversationChannel = "widget" | "whatsapp" | "playground";
-export type MessageRole = "visitante" | "assistente";
+export type MessageRole = "visitante" | "assistente" | "atendente";
+export type InboxStatus = "aberta" | "pendente" | "resolvida";
 export type FeedbackRating = "positivo" | "negativo";
 export type GapStatus = "pendente" | "resolvida";
 export type EmbedKeyStatus = "ativa" | "revogada";
@@ -103,6 +104,7 @@ export interface AssistantsTable {
   instructions: string | null;
   retention_days: number | null;
   widget_settings: ColumnType<WidgetSettings, string | undefined, string>;
+  human_inbox_enabled: Generated<boolean>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -171,6 +173,33 @@ export interface MessagesTable {
   role: MessageRole;
   content: string;
   citations: ColumnType<MessageCitation[], string | undefined, string>;
+  author_user_id: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ConversationAssignmentsTable {
+  conversation_id: string;
+  organization_id: string;
+  status: InboxStatus;
+  assigned_user_id: string | null;
+  requested_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ConversationNotesTable {
+  id: Generated<string>;
+  organization_id: string;
+  conversation_id: string;
+  author_user_id: string | null;
+  content: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CannedResponsesTable {
+  id: Generated<string>;
+  organization_id: string;
+  title: string;
+  content: string;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -301,4 +330,7 @@ export interface Database {
   support_access_sessions: SupportAccessSessionsTable;
   handoff_configs: HandoffConfigsTable;
   usage_events: UsageEventsTable;
+  conversation_assignments: ConversationAssignmentsTable;
+  conversation_notes: ConversationNotesTable;
+  canned_responses: CannedResponsesTable;
 }

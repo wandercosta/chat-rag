@@ -48,6 +48,8 @@ A Fase 3 era "Governanca SaaS" e os canais estavam na antiga Fase 4; o ADR-006 t
 | 7     | Automacao sem codigo: fluxos deterministicos publicados por humano, com log de execucao              | 2 e 3      |
 | 8     | Verificacao em duas etapas, exportacao de dados (LGPD), API publica com token e webhooks de saida    | —          |
 
+Feitas: etapas 1 (documentacao) e 2 (caixa de entrada para o widget, com o papel Atendente). Da etapa 2 ficou para depois a atribuicao a setor.
+
 Fora da Fase 3: e-commerce (Shopify, WooCommerce), agendamento de posts em redes sociais, e-mail e SMS como canal, e acoes do assistente em sistemas externos.
 
 Etapas 4 e 5 dependem de passos que so o tenant (ou quem opera o deploy) pode fazer na Meta: criar o app, verificar a empresa e passar pela revisao de permissoes. Esses prazos nao sao controlados pelo codigo.

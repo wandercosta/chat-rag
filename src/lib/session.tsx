@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { authApi, organizationsApi, type AuthContext as ApiAuthContext } from "./api-client";
 
 export type Scope = "master" | "tenant";
-export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista" | "Atendente";
 export type Profile = "Master" | TenantRole;
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -11,6 +11,7 @@ interface SessionValue {
   scope: Scope | null;
   profile: Profile | null;
   userEmail: string | null;
+  userId: string | null;
   tenantId: string | null;
   tenantName: string;
   login: (email: string, password: string) => Promise<void>;
@@ -30,6 +31,8 @@ export type Permission =
   | "users"
   | "settings"
   | "audit"
+  | "inbox"
+  | "inbox_reply"
   | "write";
 
 const matrix: Record<Profile, Permission[]> = {
@@ -43,6 +46,7 @@ const matrix: Record<Profile, Permission[]> = {
     "users",
     "settings",
     "audit",
+    "inbox",
     "write",
   ],
   Administrador: [
@@ -54,10 +58,14 @@ const matrix: Record<Profile, Permission[]> = {
     "users",
     "settings",
     "audit",
+    "inbox",
+    "inbox_reply",
     "write",
   ],
   "Editor de base": ["assistants", "knowledge", "write"],
-  Analista: ["conversations", "gaps"],
+  Analista: ["conversations", "gaps", "inbox"],
+  // Responde e resolve conversas; nao mexe em base, chaves nem usuarios.
+  Atendente: ["inbox", "inbox_reply"],
 };
 
 function deriveProfile(auth: ApiAuthContext): Profile {
@@ -113,6 +121,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       scope,
       profile,
       userEmail: auth?.email ?? null,
+      userId: auth?.userId ?? null,
       tenantId: auth?.memberships[0]?.organizationId ?? null,
       tenantName,
       login: async (email, password) => {

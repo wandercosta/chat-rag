@@ -61,7 +61,8 @@ export function createApiClient(baseUrl: string) {
     },
 
     sendMessage(key: string, conversationId: string, message: string) {
-      return postJson<{ answer: string; citations?: Citation[] }>(
+      // `answer` vem null quando um atendente humano esta na conversa.
+      return postJson<{ answer: string | null; citations?: Citation[]; humanHandling?: boolean }>(
         baseUrl,
         `/widget/conversations/${conversationId}/messages`,
         {
@@ -76,6 +77,10 @@ export function createApiClient(baseUrl: string) {
         key,
         rating,
       });
+    },
+
+    eventsUrl(key: string, conversationId: string) {
+      return `${baseUrl}/widget/conversations/${conversationId}/events?key=${encodeURIComponent(key)}`;
     },
 
     requestHandoff(key: string, conversationId: string, sectorId?: string) {

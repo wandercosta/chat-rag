@@ -77,12 +77,58 @@ export const conversationsRepository = {
     role: MessageRole,
     content: string,
     citations: MessageCitation[] = [],
+    authorUserId: string | null = null,
   ) {
     return db
       .insertInto("messages")
-      .values({ conversation_id: conversationId, role, content, citations: JSON.stringify(citations) })
+      .values({
+        conversation_id: conversationId,
+        role,
+        content,
+        citations: JSON.stringify(citations),
+        author_user_id: authorUserId,
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
+  },
+
+  /** Conversas com o visitante, para a fila da caixa de entrada. Com `ids`,
+   * so essas; sem, as mais recentes do canal. */
+  listWithVisitor(
+    organizationId: string,
+    options: { ids?: string[]; channel?: ConversationChannel; limit: number },
+  ) {
+    let query = db
+      .selectFrom("conversations as c")
+      .leftJoin("visitors as v", "v.id", "c.visitor_id")
+      .select([
+        "c.id",
+        "c.assistant_id",
+        "c.channel",
+        "c.started_at",
+        "v.name as visitor_name",
+        "v.email as visitor_email",
+        "v.external_user_id",
+      ])
+      .where("c.organization_id", "=", organizationId)
+      .orderBy("c.started_at", "desc")
+      .limit(options.limit);
+
+    if (options.ids) query = query.where("c.id", "in", options.ids);
+    if (options.channel) query = query.where("c.channel", "=", options.channel);
+    return query.execute();
+  },
+
+  /** Ultima mensagem de cada conversa (uma linha por conversa). */
+  lastMessages(conversationIds: string[]) {
+    return db
+      .selectFrom("messages")
+      .select(["conversation_id", "role", "content", "created_at"])
+      .distinctOn("conversation_id")
+      .where("conversation_id", "in", conversationIds)
+      .orderBy("conversation_id")
+      .orderBy("created_at", "desc")
+      .execute();
   },
 
   addFeedback(conversationId: string, rating: "positivo" | "negativo") {

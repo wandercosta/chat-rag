@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, MessageSquare, Phone, Plus, Save, Trash2 } fro
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
+import { HumanInboxCard } from "@/components/human-inbox-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -212,6 +213,15 @@ function AssistantDetail() {
         </Card>
 
         <KnowledgeScopeCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
+
+        <HumanInboxCard
+          tenantId={tenantId}
+          assistant={assistant}
+          readOnly={readOnly}
+          onSaved={(updated) =>
+            queryClient.setQueryData(["assistant", tenantId, assistantId], updated)
+          }
+        />
 
         <HandoffConfigCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
 

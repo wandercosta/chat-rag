@@ -34,22 +34,23 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 ## Telas planejadas (ADR-006)
 
-12. **Caixa de entrada:** fila de conversas de todos os canais, filtros por status, canal e atribuicao; assumir, atribuir, responder, nota interna (visualmente distinta da resposta) e resolver; atualiza sem recarregar.
+12. **Caixa de entrada** (`/atendimento`, ja existe para o widget): abas Aguardando, Minhas, Todas abertas, Resolvidas e Com o assistente; assumir, devolver, atribuir (administrador), mudar status, responder, nota interna (visualmente distinta da resposta) e respostas prontas; atualiza sem recarregar. O detalhe do assistente ganhou o interruptor "Atendimento humano pelo painel". Falta: filtro por canal, que chega com os canais.
 13. **Contatos:** lista com etiquetas e segmentos, detalhe com linha do tempo de conversas de todos os canais, importacao e exportacao CSV.
 14. **Canais:** conectar e desconectar WhatsApp, Instagram, Messenger e Telegram; estado da conexao; o token nunca aparece depois de salvo.
 15. **Campanhas:** publico por segmento (so contatos com opt-in), template, agendamento e metricas de entrega.
 16. **Automacoes:** editor visual de fluxo, publicar/despublicar e log de execucoes.
 
-O papel de quem atende (responder e resolver conversas, sem gerir base, chaves ou usuarios) sera definido na etapa da caixa de entrada.
+O papel de quem atende e o **Atendente** (tabela abaixo).
 
 ## Perfis iniciais
 
-| Perfil         | Alcance                                                            |
-| -------------- | ------------------------------------------------------------------ |
-| Master         | Todas as organizacoes, usuarios, auditoria e configuracoes globais |
-| Administrador  | Todos os recursos da propria organizacao                           |
-| Editor de base | Topicos e fontes autorizados; nao gerencia chaves ou usuarios      |
-| Analista       | Consulta conversas, feedbacks, lacunas e metricas                  |
+| Perfil         | Alcance                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Master         | Todas as organizacoes, usuarios, auditoria e configuracoes globais                                   |
+| Administrador  | Todos os recursos da propria organizacao                                                             |
+| Editor de base | Topicos e fontes autorizados; nao gerencia chaves ou usuarios                                        |
+| Analista       | Consulta conversas, feedbacks, lacunas e metricas                                                    |
+| Atendente      | Caixa de entrada: assume, responde, anota e resolve conversas; nao gerencia base, chaves ou usuarios |
 
 Permissoes granulares poderao evoluir depois; nenhuma verificacao de seguranca pode depender apenas do frontend.
 

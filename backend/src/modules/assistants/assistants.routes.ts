@@ -17,6 +17,8 @@ const updateSchema = z.object({
   modelId: z.string().min(1).optional(),
   instructions: z.string().nullable().optional(),
   retentionDays: z.number().int().positive().nullable().optional(),
+  // Pedido de atendente no widget cai na caixa de entrada do painel (ADR-006).
+  humanInboxEnabled: z.boolean().optional(),
   widgetSettings: z
     .object({
       title: z.string().max(60).optional(),

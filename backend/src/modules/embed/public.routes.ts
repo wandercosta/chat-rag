@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
-import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
+import { answerService } from "../rag/index.js";
+import { inboxService } from "../inbox/index.js";
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
@@ -9,12 +10,8 @@ import {
   handoffService,
 } from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
-import {
-  DomainNotAllowedError,
-  InvalidKeyError,
-  OrganizationSuspendedError,
-  publicAccessService,
-} from "./public-access.service.js";
+import { publicAccessService } from "./public-access.service.js";
+import { handlePublicError, originOf } from "./public-helpers.js";
 import { rateLimits } from "./rate-limit.js";
 import { WIDGET_SCRIPT_CONTENT } from "./widget-code.js";
 
@@ -28,13 +25,6 @@ const startConversationSchema = keySchema.extend({
 const messageSchema = keySchema.extend({ message: z.string().min(1).max(4000) });
 const feedbackSchema = keySchema.extend({ rating: z.enum(["positivo", "negativo"]) });
 const handoffSchema = keySchema.extend({ sectorId: z.string().uuid().optional() });
-
-function originOf(request: import("fastify").FastifyRequest): string | undefined {
-  return (
-    (request.headers.origin as string | undefined) ??
-    (request.headers.referer as string | undefined)
-  );
-}
 
 export async function embedPublicRoutes(app: FastifyInstance) {
   app.get("/chat-widget.js", async (_request, reply) => {
@@ -68,6 +58,9 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         environment: resolved.environment,
         // Aparencia definida no painel; atributos data-* do <script> sobrescrevem.
         appearance: assistant?.widget_settings ?? {},
+        // Pedido de atendente vai para a caixa de entrada do painel (ADR-006)
+        // em vez do link do WhatsApp.
+        humanInbox: assistant?.human_inbox_enabled ?? false,
       };
     } catch (err) {
       return handlePublicError(err, reply);
@@ -136,6 +129,14 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
+        // Com um humano na conversa o assistente fica calado (ADR-006 #5): a
+        // mensagem e gravada e chega ao painel pelo tempo real.
+        if (await inboxService.isWithHuman(resolved.organizationId, conversation.id)) {
+          await conversationsService.addVisitorMessage(conversation.id, body.message);
+          await inboxService.onVisitorMessage(resolved.organizationId, conversation.id);
+          return { answer: null, citations: [], humanHandling: true };
+        }
+
         const result = await answerService.answer(
           resolved.organizationId,
           resolved.assistantId,
@@ -145,7 +146,8 @@ export async function embedPublicRoutes(app: FastifyInstance) {
             environment: resolved.environment,
           },
         );
-        return { answer: result.answer, citations: result.citations };
+        await inboxService.touched(resolved.organizationId, conversation.id);
+        return { answer: result.answer, citations: result.citations, humanHandling: false };
       } catch (err) {
         return handlePublicError(err, reply);
       }
@@ -195,6 +197,18 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
+        const assistant = await assistantsService.get(
+          resolved.organizationId,
+          resolved.assistantId,
+        );
+        if (assistant?.human_inbox_enabled) {
+          const assignment = await inboxService.requestHuman(
+            resolved.organizationId,
+            conversation.id,
+          );
+          return { inbox: true, status: assignment.status };
+        }
+
         const lastQuestion =
           [...conversation.messages].reverse().find((m) => m.role === "visitante")?.content ?? "";
         const resolution = await handoffService.resolveForWidget(
@@ -216,19 +230,4 @@ export async function embedPublicRoutes(app: FastifyInstance) {
       }
     },
   );
-}
-
-function handlePublicError(err: unknown, reply: import("fastify").FastifyReply) {
-  if (err instanceof InvalidKeyError) return reply.code(401).send({ error: "chave invalida" });
-  if (err instanceof DomainNotAllowedError)
-    return reply.code(403).send({ error: "dominio nao autorizado" });
-  if (err instanceof OrganizationSuspendedError) {
-    return reply.code(403).send({ error: "atendimento indisponivel" });
-  }
-  if (err instanceof AssistantNotFoundError)
-    return reply.code(404).send({ error: "assistente nao encontrado" });
-  if (err instanceof NoActiveCredentialError) {
-    return reply.code(409).send({ error: "assistente indisponivel no momento" });
-  }
-  throw err;
 }

@@ -15,7 +15,13 @@ import { assistantsRoutes, modelCatalogRoutes, handoffRoutes } from "./modules/a
 import { collectionsRoutes, topicsRoutes, sourcesRoutes } from "./modules/knowledge/index.js";
 import { conversationsRoutes, gapsRoutes } from "./modules/conversations/index.js";
 import { ragRoutes } from "./modules/rag/index.js";
-import { demoRoutes, embedAdminRoutes, embedPublicRoutes } from "./modules/embed/index.js";
+import {
+  demoRoutes,
+  embedAdminRoutes,
+  embedPublicEventsRoutes,
+  embedPublicRoutes,
+} from "./modules/embed/index.js";
+import { cannedResponsesRoutes, inboxRoutes } from "./modules/inbox/index.js";
 import { analyticsRoutes } from "./modules/analytics/index.js";
 
 /** Fabrica da app, separada de server.ts (que so faz `listen`), para poder
@@ -46,6 +52,9 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(ragRoutes);
   await app.register(embedAdminRoutes);
   await app.register(embedPublicRoutes);
+  await app.register(embedPublicEventsRoutes);
+  await app.register(inboxRoutes);
+  await app.register(cannedResponsesRoutes);
   await app.register(analyticsRoutes);
   await app.register(demoRoutes);
 

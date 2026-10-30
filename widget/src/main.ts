@@ -55,6 +55,7 @@ function readOptions(): WidgetOptions | null {
     visitorName: attr("data-visitor-name") || null,
     visitorEmail: attr("data-visitor-email") || null,
     context: readContext(),
+    humanInbox: false,
   };
 }
 
@@ -82,6 +83,7 @@ async function init() {
   try {
     config = await createApiClient(options.apiBaseUrl).getConfig(options.key);
     applyAppearance(options, config.appearance);
+    options.humanInbox = config.humanInbox === true;
   } catch (err) {
     configError = err;
   }

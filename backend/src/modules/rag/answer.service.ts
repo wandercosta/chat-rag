@@ -96,8 +96,11 @@ function extractiveReply(citations: Citation[]): string {
  * mesmo quando o assistente nao tinha nenhum WhatsApp configurado — promessa
  * que o widget nao tinha como cumprir.
  */
-function noContextReply(hasHandoff: boolean): string {
-  return hasHandoff
+function noContextReply(handoff: "painel" | "whatsapp" | null): string {
+  if (handoff === "painel") {
+    return "Não consigo responder isso agora. Se preferir, fale com um atendente no botão abaixo.";
+  }
+  return handoff === "whatsapp"
     ? "Não consigo responder isso agora. Se preferir, fale com um atendente pelo WhatsApp no botão abaixo."
     : "Não consigo responder isso agora. Tente perguntar de outro jeito ou com mais detalhes.";
 }
@@ -268,9 +271,12 @@ export const answerService = {
     const contextSnippet = buildContextSnippet(history);
 
     const recordNoAnswer = async (reason: "sem_recuperacao" | "modelo_nao_respondeu") => {
-      // So oferece atendente se houver WhatsApp configurado para este assistente.
-      const sectors = await handoffService.list(assistantId);
-      const answer = noContextReply(sectors.length > 0);
+      // So oferece atendente se houver para onde mandar: caixa de entrada do
+      // painel (ADR-006) ou WhatsApp configurado para este assistente.
+      const sectors = assistant.human_inbox_enabled ? [] : await handoffService.list(assistantId);
+      const answer = noContextReply(
+        assistant.human_inbox_enabled ? "painel" : sectors.length > 0 ? "whatsapp" : null,
+      );
 
       await gapsService.recordOccurrence(organizationId, assistantId, retrievalQuery, {
         originalQuestion: question,
@@ -288,11 +294,7 @@ export const answerService = {
 
     let retrieval;
     try {
-      retrieval = await retrievalService.retrieve(
-        organizationId,
-        assistantId,
-        retrievalQuery,
-      );
+      retrieval = await retrievalService.retrieve(organizationId, assistantId, retrievalQuery);
     } catch (err) {
       if (err instanceof NoActiveCredentialError) {
         return recordNoAnswer("sem_recuperacao");
