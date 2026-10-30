@@ -37,7 +37,14 @@ export interface ProviderAdapter {
   authenticate(headers: Record<string, unknown>, raw: Buffer, secrets: ChannelSecrets): boolean;
   /** Mensagens e recibos so da propria conta da conexao. */
   parse(payload: unknown, connection: ConnectionForProvider): ParsedWebhook;
-  sendText(connection: ConnectionForProvider, to: string, text: string): Promise<string | null>;
+  sendText(
+    connection: ConnectionForProvider,
+    to: string,
+    text: string,
+    options?: { humanAgent?: boolean },
+  ): Promise<string | null>;
+  /** Nome pela API do provedor, quando o webhook nao traz (Messenger e Instagram). */
+  lookupName?(connection: ConnectionForProvider, from: string): Promise<string | null>;
   /** Telefone do remetente, quando o canal o revela (so o WhatsApp). */
   phoneFrom(from: string): string | null;
 }
@@ -57,26 +64,32 @@ export const providers: Record<ChannelProvider, ProviderAdapter> = {
   messenger: {
     authenticate: metaSignature,
     parse: (payload, connection) => parseMessagingWebhook(payload, connection.external_id),
-    sendText: (connection, to, text) =>
+    sendText: (connection, to, text, options) =>
       metaMessagingClient.sendText(
         connection.external_id,
         secretsOf(connection).accessToken,
         to,
         text,
+        options,
       ),
+    lookupName: (connection, from) =>
+      metaMessagingClient.profileName("messenger", from, secretsOf(connection).accessToken),
     phoneFrom: () => null,
   },
   instagram: {
     authenticate: metaSignature,
     parse: (payload, connection) => parseMessagingWebhook(payload, connection.external_id),
     // A resposta sai pela Pagina ligada a conta profissional do Instagram.
-    sendText: (connection, to, text) =>
+    sendText: (connection, to, text, options) =>
       metaMessagingClient.sendText(
         connection.config.pageId ?? connection.external_id,
         secretsOf(connection).accessToken,
         to,
         text,
+        options,
       ),
+    lookupName: (connection, from) =>
+      metaMessagingClient.profileName("instagram", from, secretsOf(connection).accessToken),
     phoneFrom: () => null,
   },
   telegram: {

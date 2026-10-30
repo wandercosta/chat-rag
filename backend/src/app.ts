@@ -22,9 +22,18 @@ import {
   embedPublicEventsRoutes,
   embedPublicRoutes,
 } from "./modules/embed/index.js";
-import { agentMetricsRoutes, cannedResponsesRoutes, inboxRoutes } from "./modules/inbox/index.js";
+import {
+  agentMetricsRoutes,
+  cannedResponsesRoutes,
+  inboxRoutes,
+  setReplyWindowPolicy,
+} from "./modules/inbox/index.js";
 import { contactTaxonomyRoutes, contactsRoutes } from "./modules/contacts/index.js";
-import { channelsRoutes, channelsWebhookRoutes } from "./modules/channels/index.js";
+import {
+  channelsRoutes,
+  channelsWebhookRoutes,
+  replyWindowHours,
+} from "./modules/channels/index.js";
 import { campaignsRoutes } from "./modules/campaigns/index.js";
 import { automationsRoutes } from "./modules/automations/index.js";
 import { privacyRoutes } from "./modules/privacy/index.js";
@@ -76,6 +85,8 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(embedAdminRoutes);
   await app.register(embedPublicRoutes);
   await app.register(embedPublicEventsRoutes);
+  // A janela de resposta depende da conexao do canal (tag "Agente humano").
+  setReplyWindowPolicy(replyWindowHours);
   await app.register(inboxRoutes);
   await app.register(cannedResponsesRoutes);
   await app.register(agentMetricsRoutes);

@@ -29,6 +29,11 @@ type TimelineItem =
   | { kind: "message"; at: string; item: InboxConversationDetail["messages"][number] }
   | { kind: "note"; at: string; item: InboxConversationDetail["notes"][number] };
 
+function lastVisitorAt(detail: InboxConversationDetail) {
+  const last = detail.messages.filter((m) => m.role === "visitante").at(-1);
+  return last ? new Date(last.created_at).getTime() : 0;
+}
+
 /** Mensagens e notas internas na ordem em que aconteceram. */
 function timelineOf(detail: InboxConversationDetail): TimelineItem[] {
   return [
@@ -91,6 +96,12 @@ export function ConversationView({
   // WhatsApp depois de 24 horas sem mensagem do cliente: so modelo aprovado.
   const windowClosed =
     !!detail.replyWindowEndsAt && new Date(detail.replyWindowEndsAt).getTime() < Date.now();
+  // Messenger/Instagram com a janela ainda aberta depois de 24 horas: so pode
+  // ser a tag "Agente humano" (7 dias), e o envio sai com ela.
+  const humanAgentTag =
+    !windowClosed &&
+    (detail.channel === "messenger" || detail.channel === "instagram") &&
+    lastVisitorAt(detail) < Date.now() - 24 * 60 * 60 * 1000;
 
   return (
     <Card className="flex max-h-[70vh] flex-col overflow-hidden p-0">
@@ -194,8 +205,15 @@ export function ConversationView({
 
       {replyable && windowClosed && detail.channel !== "whatsapp" && (
         <p className="border-t px-4 py-3 text-xs text-muted-foreground">
-          Passaram 24 horas da última mensagem do cliente. Pelo {channelLabel[detail.channel]}, a
-          resposta só volta a ser possível quando ele escrever de novo.
+          Passou o prazo de resposta desde a última mensagem do cliente. Pelo{" "}
+          {channelLabel[detail.channel]}, a resposta só volta a ser possível quando ele escrever de
+          novo.
+        </p>
+      )}
+      {replyable && humanAgentTag && (
+        <p className="border-t px-4 pt-3 text-xs text-muted-foreground">
+          Mais de 24 horas sem mensagem do cliente: a resposta sai com a tag “Agente humano” da
+          Meta, aceita até {new Date(detail.replyWindowEndsAt!).toLocaleString("pt-BR")}.
         </p>
       )}
       {replyable &&

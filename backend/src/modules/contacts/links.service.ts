@@ -63,10 +63,18 @@ export const contactLinks = {
     organizationId: string,
     channel: Exclude<ContactChannel, "widget">,
     externalId: string,
-    profile: { name?: string | null; phone?: string | null },
+    profile: {
+      name?: string | null;
+      phone?: string | null;
+      /** Busca o nome no provedor; so roda quando o contato e novo no canal. */
+      lookupName?: () => Promise<string | null>;
+    },
   ): Promise<string> {
     const identity = await identitiesRepository.find(organizationId, channel, externalId);
     if (identity) return identity.contact_id;
+    if (!profile.name && profile.lookupName) {
+      profile = { ...profile, name: await profile.lookupName() };
+    }
 
     const phone = normalizePhone(profile.phone);
     const contact =

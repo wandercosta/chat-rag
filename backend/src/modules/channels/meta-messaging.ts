@@ -18,7 +18,18 @@ export const metaMessagingClient = {
     return graph<{ username?: string }>(`/${encodeURIComponent(accountId)}?fields=username`, token);
   },
 
-  async sendText(pageId: string, token: string, recipientId: string, text: string) {
+  /**
+   * Fora das 24 horas, a resposta de um atendente sai com a tag HUMAN_AGENT
+   * (ate 7 dias). Resposta do assistente nunca usa a tag: a Meta so a aceita
+   * para mensagem escrita por uma pessoa.
+   */
+  async sendText(
+    pageId: string,
+    token: string,
+    recipientId: string,
+    text: string,
+    options: { humanAgent?: boolean } = {},
+  ) {
     const result = await graph<{ message_id?: string }>(
       `/${encodeURIComponent(pageId)}/messages`,
       token,
@@ -26,12 +37,30 @@ export const metaMessagingClient = {
         method: "POST",
         body: JSON.stringify({
           recipient: { id: recipientId },
-          messaging_type: "RESPONSE",
+          ...(options.humanAgent
+            ? { messaging_type: "MESSAGE_TAG", tag: "HUMAN_AGENT" }
+            : { messaging_type: "RESPONSE" }),
           message: { text },
         }),
       },
     );
     return result.message_id ?? null;
+  },
+
+  /** Nome de quem escreveu, pela API de perfil (Messenger) ou do usuario (Instagram). */
+  async profileName(provider: "messenger" | "instagram", userId: string, token: string) {
+    if (provider === "messenger") {
+      const p = await graph<{ first_name?: string; last_name?: string }>(
+        `/${encodeURIComponent(userId)}?fields=first_name,last_name`,
+        token,
+      );
+      return [p.first_name, p.last_name].filter(Boolean).join(" ") || null;
+    }
+    const p = await graph<{ name?: string; username?: string }>(
+      `/${encodeURIComponent(userId)}?fields=name,username`,
+      token,
+    );
+    return p.name || p.username || null;
   },
 };
 

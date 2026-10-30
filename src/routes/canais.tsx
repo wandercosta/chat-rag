@@ -7,6 +7,7 @@ import { ConnectChannelDialog } from "@/components/channels/connect-channel-dial
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api-client";
 import { channelLabel, channelsApi, type ChannelConnection } from "@/lib/channels-api";
 import { useSession } from "@/lib/session";
@@ -119,6 +120,11 @@ function ConnectionCard({
     },
     onError,
   });
+  const humanAgent = useMutation({
+    mutationFn: (on: boolean) => channelsApi.setHumanAgentTag(tenantId!, c.id, on),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["channels", tenantId] }),
+    onError,
+  });
   const remove = useMutation({
     mutationFn: () => channelsApi.remove(tenantId!, c.id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["channels", tenantId] }),
@@ -164,6 +170,26 @@ function ConnectionCard({
             <CopyLine label="URL de retorno" value={c.webhookUrl} />
             <CopyLine label="Token de verificação" value={c.verify_token} />
           </>
+        )}
+
+        {(c.provider === "messenger" || c.provider === "instagram") && (
+          <label className="flex items-start gap-3 rounded-md border p-3">
+            <Switch
+              checked={c.config.humanAgentTag === "true"}
+              disabled={humanAgent.isPending}
+              onCheckedChange={(on) => humanAgent.mutate(on)}
+              aria-label="Responder até 7 dias com a tag Agente humano"
+            />
+            <span className="space-y-0.5">
+              <span className="block text-xs font-medium">
+                Responder até 7 dias (tag “Agente humano”)
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Depois de 24 horas, a resposta do atendente sai com a tag da Meta. Ligue só se o app
+                tiver a permissão “Human Agent” aprovada pela Meta; sem ela, o envio falha.
+              </span>
+            </span>
+          </label>
         )}
 
         <div className="flex flex-wrap gap-2">

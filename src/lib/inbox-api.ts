@@ -25,7 +25,7 @@ export interface InboxAssignment {
 export interface InboxConversation {
   id: string;
   assistant_id: string;
-  channel: "widget" | "whatsapp" | "playground";
+  channel: "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
   started_at: string;
   visitor_name: string | null;
   visitor_email: string | null;

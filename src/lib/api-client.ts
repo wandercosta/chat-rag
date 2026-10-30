@@ -507,7 +507,7 @@ export interface Conversation {
   organization_id: string;
   assistant_id: string;
   visitor_id: string | null;
-  channel: "widget" | "whatsapp" | "playground";
+  channel: "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
   started_at: string;
 }
 
