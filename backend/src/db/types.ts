@@ -549,6 +549,34 @@ export type UsageEventType =
   | "widget_loaded"
   | "widget_rate_limited";
 
+export type TeamThreadKind = "geral" | "direto";
+
+/** Chat interno da equipe: canal Geral da organizacao ou conversa direta. */
+export interface TeamThreadsTable {
+  id: Generated<string>;
+  organization_id: string;
+  kind: TeamThreadKind;
+  user_a: string | null;
+  user_b: string | null;
+  last_message_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TeamMessagesTable {
+  id: Generated<string>;
+  organization_id: string;
+  thread_id: string;
+  author_user_id: string | null;
+  content: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TeamThreadReadsTable {
+  thread_id: string;
+  user_id: string;
+  last_read_at: Date;
+}
+
 export interface UsageEventsTable {
   id: Generated<string>;
   organization_id: string;
@@ -648,4 +676,7 @@ export interface Database {
   api_tokens: ApiTokensTable;
   webhook_endpoints: WebhookEndpointsTable;
   webhook_deliveries: WebhookDeliveriesTable;
+  team_threads: TeamThreadsTable;
+  team_messages: TeamMessagesTable;
+  team_thread_reads: TeamThreadReadsTable;
 }

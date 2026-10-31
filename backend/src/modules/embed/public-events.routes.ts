@@ -39,7 +39,7 @@ export async function embedPublicEventsRoutes(app: FastifyInstance) {
 
         const stream = startSse(request, reply);
         const unsubscribe = await realtime.subscribe(resolved.organizationId, (event) => {
-          if (event.conversationId !== conversation.id) return;
+          if (!("conversationId" in event) || event.conversationId !== conversation.id) return;
           if (event.kind === "agent_message" || event.kind === "status") stream.send(event);
         });
         stream.onClose(unsubscribe);

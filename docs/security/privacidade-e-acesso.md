@@ -68,6 +68,8 @@ A tabela `audit_events` e gravada apenas por INSERT pela role de aplicacao; UPDA
 
 Padrao inicial: 90 dias para conversas; organizacao e assistente podem definir politica mais restritiva ou mais longa. A politica efetiva precisa ser mostrada no painel.
 
+O chat interno da equipe (`team_messages`) segue o prazo da organizacao (padrao 90 dias) e e sempre excluido, nunca anonimizado. So membros da organizacao o leem; o Master nao tem acesso, nem com sessao de suporte, e conversa direta e so das duas pessoas.
+
 Midia recebida pelos canais fica no storage da plataforma (`media/<organizacao>/`) e segue a conversa: o expurgo por retencao e a exclusao de contato apagam os arquivos antes das linhas. O painel so ve o arquivo pela rota da conversa, com as mesmas permissoes de leitura dela.
 
 Um worker agendado trata as conversas alem da politica efetiva de cada organizacao/assistente e gera `audit_event` agregado (organizacao, quantidade, timestamp), sem conteudo de conversa. Ver ADR-002. O que acontece ao vencer o prazo e escolha da organizacao (`organizations.retention_mode`):

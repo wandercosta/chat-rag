@@ -20,6 +20,7 @@ import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as DesempenhoRouteImport } from './routes/desempenho'
+import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
@@ -88,6 +89,11 @@ const ConversasRoute = ConversasRouteImport.update({
 const DesempenhoRoute = DesempenhoRouteImport.update({
   id: '/desempenho',
   path: '/desempenho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipeRoute = EquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegracoesRoute = IntegracoesRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
   '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/conta'
     | '/conversas'
     | '/desempenho'
+    | '/equipe'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/conta'
     | '/conversas'
     | '/desempenho'
+    | '/equipe'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/conta'
     | '/conversas'
     | '/desempenho'
+    | '/equipe'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
@@ -339,6 +351,7 @@ export interface RootRouteChildren {
   ContaRoute: typeof ContaRoute
   ConversasRoute: typeof ConversasRoute
   DesempenhoRoute: typeof DesempenhoRoute
+  EquipeRoute: typeof EquipeRoute
   IntegracoesRoute: typeof IntegracoesRoute
   LacunasRoute: typeof LacunasRoute
   PlataformaRoute: typeof PlataformaRoute
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/desempenho'
       fullPath: '/desempenho'
       preLoaderRoute: typeof DesempenhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipe': {
+      id: '/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof EquipeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integracoes': {
@@ -547,6 +567,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContaRoute: ContaRoute,
   ConversasRoute: ConversasRoute,
   DesempenhoRoute: DesempenhoRoute,
+  EquipeRoute: EquipeRoute,
   IntegracoesRoute: IntegracoesRoute,
   LacunasRoute: LacunasRoute,
   PlataformaRoute: PlataformaRoute,
