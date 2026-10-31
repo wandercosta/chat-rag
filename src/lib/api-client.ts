@@ -169,6 +169,8 @@ export interface Assistant {
   widget_settings: WidgetSettings;
   /** Pedido de atendente no widget cai na caixa de entrada do painel. */
   human_inbox_enabled: boolean;
+  /** So responde com trechos de fontes revisadas. */
+  reviewed_sources_only: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -199,6 +201,7 @@ export interface UpdateAssistantInput {
   retentionDays?: number | null;
   widgetSettings?: WidgetSettings;
   humanInboxEnabled?: boolean;
+  reviewedSourcesOnly?: boolean;
 }
 
 export const assistantsApi = {
@@ -367,6 +370,8 @@ export interface Source {
   origin_url: string | null;
   error_message: string | null;
   chunk_count: number;
+  /** Quando alguem revisou (aprovou ou marcou como revisada). */
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -399,6 +404,9 @@ export const sourcesApi = {
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/approve`),
   reindex: (organizationId: string, sourceId: string) =>
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/reindex`),
+  /** Marca ou desmarca a fonte como revisada (assistentes "so fontes revisadas"). */
+  review: (organizationId: string, sourceId: string, reviewed: boolean) =>
+    post<Source>(`/organizations/${organizationId}/sources/${sourceId}/review`, { reviewed }),
   archive: (organizationId: string, sourceId: string) =>
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/archive`),
   /** Destrava fontes presas em "aguardando ativação" depois que uma chave de

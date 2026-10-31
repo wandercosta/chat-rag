@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -193,14 +194,19 @@ function TopicSection({
       kind,
     }: {
       sourceId: string;
-      kind: "approve" | "reindex" | "archive";
-    }) => sourcesApi[kind](tenantId!, sourceId),
+      kind: "approve" | "reindex" | "archive" | "review" | "unreview";
+    }) =>
+      kind === "review" || kind === "unreview"
+        ? sourcesApi.review(tenantId!, sourceId, kind === "review")
+        : sourcesApi[kind](tenantId!, sourceId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["sources", tenantId, topic.id] });
       const messages = {
         approve: "Fonte aprovada",
         reindex: "Reindexação enfileirada",
         archive: "Fonte arquivada",
+        review: "Fonte marcada como revisada",
+        unreview: "Revisão retirada",
       };
       toast.success(messages[variables.kind]);
     },
@@ -280,6 +286,15 @@ function TopicSection({
                   <TableCell className="text-muted-foreground">{s.kind}</TableCell>
                   <TableCell>
                     <StatusBadge status={statusLabel[s.status]} />
+                    {s.reviewed_at && (
+                      <Badge
+                        variant="outline"
+                        className="ml-1"
+                        title={`Revisada em ${new Date(s.reviewed_at).toLocaleDateString("pt-BR")}`}
+                      >
+                        revisada
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="tabular-nums">{s.chunk_count}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -294,6 +309,21 @@ function TopicSection({
                         onClick={() => action.mutate({ sourceId: s.id, kind: "approve" })}
                       >
                         <Check /> Aprovar
+                      </Button>
+                    )}
+                    {s.status !== "aguardando_revisao" && s.status !== "arquivada" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={!writable || action.isPending}
+                        onClick={() =>
+                          action.mutate({
+                            sourceId: s.id,
+                            kind: s.reviewed_at ? "unreview" : "review",
+                          })
+                        }
+                      >
+                        <Check /> {s.reviewed_at ? "Tirar revisão" : "Marcar como revisada"}
                       </Button>
                     )}
                     <Button

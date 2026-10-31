@@ -54,6 +54,7 @@ export const chunksRepository = {
     topicIds: string[],
     queryEmbedding: number[],
     limit: number,
+    reviewedOnly = false,
   ): Promise<RetrievedChunk[]> {
     if (topicIds.length === 0) return [];
 
@@ -64,6 +65,7 @@ export const chunksRepository = {
       join sources s on s.id = c.source_id
       where c.organization_id = ${organizationId}
         and c.topic_id = any(${sql`array[${sql.join(topicIds)}]::uuid[]`})
+        ${reviewedOnly ? sql`and s.reviewed_at is not null` : sql``}
       order by c.embedding <=> ${toVectorLiteral(queryEmbedding)}::vector
       limit ${limit}
     `.execute(db);

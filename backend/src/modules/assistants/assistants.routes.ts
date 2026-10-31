@@ -19,6 +19,8 @@ const updateSchema = z.object({
   retentionDays: z.number().int().positive().nullable().optional(),
   // Pedido de atendente no widget cai na caixa de entrada do painel (ADR-006).
   humanInboxEnabled: z.boolean().optional(),
+  // So trechos de fontes revisadas por uma pessoa (sources.reviewed_at).
+  reviewedSourcesOnly: z.boolean().optional(),
   widgetSettings: z
     .object({
       title: z.string().max(60).optional(),

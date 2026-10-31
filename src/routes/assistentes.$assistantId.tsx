@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
 import { HumanInboxCard } from "@/components/human-inbox-card";
+import { ReviewedSourcesCard } from "@/components/reviewed-sources-card";
 import { WidgetAppearanceFields } from "@/components/widget/appearance-fields";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -216,6 +217,15 @@ function AssistantDetail() {
         <KnowledgeScopeCard tenantId={tenantId} assistantId={assistantId} readOnly={readOnly} />
 
         <HumanInboxCard
+          tenantId={tenantId}
+          assistant={assistant}
+          readOnly={readOnly}
+          onSaved={(updated) =>
+            queryClient.setQueryData(["assistant", tenantId, assistantId], updated)
+          }
+        />
+
+        <ReviewedSourcesCard
           tenantId={tenantId}
           assistant={assistant}
           readOnly={readOnly}

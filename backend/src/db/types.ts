@@ -133,6 +133,7 @@ export interface AssistantsTable {
   retention_days: number | null;
   widget_settings: ColumnType<WidgetSettings, string | undefined, string>;
   human_inbox_enabled: Generated<boolean>;
+  reviewed_sources_only: Generated<boolean>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -172,6 +173,8 @@ export interface SourcesTable {
   storage_key: string | null;
   error_message: string | null;
   chunk_count: Generated<number>;
+  reviewed_at: ColumnType<Date | null, string | undefined, string | null>;
+  reviewed_by: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
