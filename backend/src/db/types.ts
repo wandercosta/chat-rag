@@ -174,6 +174,7 @@ export interface VisitorsTable {
   name: string | null;
   email: string | null;
   context: unknown;
+  identity_verified: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -432,6 +433,8 @@ export interface WidgetSettings {
   accentColor?: string;
   position?: "bottom-right" | "bottom-left";
   theme?: "light" | "dark" | "sync";
+  /** Logo ou avatar do cabecalho (URL https). */
+  logoUrl?: string;
 }
 
 export interface FeedbacksTable {
@@ -476,6 +479,19 @@ export interface EmbedKeysTable {
   status: EmbedKeyStatus;
   created_at: ColumnType<Date, string | undefined, never>;
   revoked_at: ColumnType<Date, string | undefined, string> | null;
+  identity_secret: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  identity_secret_hint: string | null;
+  require_signed_identity: ColumnType<boolean, boolean | undefined, boolean>;
+}
+
+export interface WidgetDefaultsTable {
+  organization_id: string;
+  settings: ColumnType<WidgetSettings, string | undefined, string>;
+  updated_at: ColumnType<Date, string | undefined, string>;
 }
 
 export interface AllowedDomainsTable {
@@ -584,6 +600,7 @@ export interface Database {
   knowledge_gaps: KnowledgeGapsTable;
   source_chunks: SourceChunksTable;
   embed_keys: EmbedKeysTable;
+  widget_defaults: WidgetDefaultsTable;
   allowed_domains: AllowedDomainsTable;
   support_access_sessions: SupportAccessSessionsTable;
   handoff_configs: HandoffConfigsTable;

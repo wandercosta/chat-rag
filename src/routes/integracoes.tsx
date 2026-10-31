@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CheckCircle2, Code2, Copy, FileCode2, KeyRound, MonitorSmartphone, Plus, ShieldOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { IdentitySecretDialog } from "@/components/widget/identity-secret-dialog";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,11 @@ function IntegrationsPage() {
                     {new Date(k.created_at).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell className="text-right">
+                    <IdentitySecretDialog
+                      tenantId={tenantId!}
+                      widgetKey={k}
+                      disabled={!writable || !!k.revoked_at}
+                    />
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1017,8 +1023,15 @@ function WidgetVariablesReferenceTable() {
       alias: "data-user-id",
       type: "string",
       required: false,
-      desc: "ID único do usuário no seu sistema (ex: ID da conta ou usuário logado). Retoma a mesma conversa e todo o histórico existente entre reloads.",
+      desc: "ID único do usuário no seu sistema (ex: ID da conta ou usuário logado). Agrupa as conversas do mesmo cliente no painel. Não é assinado: para retomar a conversa com o histórico, use data-identity-token.",
       example: 'iduser12 / usr_9981',
+    },
+    {
+      attr: "data-identity-token",
+      type: "string (JWT)",
+      required: false,
+      desc: "Token assinado pelo servidor do seu site com o segredo da chave (botão Identidade). Confirma quem é o cliente e retoma a conversa anterior com o histórico.",
+      example: "eyJhbGciOiJIUzI1NiJ9...",
     },
     {
       attr: "data-accent",

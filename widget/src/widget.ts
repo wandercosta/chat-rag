@@ -66,7 +66,8 @@ export class ChatRagWidget {
       this.renderMessages();
       return;
     }
-    if (this.options.externalUserId) void this.ensureConversation();
+    // Visitante identificado: abre a conversa ja, para retomar o historico.
+    if (this.options.externalUserId || this.options.identityToken) void this.ensureConversation();
   }
 
   private buildLauncher() {
@@ -165,6 +166,7 @@ export class ChatRagWidget {
       visitorName: this.options.visitorName,
       visitorEmail: this.options.visitorEmail,
       context: this.options.context,
+      identityToken: this.options.identityToken,
     });
     this.conversationId = res.conversationId;
     this.connectEvents();

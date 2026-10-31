@@ -37,6 +37,8 @@ export interface Appearance {
   accentColor?: string;
   position?: Position;
   theme?: Theme;
+  /** Logo do cabecalho (https), padrao da organizacao ou do assistente. */
+  logoUrl?: string;
 }
 
 export interface ConfigResponse {

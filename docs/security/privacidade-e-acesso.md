@@ -16,6 +16,8 @@ O objetivo inicial e nao armazenar bases com dados sensiveis. Ainda assim, conve
 
 ## Widget publico
 
+Identidade do visitante: os campos `data-*` do widget nao sao assinados e por isso nunca devolvem historico de conversa nem alteram um visitante verificado. Retomar a conversa anterior exige token assinado pelo servidor do site com o segredo da chave (HS256, ate 24 horas, `sub` obrigatorio; ver `integrations/widget-embed.md`). A chave pode exigir assinatura, e ai identidade sem token vira anonimo. O segredo fica cifrado (envelope) e so aparece uma vez.
+
 Politicas por assistente: iniciar anonimo, solicitar nome/e-mail opcional ou obrigatorio, aviso de privacidade, retencao, dominios, limite de requisicoes e encaminhamento. Rate limit numerico padrao ja existe desde o MVP (ver `integrations/widget-embed.md` e ADR-002); CAPTCHA ou desafio antiautomacao e camada adicional futura, conforme telemetria de abuso.
 
 ## Segredos

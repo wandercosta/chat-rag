@@ -175,6 +175,8 @@ export interface WidgetSettings {
   accentColor?: string;
   position?: "bottom-right" | "bottom-left";
   theme?: "light" | "dark" | "sync";
+  /** Logo do cabecalho (https). */
+  logoUrl?: string;
 }
 
 export interface CreateAssistantInput {
@@ -442,6 +444,9 @@ export interface WidgetKey {
   masked: string;
   revoked_at: string | null;
   created_at: string;
+  /** Final do segredo de identidade (o texto nunca volta da API). */
+  identity_secret_hint: string | null;
+  require_signed_identity: boolean;
 }
 
 export interface AllowedDomain {
@@ -468,6 +473,31 @@ export const widgetKeysApi = {
     ),
   revoke: (organizationId: string, keyId: string) =>
     post<{ ok: true }>(`/organizations/${organizationId}/widget-keys/${keyId}/revoke`),
+  /** Segredo de identidade: o texto so existe nesta resposta. */
+  rotateIdentitySecret: (organizationId: string, keyId: string) =>
+    post<{ secret: string; hint: string }>(
+      `/organizations/${organizationId}/widget-keys/${keyId}/identity-secret`,
+    ),
+  removeIdentitySecret: (organizationId: string, keyId: string) =>
+    apiFetch<void>(`/organizations/${organizationId}/widget-keys/${keyId}/identity-secret`, {
+      method: "DELETE",
+    }),
+  setRequireSignedIdentity: (organizationId: string, keyId: string, on: boolean) =>
+    apiFetch<{ requireSignedIdentity: boolean }>(
+      `/organizations/${organizationId}/widget-keys/${keyId}`,
+      { method: "PATCH", body: JSON.stringify({ requireSignedIdentity: on }) },
+    ),
+};
+
+/** Aparencia padrao do widget da organizacao (o assistente sobrescreve). */
+export const widgetDefaultsApi = {
+  get: (organizationId: string) =>
+    get<WidgetSettings>(`/organizations/${organizationId}/widget-defaults`),
+  save: (organizationId: string, settings: WidgetSettings) =>
+    apiFetch<WidgetSettings>(`/organizations/${organizationId}/widget-defaults`, {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
 };
 
 // --- audit ------------------------------------------------

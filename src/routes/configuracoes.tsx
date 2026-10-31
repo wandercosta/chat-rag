@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { DataExportCard } from "@/components/data-export-card";
+import { WidgetDefaultsCard } from "@/components/widget/widget-defaults-card";
 import { ActivationBanner } from "@/components/activation-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,7 @@ function SettingsPage() {
         <AllowedModelsCard tenantId={tenantId} />
         <RetentionCard tenantId={tenantId} />
       </div>
+      <WidgetDefaultsCard tenantId={tenantId} />
       <DataExportCard tenantId={tenantId} />
     </>
   );

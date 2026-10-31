@@ -26,7 +26,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 4. Detalhe do assistente: identidade, instrucoes opcionais, colecoes, modo de resposta, privacidade, retencao, WhatsApp e aparencia.
 5. Base: topicos, fontes, status de indexacao, erros e reindexacao.
 6. Playground de conversa para testar sem expor o assistente.
-7. Integracao: script de instalacao, chave por ambiente, dominios permitidos, revogacao e aparencia.
+7. Integracao: script de instalacao, chave por ambiente, dominios permitidos, revogacao e aparencia. Cada chave tem o botao **Identidade** (gerar/trocar/remover o segredo de identidade, mostrado uma vez so, exigir identidade assinada e exemplo de geracao do token); a tabela de atributos do script inclui `data-identity-token`.
 8. Conversas: filtro por assistente, visitante e periodo; historico e feedback.
 9. Lacunas: pergunta, frequencia, status de tratamento e origem.
 10. Configuracoes do tenant: chave OpenAI de teste/producao ou reutilizada, estado da conexao, modelos permitidos, limites, privacidade e WhatsApp. O valor da chave nao pode ser exibido apos ser salvo.
@@ -41,6 +41,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 16. **Automacoes** (`/automacoes`, ja existe): lista de regras com resumo "quando / se / entao", versao, ligar/desligar, editar, excluir e historico de execucoes; editor em formulario que so oferece as condicoes e acoes do gatilho escolhido. O gatilho "Quando o contato ganhar uma etiqueta" oferece "Enviar modelo do WhatsApp", com numero, modelo aprovado (mostra o texto) e um campo por variavel.
 
 17. **Minha conta** (`/conta`, ja existe; icone no topo): ativar a verificacao em duas etapas (chave para digitar no aplicativo, confirmacao com codigo, codigos de recuperacao mostrados uma vez) e desativar. O login pede o codigo do aplicativo quando o 2FA esta ativo.
+18. **Aparencia padrao do widget** em Configuracoes (titulo, cor, saudacao, posicao, tema e logo), que vale para todos os assistentes; o card "Widget" do assistente usa os mesmos campos e vence o padrao.
 18. **Exportar dados (LGPD)** em Configuracoes, so para Administrador: baixa o JSON da organizacao.
 19. **API e webhooks** (`/api-webhooks`, ja existe; so Administrador): criar e revogar tokens com escopos (o token aparece uma vez), cadastrar webhooks por evento, ligar/desligar, testar, trocar segredo e ver as ultimas entregas.
 20. **Desempenho da equipe** (`/desempenho`, ja existe; Administrador e Analista): pedidos de atendimento, fila, resolvidas e tempo de primeira resposta da equipe e por atendente, em 7, 30 ou 90 dias.

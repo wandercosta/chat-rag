@@ -25,7 +25,7 @@ O widget monta sua interface em Shadow DOM (`mode: 'open'`, para permitir depura
 
 ## Configuracao
 
-Prioridade: configuracao do assistente, depois padrao da organizacao. Inclui titulo, mensagem de abertura, logo, cores, tema claro/escuro/sincronizado, posicao e modo flutuante ou embutido.
+Prioridade: atributos `data-*` do `<script>`, depois a configuracao do assistente (detalhe do assistente > Widget), depois o padrao da organizacao (Configuracoes > Aparencia padrao do widget, tabela `widget_defaults`). Campo vazio no assistente usa o padrao. Inclui titulo, saudacao, logo (endereco https, aparece no cabecalho e nas respostas), cor de destaque, tema claro/escuro/sincronizado e posicao; o modo flutuante ou embutido continua no `data-mode`. `POST /widget/config` ja devolve a aparencia juntada.
 
 ## Identidade e contexto do visitante
 
@@ -43,11 +43,55 @@ O widget aceita, via atributos `data-*` no `<script>`, dados que o sistema hospe
 ></script>
 ```
 
-- `data-external-user-id`: identificador estavel do atendimento/cliente no sistema hospedeiro (ex.: id do pedido, id do chat interno). Mantido entre recargas da pagina, cria/atualiza um unico registro em `visitors` (unico por `organization_id` + `external_user_id`) e cada carregamento do widget continua abrindo uma conversa nova (`conversations`) — o ponto e permitir que o painel encontre e distinga o atendimento certo entre varias conversas, nao reaproveitar o historico de mensagens.
+- `data-external-user-id`: identificador estavel do atendimento/cliente no sistema hospedeiro (ex.: id do pedido, id do chat interno). Cria/atualiza um unico registro em `visitors` (unico por `organization_id` + `external_user_id`), para o painel agrupar as conversas do mesmo cliente. **Sem assinatura, cada carregamento abre uma conversa nova**: o historico anterior nunca e devolvido.
 - `data-visitor-name` / `data-visitor-email`: preenchem o cadastro do visitante.
 - `data-context`: JSON livre (ex.: `{"pedido":"4821","plano":"Pro"}`) incluido no prompt do assistente como dado de personalizacao — nunca como fonte de fatos da base (a resposta continua ancorada exclusivamente no RAG).
 
-**Limitacao conhecida (seguranca):** esses campos nao sao assinados. Servem para hospedeiros que renderizam o `<script>` no proprio servidor com dados que ja validaram (ex.: template do backend deles, nao JS livre no navegador do visitante). Se o valor de `data-external-user-id` puder ser adivinhado ou alterado pelo proprio navegador do visitante, ele pode sobrescrever nome/email/contexto de outro atendimento com o mesmo id — nao ha vazamento de historico de conversa (o widget nunca busca conversas antigas de um visitante), mas ha risco de poluir o contexto usado no prompt de um atendimento legitimo. Uma integracao autenticada futura, com um token curto assinado pelo backend hospedeiro carregando `external_user_id`/nome/contexto, fecha essa lacuna — ainda nao implementada.
+Esses campos **nao sao assinados**: quem controla o navegador pode trocar os valores. Por isso, sozinhos, nunca devolvem historico, e um visitante ja verificado (abaixo) nunca e alterado por eles — quem tentar o id de um cliente verificado conversa como anonimo.
+
+### Identidade assinada (`data-identity-token`)
+
+Para o cliente logado no site retomar a conversa anterior com o historico, o **servidor** do site gera um token curto e assinado e coloca no `<script>`:
+
+```html
+<script
+  src="https://cdn.exemplo.com/chat-widget.js"
+  data-key="pk_live_..."
+  data-identity-token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  async
+></script>
+```
+
+- **Segredo:** no painel, Integracoes > chave > **Identidade** > "Gerar segredo". O texto (`wis_...`) aparece uma vez so; fica cifrado no banco (envelope, precisa voltar a texto para conferir a assinatura) e o painel mostra so o final. Trocar o segredo invalida os tokens antigos. Guarde-o so no servidor do site, nunca no HTML.
+- **Formato:** JWT HS256 (`{"alg":"HS256","typ":"JWT"}`), assinado com o segredo. Claims: `sub` (id do cliente no seu sistema, obrigatorio, ate 200 caracteres), `exp` (obrigatorio, no maximo 24 horas no futuro), `name`, `email` e `context` (objeto) opcionais. Qualquer outro `alg` (inclusive `none`) e recusado.
+- **Efeito:** o visitante fica marcado como verificado (`visitors.identity_verified`) e a conversa anterior dele (com o mesmo assistente) e retomada com o historico. Token invalido, vencido ou de uma chave sem segredo responde 401 em `POST /widget/conversations`.
+- **Exigir assinatura:** na mesma tela, "Exigir identidade assinada" faz a chave ignorar `data-external-user-id`, nome, e-mail e contexto sem token (o visitante conversa como anonimo). Remover o segredo desliga a exigencia.
+
+Exemplo de geracao no servidor (Node.js, sem biblioteca):
+
+```js
+import crypto from "node:crypto";
+
+const b64 = (v) => Buffer.from(v).toString("base64url");
+function tokenDoVisitante(usuario, segredo) {
+  const header = b64(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64(
+    JSON.stringify({
+      sub: usuario.id,
+      name: usuario.nome,
+      email: usuario.email,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }),
+  );
+  const assinatura = crypto
+    .createHmac("sha256", segredo)
+    .update(`${header}.${payload}`)
+    .digest("base64url");
+  return `${header}.${payload}.${assinatura}`;
+}
+```
+
+Qualquer biblioteca JWT com HS256 (ex.: `jsonwebtoken`, `PyJWT`, `firebase/php-jwt`) gera o mesmo token.
 
 ## Encaminhamento
 
@@ -57,4 +101,4 @@ O WhatsApp e configurado pela organizacao. O assistente pode fornecer contexto p
 
 ## Estado da implementacao
 
-Bundle publico em `widget/` (~13kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff, identidade/contexto do visitante (nao assinados, ver secao acima) e Shadow DOM. Diferencas do desenhado acima: titulo/saudacao/tema/posicao vem hoje de atributos `data-*` no `<script>`, nao de configuracao do assistente buscada da API (a hierarquia "assistente > organizacao" ainda nao existe); sem customizacao de logo; sem token de identidade autenticada assinado; resposta e request/response simples, sem streaming.
+Bundle publico em `widget/` (~18kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff, identidade/contexto do visitante (com ou sem assinatura, ver secoes acima), aparencia "data-* > assistente > organizacao" com logo e Shadow DOM. Falta: resposta em streaming (hoje request/response simples).

@@ -98,7 +98,12 @@ export async function createTenant(app: FastifyInstance, masterCookie: string, s
 export function startWidgetConversation(
   app: FastifyInstance,
   key: string,
-  visitor: { externalUserId?: string; visitorName?: string; visitorEmail?: string } = {},
+  visitor: {
+    externalUserId?: string;
+    visitorName?: string;
+    visitorEmail?: string;
+    identityToken?: string;
+  } = {},
 ) {
   return app.inject({
     method: "POST",

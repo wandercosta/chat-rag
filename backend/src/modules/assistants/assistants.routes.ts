@@ -29,6 +29,13 @@ const updateSchema = z.object({
         .optional(),
       position: z.enum(["bottom-right", "bottom-left"]).optional(),
       theme: z.enum(["light", "dark", "sync"]).optional(),
+      // Mesmo formato do padrao da organizacao (embed/appearance.ts).
+      logoUrl: z
+        .string()
+        .url()
+        .max(500)
+        .refine((u) => u.startsWith("https://"), "o logo precisa de endereco https")
+        .optional(),
     })
     .strict()
     .optional(),
