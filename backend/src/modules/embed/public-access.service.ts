@@ -1,3 +1,4 @@
+import type { SerializedEnvelope } from "../../crypto/envelope.js";
 import { organizationsService } from "../organizations/index.js";
 import { domainsRepository } from "./domains.repository.js";
 import { hashEmbedKey } from "./keys.crypto.js";
@@ -12,6 +13,9 @@ export interface ResolvedEmbedKey {
   organizationId: string;
   assistantId: string;
   environment: "teste" | "producao";
+  /** Segredo de identidade cifrado; decifrado so na hora de conferir um token. */
+  identitySecret: SerializedEnvelope | null;
+  requireSignedIdentity: boolean;
 }
 
 function hostnameFrom(originOrReferer: string | undefined): string | null {
@@ -49,6 +53,8 @@ export const publicAccessService = {
       organizationId: row.organization_id,
       assistantId: row.assistant_id,
       environment: row.environment,
+      identitySecret: row.identity_secret,
+      requireSignedIdentity: row.require_signed_identity,
     };
   },
 };

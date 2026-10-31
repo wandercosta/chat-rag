@@ -37,13 +37,19 @@ export const conversationsService = {
     return conversationsRepository.start(organizationId, assistantId, channel, visitorId);
   },
 
+  /**
+   * Retomar devolve o historico: so com `resume` (visitante de identidade
+   * assinada). Sem isso, quem soubesse o id externo de outro cliente leria a
+   * conversa dele.
+   */
   async startOrResume(
     organizationId: string,
     assistantId: string,
     channel: ConversationChannel,
     visitorId: string | null = null,
+    resume = false,
   ) {
-    if (visitorId) {
+    if (visitorId && resume) {
       const existing = await conversationsRepository.findActiveForVisitor(
         organizationId,
         assistantId,

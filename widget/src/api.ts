@@ -45,6 +45,7 @@ export function createApiClient(baseUrl: string) {
         visitorName?: string | null;
         visitorEmail?: string | null;
         context?: Record<string, unknown> | null;
+        identityToken?: string | null;
       },
     ) {
       return postJson<{
@@ -57,6 +58,8 @@ export function createApiClient(baseUrl: string) {
         ...(visitor?.visitorName ? { visitorName: visitor.visitorName } : {}),
         ...(visitor?.visitorEmail ? { visitorEmail: visitor.visitorEmail } : {}),
         ...(visitor?.context ? { context: visitor.context } : {}),
+        // Token assinado pelo backend do site: so ele retoma a conversa anterior.
+        ...(visitor?.identityToken ? { identityToken: visitor.identityToken } : {}),
       });
     },
 

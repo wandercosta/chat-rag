@@ -5,6 +5,8 @@ export interface VisitorProfileInput {
   name?: string;
   email?: string;
   context?: Record<string, unknown>;
+  /** Veio de um token de identidade assinado (widget). */
+  verified?: boolean;
 }
 
 export const visitorsRepository = {
@@ -30,6 +32,7 @@ export const visitorsRepository = {
         name: input.name ?? null,
         email: input.email ?? null,
         context: input.context ? JSON.stringify(input.context) : null,
+        identity_verified: input.verified ?? false,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -44,6 +47,7 @@ export const visitorsRepository = {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.email !== undefined ? { email: input.email } : {}),
         ...(input.context !== undefined ? { context: JSON.stringify(input.context) } : {}),
+        ...(input.verified ? { identity_verified: true } : {}),
       })
       .where("id", "=", id)
       .returningAll()

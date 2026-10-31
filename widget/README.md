@@ -38,6 +38,8 @@ opcional `data-api` (util so para teste local).
 Modo embutido: `data-mode="embedded"` + `data-mount="#seletor-css"` monta
 dentro de um elemento da pagina em vez de flutuar.
 
+`data-identity-token` leva a identidade assinada pelo servidor do site (so com
+ele a conversa anterior e retomada com o historico).
 `data-external-user-id`/`data-visitor-name`/`data-visitor-email`/`data-context`
 sao opcionais e nao assinados — ver `docs/integrations/widget-embed.md` (secao
 "Identidade e contexto do visitante") para o que cada um faz e a limitacao de
@@ -57,6 +59,5 @@ python -m http.server 4174 --directory ..   # a partir de widget/
 
 ## O que falta
 
-- Identificacao de usuario autenticado via token assinado (campo `data-identity-token` ja existe na leitura de opcoes, mas ainda nao e enviado nas chamadas — a API tambem nao aceita esse campo ainda).
 - Streaming de resposta (hoje e request/response simples).
 - Testes automatizados (hoje so o roteiro manual acima).

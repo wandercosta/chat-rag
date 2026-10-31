@@ -65,7 +65,9 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `PATCH /organizations/:organizationId/channels/:id` com `{ humanAgentTag: boolean }` (so Administrador; so Messenger e Instagram, 404 nos outros): liga a tag "Agente humano" da Meta, que estende a janela do atendente para 7 dias; devolve `{ id, provider, config }` e vai para a auditoria
 - `GET /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId` (arquivo recebido pelo canal; Administrador, Atendente e Analista, ou Master em sessao de suporte; sempre `Content-Disposition: attachment` e `X-Content-Type-Options: nosniff`; 404 se o anexo nao e daquela conversa e organizacao ou ainda nao esta pronto)
 - `GET /organizations/:organizationId/gaps`, `POST .../gaps/:gapId/resolve`, `POST .../gaps/:gapId/answer` (responder a lacuna cria uma fonte de texto no topico indicado — mesmo pipeline de qualquer outra fonte — e marca a lacuna como resolvida; papeis Administrador/Editor de base)
-- `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]`
+- `GET|POST /organizations/:organizationId/widget-keys`, `POST .../revoke`, `POST|DELETE .../domains[/:domainId]` (a lista nunca traz o hash da chave nem o segredo de identidade; traz `identity_secret_hint` e `require_signed_identity`)
+- `POST|DELETE /organizations/:organizationId/widget-keys/:keyId/identity-secret` (gera/troca o segredo de identidade e devolve `{ secret, hint }` uma vez so; remover desliga a exigencia), `PATCH .../widget-keys/:keyId` (`{ requireSignedIdentity }`, 422 sem segredo) — so Administrador, com auditoria de seguranca
+- `GET|PUT /organizations/:organizationId/widget-defaults` (aparencia padrao do widget: `title`, `greeting`, `accentColor`, `position`, `theme`, `logoUrl` https; so Administrador). `widgetSettings` do assistente aceita os mesmos campos
 - `GET|POST /organizations/:organizationId/members`, `PATCH|DELETE .../members/:membershipId` (acessos do tenant; senha provisoria definida pelo administrador, sem cadastro publico; a organizacao nunca fica sem administrador)
 - `GET /organizations/:organizationId/audit`
 - `GET /organizations/:organizationId/usage` (resumo agregado — ver limitacoes em `docs/README.md`)
@@ -96,7 +98,7 @@ Webhooks publicos dos canais (sem sessao; ver `integrations/whatsapp.md` e `inte
 Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 
 - `POST /widget/config`
-- `POST /widget/conversations` (aceita `externalUserId`, `visitorName`, `visitorEmail`, `context` opcionais — identidade/contexto do visitante nao assinados, ver `docs/integrations/widget-embed.md`)
+- `POST /widget/conversations` (aceita `externalUserId`, `visitorName`, `visitorEmail`, `context` opcionais, nao assinados, e `identityToken` (JWT HS256 assinado com o segredo da chave). So com token valido a resposta pode vir `200` com `isResumed: true` e o historico; token invalido da 401; com a chave exigindo assinatura, os campos sem token sao ignorados. Ver `docs/integrations/widget-embed.md`)
 - `POST /widget/conversations/:conversationId/messages`
 - `POST /widget/conversations/:conversationId/feedback`
 - `POST /widget/conversations/:conversationId/handoff` (com a caixa de entrada ligada no assistente, coloca a conversa na fila e retorna `{ inbox: true, status }`; senao, link `wa.me` direto ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)

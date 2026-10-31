@@ -5,6 +5,7 @@ import { db } from "../../db/client.js";
 import { redis } from "../../db/redis.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
 import { RUN_INTEGRATION_TESTS, resetDatabase } from "../../test/integration-helpers.js";
+import { signIdentityToken } from "../embed/index.js";
 import {
   WIDGET_ORIGIN as ORIGIN,
   createMaster,
@@ -112,8 +113,27 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("caixa de entrada", () => {
     });
     expect(overlap.statusCode).toBe(409);
 
-    // O widget retoma a conversa com a resposta humana e sem a nota.
-    const resumed = (await startWidget(t.key)).json();
+    // Com identidade assinada, o widget retoma a conversa com a resposta
+    // humana e sem a nota (sem assinatura, nunca devolve historico).
+    const keyId = (
+      await app.inject({
+        method: "GET",
+        url: `${t.base}/widget-keys`,
+        headers: { cookie: t.admin },
+      })
+    ).json()[0].id;
+    const { secret } = (
+      await app.inject({
+        method: "POST",
+        url: `${t.base}/widget-keys/${keyId}/identity-secret`,
+        headers: { cookie: t.admin },
+      })
+    ).json();
+    const identityToken = signIdentityToken(
+      { sub: "cliente-1", exp: Math.floor(Date.now() / 1000) + 600 },
+      secret,
+    );
+    const resumed = (await startWidgetConversation(app, t.key, { identityToken })).json();
     expect(resumed.conversationId).toBe(conversationId);
     expect(resumed.messages).toContainEqual(
       expect.objectContaining({ role: "atendente", content: "Oi Maria, sou a atendente." }),

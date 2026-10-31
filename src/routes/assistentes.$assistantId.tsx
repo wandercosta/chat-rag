@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ActivationBanner } from "@/components/activation-banner";
 import { HumanInboxCard } from "@/components/human-inbox-card";
+import { WidgetAppearanceFields } from "@/components/widget/appearance-fields";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -267,8 +268,6 @@ function AssistantDetail() {
   );
 }
 
-const DEFAULT_ACCENT = "#5B4FE9";
-
 /**
  * Aparencia do widget publico. O widget busca estes valores em
  * POST /widget/config ao carregar; um atributo data-* no <script> do site
@@ -303,16 +302,14 @@ function WidgetAppearanceCard({
     },
   });
 
-  const accent = settings.accentColor ?? DEFAULT_ACCENT;
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div className="space-y-1.5">
           <CardTitle className="text-base">Widget</CardTitle>
           <CardDescription>
-            Aparência do chat embutido nos sites. Atributos <code>data-*</code> do script
-            sobrescrevem estes valores.
+            Aparência do chat deste assistente. Campo vazio usa o padrão da organização
+            (Configurações); atributos <code>data-*</code> do script sobrescrevem tudo.
           </CardDescription>
         </div>
         <Button
@@ -324,77 +321,8 @@ function WidgetAppearanceCard({
           <Save /> {save.isPending ? "Salvando..." : "Salvar"}
         </Button>
       </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="widget-title">Título</Label>
-          <Input
-            id="widget-title"
-            maxLength={60}
-            placeholder="Fale com a gente"
-            value={settings.title ?? ""}
-            disabled={readOnly}
-            onChange={(e) => set("title", e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="widget-accent">Cor de destaque</Label>
-          <div className="flex gap-2">
-            <Input
-              id="widget-accent"
-              type="color"
-              className="w-14 p-1"
-              value={accent}
-              disabled={readOnly}
-              onChange={(e) => set("accentColor", e.target.value)}
-            />
-            <Input value={accent} readOnly className="font-mono" aria-label="Cor em hexadecimal" />
-          </div>
-        </div>
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="widget-greeting">Saudação</Label>
-          <Textarea
-            id="widget-greeting"
-            rows={2}
-            maxLength={300}
-            placeholder="Olá! Como posso ajudar?"
-            value={settings.greeting ?? ""}
-            disabled={readOnly}
-            onChange={(e) => set("greeting", e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Posição</Label>
-          <Select
-            value={settings.position ?? "bottom-right"}
-            disabled={readOnly}
-            onValueChange={(v) => set("position", v as WidgetSettings["position"])}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
-              <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Tema</Label>
-          <Select
-            value={settings.theme ?? "light"}
-            disabled={readOnly}
-            onValueChange={(v) => set("theme", v as WidgetSettings["theme"])}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="light">Claro</SelectItem>
-              <SelectItem value="dark">Escuro</SelectItem>
-              <SelectItem value="sync">Seguir o sistema do visitante</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <CardContent>
+        <WidgetAppearanceFields settings={settings} onChange={set} readOnly={readOnly} />
       </CardContent>
     </Card>
   );
