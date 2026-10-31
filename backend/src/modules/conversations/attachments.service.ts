@@ -55,6 +55,12 @@ export const attachmentsService = {
     };
   },
 
+  /** Anonimizacao: a conversa fica, os anexos (linhas e arquivos) saem. */
+  async removeForConversations(conversationIds: string[]) {
+    const keys = await attachmentsRepository.removeForConversations(conversationIds);
+    if (keys.length > 0) await deleteObjects(keys);
+  },
+
   /** Antes de apagar as conversas: as linhas saem em cascata, o arquivo nao. */
   async deleteFilesFor(
     where: { assistantId: string; before: Date } | { organizationId: string; contactId: string },

@@ -33,7 +33,16 @@ export interface OrganizationsTable {
   slug: string;
   status: TenantStatus;
   retention_days: number | null;
+  retention_mode: ColumnType<RetentionMode, RetentionMode | undefined, RetentionMode>;
   created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type RetentionMode = "excluir" | "anonimizar";
+
+export interface RolesTable {
+  name: TenantRole;
+  description: string;
+  position: number;
 }
 
 export interface UsersTable {
@@ -187,6 +196,7 @@ export interface ConversationsTable {
   channel_connection_id: string | null;
   channel: ConversationChannel;
   started_at: ColumnType<Date, string | undefined, never>;
+  anonymized_at: ColumnType<Date | null, string | undefined, string | null>;
 }
 
 export interface MessagesTable {
@@ -579,6 +589,7 @@ export interface WebhookDeliveriesTable {
 }
 
 export interface Database {
+  roles: RolesTable;
   organizations: OrganizationsTable;
   users: UsersTable;
   memberships: MembershipsTable;

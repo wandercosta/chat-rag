@@ -51,7 +51,8 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `GET|POST /master/tenants`, `POST /master/tenants/:organizationId/status`
 - `GET|POST /master/tenants/:organizationId/support-sessions`, `POST .../support-sessions/:sessionId/end` (justificativa + expiracao, auditado — ADR-001 #14)
 - `GET /organizations/:organizationId` (auto-atendimento do tenant: nome/status da propria organizacao)
-- `PUT /organizations/:organizationId/retention` (politica de retencao da organizacao)
+- `PUT /organizations/:organizationId/retention` (`{ days: number | null, mode?: "excluir" | "anonimizar" }`, politica de retencao da organizacao; `GET /organizations/:organizationId` traz `retention_mode`)
+- `GET /organizations/:organizationId/roles` (papeis da tabela `roles` com a descricao, em ordem; so Administrador)
 - `GET|POST /organizations/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment`
 - `GET /master/tenants/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment` (suporte Master, so estado, exige sessao de suporte ativa)
 - `GET|POST|PATCH /organizations/:organizationId/assistants[/:assistantId]`

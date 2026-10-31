@@ -33,6 +33,13 @@ function handleError(err: unknown, reply: import("fastify").FastifyReply) {
 export async function membersRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
 
+  // Papeis do tenant (tabela roles): nome e o que cada um faz, para o painel.
+  app.get<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/roles",
+    { preHandler: requireOrgRole(["Administrador"]) },
+    async () => membersService.roles(),
+  );
+
   app.get<{ Params: { organizationId: string } }>(
     "/organizations/:organizationId/members",
     { preHandler: requireOrgRole(["Administrador"]) },

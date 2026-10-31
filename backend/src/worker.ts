@@ -4,6 +4,7 @@ import { redis } from "./db/redis.js";
 import { extractionService, sourcesService } from "./modules/knowledge/index.js";
 import { indexingService } from "./modules/rag/index.js";
 import { retentionService } from "./modules/conversations/index.js";
+import { inboxService } from "./modules/inbox/index.js";
 import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
@@ -92,7 +93,18 @@ const retentionWorker = new Worker(
   RETENTION_QUEUE,
   async () => {
     const summary = await retentionService.purgeExpired();
-    console.log("retencao executada:", summary);
+    // Anonimizar tambem tira as notas internas (tabela do modulo inbox).
+    for (const row of summary) {
+      await inboxService.deleteNotesFor(row.organizationId, row.anonymizedConversationIds);
+    }
+    console.log(
+      "retencao executada:",
+      summary.map(({ organizationId, deleted, anonymized }) => ({
+        organizationId,
+        deleted,
+        anonymized,
+      })),
+    );
   },
   { connection: { url: env.REDIS_URL }, concurrency: 1 },
 );

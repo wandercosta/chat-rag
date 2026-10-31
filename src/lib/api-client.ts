@@ -74,15 +74,21 @@ export interface Organization {
   slug: string;
   status: "ativo" | "suspenso";
   retention_days: number | null;
+  /** O que a retencao faz ao vencer o prazo. */
+  retention_mode: "excluir" | "anonimizar";
   created_at: string;
 }
 
 export const organizationsApi = {
   getMine: (organizationId: string) => get<Organization>(`/organizations/${organizationId}`),
-  setRetention: (organizationId: string, days: number | null) =>
+  setRetention: (
+    organizationId: string,
+    days: number | null,
+    mode?: Organization["retention_mode"],
+  ) =>
     apiFetch<{ ok: true }>(`/organizations/${organizationId}/retention`, {
       method: "PUT",
-      body: JSON.stringify({ days }),
+      body: JSON.stringify({ days, mode }),
     }),
 };
 
@@ -421,6 +427,9 @@ export interface CreateMemberInput {
 
 export const membersApi = {
   list: (organizationId: string) => get<Member[]>(`/organizations/${organizationId}/members`),
+  /** Papeis da tabela `roles`, com o que cada um faz. */
+  roles: (organizationId: string) =>
+    get<{ name: TenantRole; description: string }[]>(`/organizations/${organizationId}/roles`),
   create: (organizationId: string, input: CreateMemberInput) =>
     post<Member>(`/organizations/${organizationId}/members`, input),
   updateRole: (organizationId: string, membershipId: string, role: TenantRole) =>
@@ -539,6 +548,8 @@ export interface Conversation {
   visitor_id: string | null;
   channel: "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
   started_at: string;
+  /** Retencao em modo "anonimizar": sem texto, anexos nem visitante. */
+  anonymized_at?: string | null;
 }
 
 export interface ConversationMessage {

@@ -29,7 +29,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 7. Integracao: script de instalacao, chave por ambiente, dominios permitidos, revogacao e aparencia. Cada chave tem o botao **Identidade** (gerar/trocar/remover o segredo de identidade, mostrado uma vez so, exigir identidade assinada e exemplo de geracao do token); a tabela de atributos do script inclui `data-identity-token`.
 8. Conversas: filtro por assistente, visitante e periodo; historico e feedback.
 9. Lacunas: pergunta, frequencia, status de tratamento e origem.
-10. Configuracoes do tenant: chave OpenAI de teste/producao ou reutilizada, estado da conexao, modelos permitidos, limites, privacidade e WhatsApp. O valor da chave nao pode ser exibido apos ser salvo.
+10. Configuracoes do tenant: chave OpenAI de teste/producao ou reutilizada, estado da conexao, modelos permitidos, limites, privacidade e WhatsApp. O valor da chave nao pode ser exibido apos ser salvo. A retencao tem prazo e "Ao vencer o prazo" (excluir ou anonimizar); conversas anonimizadas aparecem com o selo "anonimizada" em Conversas. Em Usuarios, o formulario de acesso mostra o que cada papel faz (tabela `roles`).
 11. Estado de ativacao da base: fontes podem ser cadastradas sem chave; o painel alerta que indexacao, playground e widget permanecem indisponiveis ate existir chave valida.
 
 ## Telas planejadas (ADR-006)

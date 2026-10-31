@@ -73,6 +73,19 @@ export const attachmentsRepository = {
       .executeTakeFirst();
   },
 
+  /** Anonimizacao: apaga as linhas e devolve as chaves para apagar o arquivo. */
+  async removeForConversations(conversationIds: string[]) {
+    if (conversationIds.length === 0) return [];
+    const rows = await db
+      .deleteFrom("message_attachments")
+      .where("message_id", "in", (eb) =>
+        eb.selectFrom("messages").select("id").where("conversation_id", "in", conversationIds),
+      )
+      .returning("storage_key")
+      .execute();
+    return rows.flatMap((r) => (r.storage_key ? [r.storage_key] : []));
+  },
+
   /** Chaves no storage das conversas que vao ser apagadas. */
   async keysFor(
     where:
