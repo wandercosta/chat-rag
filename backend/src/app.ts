@@ -26,6 +26,7 @@ import {
   agentMetricsRoutes,
   cannedResponsesRoutes,
   inboxRoutes,
+  sectorsRoutes,
   setReplyWindowPolicy,
 } from "./modules/inbox/index.js";
 import { contactTaxonomyRoutes, contactsRoutes } from "./modules/contacts/index.js";
@@ -88,6 +89,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   // A janela de resposta depende da conexao do canal (tag "Agente humano").
   setReplyWindowPolicy(replyWindowHours);
   await app.register(inboxRoutes);
+  await app.register(sectorsRoutes);
   await app.register(cannedResponsesRoutes);
   await app.register(agentMetricsRoutes);
   await app.register(contactsRoutes);

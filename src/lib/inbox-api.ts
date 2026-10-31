@@ -18,6 +18,8 @@ export interface InboxAssignment {
   status: InboxStatus;
   assignedUserId: string | null;
   assignedUserEmail: string | null;
+  sectorId: string | null;
+  sectorName: string | null;
   requestedAt: string;
   updatedAt: string;
 }
@@ -59,6 +61,34 @@ export interface InboxConversationDetail {
   notes: InboxNote[];
 }
 
+export interface InboxSector {
+  id: string;
+  name: string;
+  memberIds: string[];
+}
+
+export interface InboxAgent {
+  userId: string;
+  email: string;
+  role: "Administrador" | "Atendente";
+}
+
+/** Destino da transferencia: pessoa, setor ou os dois; `null` limpa. */
+export interface TransferInput {
+  userId?: string | null;
+  sectorId?: string | null;
+  reason?: string;
+}
+
+/** Aviso de transferencia que chega pelo tempo real. */
+export interface TransferEvent {
+  kind: "transfer";
+  conversationId: string;
+  byUserId: string;
+  toUserId: string | null;
+  toSectorId: string | null;
+}
+
 export interface CannedResponse {
   id: string;
   title: string;
@@ -70,8 +100,14 @@ const postJson = <T>(path: string, body: unknown) =>
   apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
 
 export const inboxApi = {
-  list: (organizationId: string, view: InboxView) =>
-    apiFetch<InboxConversation[]>(`${base(organizationId)}/inbox?view=${view}`),
+  list: (organizationId: string, view: InboxView, sectorId?: string) =>
+    apiFetch<InboxConversation[]>(
+      `${base(organizationId)}/inbox?view=${view}${sectorId ? `&sectorId=${sectorId}` : ""}`,
+    ),
+  transfer: (organizationId: string, conversationId: string, input: TransferInput) =>
+    postJson(`${base(organizationId)}/inbox/${conversationId}/transfer`, input),
+  agents: (organizationId: string) =>
+    apiFetch<InboxAgent[]>(`${base(organizationId)}/inbox-agents`),
   get: (organizationId: string, conversationId: string) =>
     apiFetch<InboxConversationDetail>(`${base(organizationId)}/inbox/${conversationId}`),
   assign: (organizationId: string, conversationId: string, userId: string | null) =>
@@ -82,6 +118,20 @@ export const inboxApi = {
     postJson(`${base(organizationId)}/inbox/${conversationId}/messages`, { content }),
   addNote: (organizationId: string, conversationId: string, content: string) =>
     postJson(`${base(organizationId)}/inbox/${conversationId}/notes`, { content }),
+};
+
+export const sectorsApi = {
+  list: (organizationId: string) =>
+    apiFetch<InboxSector[]>(`${base(organizationId)}/inbox-sectors`),
+  create: (organizationId: string, name: string) =>
+    postJson<InboxSector>(`${base(organizationId)}/inbox-sectors`, { name }),
+  update: (organizationId: string, id: string, input: { name?: string; memberIds?: string[] }) =>
+    apiFetch<InboxSector>(`${base(organizationId)}/inbox-sectors/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  remove: (organizationId: string, id: string) =>
+    apiFetch<void>(`${base(organizationId)}/inbox-sectors/${id}`, { method: "DELETE" }),
 };
 
 export const cannedResponsesApi = {
@@ -101,6 +151,7 @@ export const cannedResponsesApi = {
 export function useInboxEvents(
   organizationId: string | null,
   onChange: (conversationId: string) => void,
+  onTransfer?: (event: TransferEvent) => void,
 ) {
   useEffect(() => {
     if (!organizationId) return;
@@ -109,12 +160,13 @@ export function useInboxEvents(
     });
     source.onmessage = (e) => {
       try {
-        const event = JSON.parse(e.data) as { conversationId?: string };
+        const event = JSON.parse(e.data) as { kind?: string; conversationId?: string };
         if (event.conversationId) onChange(event.conversationId);
+        if (event.kind === "transfer") onTransfer?.(event as TransferEvent);
       } catch {
         // evento malformado: a proxima mudanca recarrega de qualquer jeito.
       }
     };
     return () => source.close();
-  }, [organizationId, onChange]);
+  }, [organizationId, onChange, onTransfer]);
 }

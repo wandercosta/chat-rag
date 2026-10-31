@@ -13,7 +13,15 @@ import type { InboxStatus } from "../db/types.js";
 export type InboxEvent =
   | { kind: "conversation_changed"; conversationId: string }
   | { kind: "agent_message"; conversationId: string; content: string; createdAt: string }
-  | { kind: "status"; conversationId: string; status: InboxStatus };
+  | { kind: "status"; conversationId: string; status: InboxStatus }
+  /** Conversa transferida: o painel de quem recebe (pessoa ou setor) avisa. */
+  | {
+      kind: "transfer";
+      conversationId: string;
+      byUserId: string;
+      toUserId: string | null;
+      toSectorId: string | null;
+    };
 
 type Listener = (event: InboxEvent) => void;
 

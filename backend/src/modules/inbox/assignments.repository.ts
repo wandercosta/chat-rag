@@ -15,11 +15,30 @@ export const assignmentsRepository = {
       .executeTakeFirst();
   },
 
-  list(organizationId: string, view: AssignmentView, userId: string, limit = 100) {
+  /**
+   * `visibleSectors`: conversas sem setor e as destes setores (fila do
+   * Atendente). `sectorId`: so as deste setor (filtro do painel).
+   */
+  list(
+    organizationId: string,
+    view: AssignmentView,
+    userId: string,
+    options: { visibleSectors?: string[]; sectorId?: string; limit?: number } = {},
+  ) {
     let query = db
       .selectFrom("conversation_assignments")
       .selectAll()
       .where("organization_id", "=", organizationId);
+
+    const { visibleSectors, sectorId } = options;
+    if (visibleSectors) {
+      query = query.where((eb) =>
+        visibleSectors.length > 0
+          ? eb.or([eb("sector_id", "is", null), eb("sector_id", "in", visibleSectors)])
+          : eb("sector_id", "is", null),
+      );
+    }
+    if (sectorId) query = query.where("sector_id", "=", sectorId);
 
     if (view === "fila") {
       query = query.where("status", "!=", "resolvida").where("assigned_user_id", "is", null);
@@ -31,7 +50,10 @@ export const assignmentsRepository = {
       query = query.where("status", "=", "resolvida");
     }
 
-    return query.orderBy("updated_at", "desc").limit(limit).execute();
+    return query
+      .orderBy("updated_at", "desc")
+      .limit(options.limit ?? 100)
+      .execute();
   },
 
   /** Pedidos de atendimento e resolucoes do periodo, para as metricas. */
@@ -62,7 +84,13 @@ export const assignmentsRepository = {
   upsert(
     organizationId: string,
     conversationId: string,
-    values: { status: InboxStatus; assignedUserId: string | null; newRequest?: boolean },
+    values: {
+      status: InboxStatus;
+      assignedUserId: string | null;
+      newRequest?: boolean;
+      /** Sem o campo, o setor fica como esta. */
+      sectorId?: string | null;
+    },
   ) {
     const now = new Date().toISOString();
     return db
@@ -72,6 +100,7 @@ export const assignmentsRepository = {
         organization_id: organizationId,
         status: values.status,
         assigned_user_id: values.assignedUserId,
+        sector_id: values.sectorId ?? null,
         updated_at: now,
       })
       .onConflict((oc) =>
@@ -81,6 +110,7 @@ export const assignmentsRepository = {
             status: values.status,
             assigned_user_id: values.assignedUserId,
             updated_at: now,
+            ...(values.sectorId !== undefined && { sector_id: values.sectorId }),
             ...(values.newRequest && { requested_at: now }),
           })
           .where("conversation_assignments.organization_id", "=", organizationId),

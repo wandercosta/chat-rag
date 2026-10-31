@@ -4,12 +4,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { ConversationView } from "@/components/inbox/conversation-view";
 import { CannedResponsesDialog } from "@/components/inbox/canned-responses-dialog";
+import { SectorsDialog } from "@/components/inbox/sectors-dialog";
+import { useTransferNotice } from "@/components/inbox/transfer-notice";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   inboxApi,
   inboxStatusLabel,
+  sectorsApi,
   useInboxEvents,
   type InboxConversation,
   type InboxView,
@@ -48,12 +58,19 @@ function InboxPage() {
   const queryClient = useQueryClient();
   const [view, setView] = useState<InboxView>("fila");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [sectorId, setSectorId] = useState("todos");
 
   const listQuery = useQuery({
-    queryKey: ["inbox", tenantId, view],
-    queryFn: () => inboxApi.list(tenantId!, view),
+    queryKey: ["inbox", tenantId, view, sectorId],
+    queryFn: () => inboxApi.list(tenantId!, view, sectorId === "todos" ? undefined : sectorId),
     enabled: !!tenantId,
   });
+  const sectorsQuery = useQuery({
+    queryKey: ["inbox-sectors", tenantId],
+    queryFn: () => sectorsApi.list(tenantId!),
+    enabled: !!tenantId,
+  });
+  const onTransfer = useTransferNotice(sectorsQuery.data ?? [], setOpenId);
 
   // Qualquer mudanca numa conversa recarrega a fila e, se for a aberta, o detalhe.
   const onChange = useCallback(
@@ -65,7 +82,7 @@ function InboxPage() {
     },
     [queryClient, tenantId],
   );
-  useInboxEvents(tenantId, onChange);
+  useInboxEvents(tenantId, onChange, onTransfer);
 
   const rows = listQuery.data ?? [];
 
@@ -74,18 +91,42 @@ function InboxPage() {
       <PageHeader
         title="Caixa de entrada"
         description="Conversas do widget que pediram atendente. Enquanto uma pessoa atende, o assistente não responde."
-        actions={profile === "Administrador" ? <CannedResponsesDialog tenantId={tenantId} /> : null}
+        actions={
+          profile === "Administrador" ? (
+            <div className="flex flex-wrap gap-2">
+              <SectorsDialog tenantId={tenantId} />
+              <CannedResponsesDialog tenantId={tenantId} />
+            </div>
+          ) : null
+        }
       />
 
-      <Tabs value={view} onValueChange={(v) => setView(v as InboxView)}>
-        <TabsList className="flex-wrap">
-          {views.map((v) => (
-            <TabsTrigger key={v.value} value={v.value}>
-              {v.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center gap-2">
+        <Tabs value={view} onValueChange={(v) => setView(v as InboxView)}>
+          <TabsList className="flex-wrap">
+            {views.map((v) => (
+              <TabsTrigger key={v.value} value={v.value}>
+                {v.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {(sectorsQuery.data?.length ?? 0) > 0 && view !== "assistente" && (
+          <Select value={sectorId} onValueChange={setSectorId}>
+            <SelectTrigger className="h-9 w-44" aria-label="Setor">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os setores</SelectItem>
+              {sectorsQuery.data?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <Card className="max-h-[70vh] overflow-y-auto p-0">
@@ -157,6 +198,7 @@ function ConversationRow({
             {c.assignment && (
               <Badge variant="outline">{inboxStatusLabel[c.assignment.status]}</Badge>
             )}
+            {c.assignment?.sectorName && <Badge variant="outline">{c.assignment.sectorName}</Badge>}
             {c.assignment?.assignedUserEmail && (
               <Badge variant="secondary" className="max-w-full truncate">
                 {c.assignment.assignedUserEmail}

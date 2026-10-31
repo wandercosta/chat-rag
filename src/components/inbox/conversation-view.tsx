@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CitationList } from "@/components/citation-list";
-import { MessageAttachments } from "@/components/conversations/message-attachments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,8 +18,10 @@ import {
   type InboxStatus,
 } from "@/lib/inbox-api";
 import { useSession } from "@/lib/session";
-import { channelLabel, deliveryLabel } from "@/lib/channels-api";
+import { channelLabel } from "@/lib/channels-api";
 import { Composer } from "./composer";
+import { MessageBubble } from "./message-bubble";
+import { TransferDialog } from "./transfer-dialog";
 import { TemplateComposer } from "./template-composer";
 import { ConversationContact } from "./save-contact-dialog";
 
@@ -118,6 +118,7 @@ export function ConversationView({
         <span className="text-sm text-muted-foreground">
           {assignment?.assignedUserEmail ?? "Sem responsável"}
         </span>
+        {assignment?.sectorName && <Badge variant="secondary">{assignment.sectorName}</Badge>}
 
         {replyable && (
           <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -157,6 +158,19 @@ export function ConversationView({
                   ))}
                 </SelectContent>
               </Select>
+            )}
+
+            {(isAdmin || isMine || !assignment?.assignedUserId) && (
+              <TransferDialog
+                tenantId={tenantId!}
+                conversationId={detail.id}
+                currentSectorId={assignment?.sectorId ?? null}
+                onDone={() =>
+                  void queryClient.invalidateQueries({
+                    queryKey: ["inbox-conversation", tenantId, conversationId],
+                  })
+                }
+              />
             )}
 
             <Select
@@ -246,54 +260,5 @@ export function ConversationView({
         />
       )}
     </Card>
-  );
-}
-
-function MessageBubble({
-  message: m,
-  organizationId,
-  conversationId,
-}: {
-  message: InboxConversationDetail["messages"][number];
-  organizationId: string;
-  conversationId: string;
-}) {
-  const ours = m.role !== "visitante";
-  const label =
-    m.role === "visitante"
-      ? "Visitante"
-      : m.role === "assistente"
-        ? "Assistente"
-        : (m.author_email ?? "Atendente");
-  return (
-    <div className={ours ? "flex flex-col items-end" : "flex flex-col items-start"}>
-      <span className="mb-0.5 text-xs text-muted-foreground">{label}</span>
-      <div
-        className={
-          m.role === "atendente"
-            ? "w-fit max-w-[80%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-            : m.role === "assistente"
-              ? "w-fit max-w-[80%] whitespace-pre-wrap rounded-lg border px-3 py-2 text-sm"
-              : "w-fit max-w-[80%] whitespace-pre-wrap rounded-lg bg-muted px-3 py-2 text-sm"
-        }
-      >
-        {m.content}
-        {m.citations?.length ? <CitationList citations={m.citations} /> : null}
-        <MessageAttachments
-          organizationId={organizationId}
-          conversationId={conversationId}
-          attachments={m.attachments}
-        />
-      </div>
-      {m.delivery_status && (
-        <span
-          className={`mt-0.5 text-[11px] ${m.delivery_status === "falhou" ? "text-destructive" : "text-muted-foreground"}`}
-          title={m.delivery_error ?? undefined}
-        >
-          {deliveryLabel[m.delivery_status]}
-          {m.delivery_error ? `: ${m.delivery_error}` : ""}
-        </span>
-      )}
-    </div>
   );
 }

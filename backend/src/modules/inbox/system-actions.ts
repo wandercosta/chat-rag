@@ -38,7 +38,7 @@ export const inboxSystemActions = {
 
   /** Conversas com humano e ainda abertas (varredura do "sem resposta"). */
   activeAssignments(organizationId: string) {
-    return assignmentsRepository.list(organizationId, "abertas", "", 500);
+    return assignmentsRepository.list(organizationId, "abertas", "", { limit: 500 });
   },
 
   /** Notas internas da organizacao (exportacao LGPD). */

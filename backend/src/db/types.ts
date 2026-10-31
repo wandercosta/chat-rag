@@ -253,8 +253,22 @@ export interface ConversationAssignmentsTable {
   organization_id: string;
   status: InboxStatus;
   assigned_user_id: string | null;
+  sector_id: string | null;
   requested_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface InboxSectorsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface InboxSectorMembersTable {
+  sector_id: string;
+  user_id: string;
+  organization_id: string;
 }
 
 export interface ConversationNotesTable {
@@ -568,6 +582,8 @@ export interface Database {
   handoff_configs: HandoffConfigsTable;
   usage_events: UsageEventsTable;
   conversation_assignments: ConversationAssignmentsTable;
+  inbox_sectors: InboxSectorsTable;
+  inbox_sector_members: InboxSectorMembersTable;
   conversation_notes: ConversationNotesTable;
   canned_responses: CannedResponsesTable;
   contacts: ContactsTable;
