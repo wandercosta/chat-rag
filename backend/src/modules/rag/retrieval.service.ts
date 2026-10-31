@@ -1,3 +1,4 @@
+import { assistantsService } from "../assistants/index.js";
 import { knowledgeAccessService } from "../knowledge/index.js";
 import { chunksRepository, type RetrievedChunk } from "./chunks.repository.js";
 import { padEmbedding } from "./provider.types.js";
@@ -86,12 +87,15 @@ export const retrievalService = {
 
     const provider = await resolveEmbeddingProvider(organizationId);
     const [queryEmbedding] = await provider.embed([query], "query");
+    // Assistente que so responde com fonte revisada: o resto nem entra na busca.
+    const assistant = await assistantsService.get(organizationId, assistantId);
 
     const candidates = await chunksRepository.searchSimilar(
       organizationId,
       topicIds,
       padEmbedding(queryEmbedding),
       CANDIDATES,
+      assistant?.reviewed_sources_only ?? false,
     );
     const relevant = rerank(
       candidates.filter((c) => c.distance <= provider.relevanceThreshold),
