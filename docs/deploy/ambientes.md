@@ -8,6 +8,10 @@ Docker Compose sobe PostgreSQL com pgvector, Redis e MinIO (ver detalhes e padro
 
 Homologacao e producao possuem banco, bucket, filas, chaves e widget keys distintos. Chaves de teste nunca funcionam em producao.
 
+## Variaveis opcionais da plataforma
+
+- `SMTP_URL`, `SMTP_FROM` e `PANEL_URL`: e-mail de aviso da caixa de entrada. Sem `SMTP_URL`, nenhum e-mail sai e o painel mostra a opcao como indisponivel. A credencial do SMTP vai so no `.env`.
+
 ## Publicacao futura
 
 O deploy devera executar migracoes controladas, publicar o bundle do widget em CDN, iniciar workers e validar saude da API/worker. Backup, rollback e rotacao de segredo devem ser documentados antes da primeira producao.

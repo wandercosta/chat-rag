@@ -246,6 +246,13 @@ export const conversationsService = {
     }));
   },
 
+  /** Ultima resposta de atendente por conversa (SLA da caixa de entrada). */
+  async lastAgentReplyAt(organizationId: string, conversationIds: string[]) {
+    if (conversationIds.length === 0) return new Map<string, Date>();
+    const rows = await agentStatsRepository.lastAgentReplies(organizationId, conversationIds);
+    return new Map(rows.map((r) => [r.conversation_id, new Date(r.at as unknown as string)]));
+  },
+
   exportAll(organizationId: string) {
     return conversationsRepository.exportAll(organizationId);
   },

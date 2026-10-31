@@ -6,6 +6,7 @@ import { assignmentsRepository, type AssignmentView } from "./assignments.reposi
 import { notesRepository } from "./notes.repository.js";
 import { replyWindowEndsAt } from "./reply.js";
 import { sectorsRepository } from "./sectors.repository.js";
+import { settingsRepository } from "./settings.repository.js";
 
 export type InboxView = AssignmentView | "assistente";
 
@@ -55,6 +56,33 @@ async function withContactLabels<T extends { contact_id: string | null }>(
   }));
 }
 
+/**
+ * Prazo de primeira resposta (SLA): so para conversa com humano ainda sem
+ * resposta de atendente depois do pedido. `firstResponseLate` = passou do
+ * prazo. Sem meta configurada, nada e calculado.
+ */
+async function firstResponseDeadlines(organizationId: string, rows: AssignmentRow[]) {
+  const result = new Map<string, { firstResponseDueAt: Date; firstResponseLate: boolean }>();
+  const { firstResponseMinutes } = await settingsRepository.get(organizationId);
+  const pending = rows.filter(isActive);
+  if (!firstResponseMinutes || pending.length === 0) return result;
+
+  const replied = await conversationsService.lastAgentReplyAt(
+    organizationId,
+    pending.map((r) => r.conversation_id),
+  );
+  for (const row of pending) {
+    const last = replied.get(row.conversation_id);
+    if (last && last >= row.requested_at) continue;
+    const dueAt = new Date(row.requested_at.getTime() + firstResponseMinutes * 60_000);
+    result.set(row.conversation_id, {
+      firstResponseDueAt: dueAt,
+      firstResponseLate: dueAt.getTime() < Date.now(),
+    });
+  }
+  return result;
+}
+
 /** Leitura da caixa de entrada: filas e detalhe da conversa. */
 export const inboxViews = {
   async list(
@@ -91,16 +119,17 @@ export const inboxViews = {
       sectorId: filter.sectorId,
     });
     const byId = new Map(rows.map((r) => [r.conversation_id, r]));
-    const [summaries, emails, sectors] = await Promise.all([
+    const [summaries, emails, sectors, sla] = await Promise.all([
       conversationsService.listSummaries(organizationId, { ids: [...byId.keys()] }),
       memberEmails(organizationId),
       sectorsRepository.namesFor(organizationId, [
         ...new Set(rows.flatMap((r) => (r.sector_id ? [r.sector_id] : []))),
       ]),
+      firstResponseDeadlines(organizationId, rows),
     ]);
     return (await withContactLabels(organizationId, summaries)).map((c) => ({
       ...c,
-      assignment: toAssignment(byId.get(c.id)!, emails, sectors),
+      assignment: { ...toAssignment(byId.get(c.id)!, emails, sectors), ...sla.get(c.id) },
     }));
   },
 

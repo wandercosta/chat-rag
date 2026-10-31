@@ -26,6 +26,7 @@ import {
   agentMetricsRoutes,
   cannedResponsesRoutes,
   inboxRoutes,
+  inboxSettingsRoutes,
   sectorsRoutes,
   setReplyWindowPolicy,
 } from "./modules/inbox/index.js";
@@ -90,6 +91,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   setReplyWindowPolicy(replyWindowHours);
   await app.register(inboxRoutes);
   await app.register(sectorsRoutes);
+  await app.register(inboxSettingsRoutes);
   await app.register(cannedResponsesRoutes);
   await app.register(agentMetricsRoutes);
   await app.register(contactsRoutes);

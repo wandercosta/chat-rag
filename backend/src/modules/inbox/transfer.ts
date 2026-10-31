@@ -2,6 +2,7 @@ import { auditService } from "../audit/index.js";
 import { membersService } from "../identity/index.js";
 import { realtime } from "../../realtime/events.js";
 import type { TenantRole } from "../../db/types.js";
+import { emailAssignee } from "./assignee-email.js";
 import { assignmentsRepository } from "./assignments.repository.js";
 import { isActive } from "./inbox-views.js";
 import { notesRepository } from "./notes.repository.js";
@@ -90,5 +91,6 @@ export async function transferConversation(
     toUserId: assignedUserId,
     toSectorId: row.sector_id,
   });
+  void emailAssignee(organizationId, conversationId, assignedUserId, actor.userId);
   return row;
 }

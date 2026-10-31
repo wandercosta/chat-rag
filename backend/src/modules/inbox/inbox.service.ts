@@ -5,6 +5,7 @@ import { webhooksService } from "../webhooks/index.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
 import type { InboxStatus, TenantRole } from "../../db/types.js";
 import { assignmentsRepository } from "./assignments.repository.js";
+import { emailAssignee } from "./assignee-email.js";
 import { inboxViews, isActive } from "./inbox-views.js";
 import { notesRepository } from "./notes.repository.js";
 import { inboxSystemActions } from "./system-actions.js";
@@ -65,6 +66,11 @@ const inboxCore = {
       conversationId,
       status: "aberta",
     });
+    await realtime.publish(organizationId, {
+      kind: "queued",
+      conversationId,
+      sectorId: row.sector_id,
+    });
     return row;
   },
 
@@ -77,7 +83,11 @@ const inboxCore = {
         assignedUserId: current.assigned_user_id,
       });
     }
-    await notify(organizationId, conversationId);
+    await notify(organizationId, conversationId, {
+      kind: "visitor_message",
+      conversationId,
+      assignedUserId: current?.assigned_user_id ?? null,
+    });
   },
 
   /** Avisa o painel de mensagem nova numa conversa que segue com o assistente. */
@@ -123,6 +133,7 @@ const inboxCore = {
       target: conversationId,
     });
     await notify(organizationId, conversationId, { kind: "status", conversationId, status });
+    void emailAssignee(organizationId, conversationId, assigneeUserId, actor.userId);
     return row;
   },
 
