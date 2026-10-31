@@ -60,6 +60,9 @@ export interface MetricsReport {
     waiting: number;
     resolved: number;
     firstResponseMedianSeconds: number | null;
+    /** Meta de primeira resposta (minutos) e quantos pedidos ficaram dentro. */
+    firstResponseSlaMinutes: number | null;
+    sla: { met: number; total: number } | null;
   };
   agents: AgentMetrics[];
 }

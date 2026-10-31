@@ -258,6 +258,13 @@ export interface ConversationAssignmentsTable {
   updated_at: ColumnType<Date, string | undefined, string>;
 }
 
+export interface InboxSettingsTable {
+  organization_id: string;
+  first_response_minutes: number | null;
+  email_on_assignment: ColumnType<boolean, boolean | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
 export interface InboxSectorsTable {
   id: Generated<string>;
   organization_id: string;
@@ -583,6 +590,7 @@ export interface Database {
   usage_events: UsageEventsTable;
   conversation_assignments: ConversationAssignmentsTable;
   inbox_sectors: InboxSectorsTable;
+  inbox_settings: InboxSettingsTable;
   inbox_sector_members: InboxSectorMembersTable;
   conversation_notes: ConversationNotesTable;
   canned_responses: CannedResponsesTable;

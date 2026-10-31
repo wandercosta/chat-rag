@@ -1,6 +1,7 @@
 import { conversationsService } from "../conversations/index.js";
 import { membersService } from "../identity/index.js";
 import { assignmentsRepository } from "./assignments.repository.js";
+import { settingsRepository } from "./settings.repository.js";
 
 export interface AgentMetrics {
   userId: string;
@@ -32,11 +33,13 @@ const average = (values: number[]) =>
  */
 export async function agentMetrics(organizationId: string, days: number) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const [members, assignments, replies] = await Promise.all([
+  const [members, assignments, replies, settings] = await Promise.all([
     membersService.list(organizationId),
     assignmentsRepository.touchedSince(organizationId, since),
     conversationsService.agentRepliesSince(organizationId, since),
+    settingsRepository.get(organizationId),
   ]);
+  const slaSeconds = settings.firstResponseMinutes ? settings.firstResponseMinutes * 60 : null;
 
   const byUser = new Map<
     string,
@@ -61,6 +64,7 @@ export async function agentMetrics(organizationId: string, days: number) {
     list.push(r);
     repliesByConversation.set(r.conversationId, list);
   }
+  const sla = { met: 0, total: 0 };
   for (const a of assignments) {
     if (a.requested_at < since) continue;
     const first = (repliesByConversation.get(a.conversation_id) ?? [])
@@ -68,6 +72,14 @@ export async function agentMetrics(organizationId: string, days: number) {
       .sort((x, y) => x.firstAt.getTime() - y.firstAt.getTime())[0];
     if (first) {
       stats(first.userId).frt.push((first.firstAt.getTime() - a.requested_at.getTime()) / 1000);
+    }
+    // SLA: conta quem ja foi respondido ou ja estourou o prazo sem resposta.
+    if (slaSeconds) {
+      const waited = ((first?.firstAt ?? new Date()).getTime() - a.requested_at.getTime()) / 1000;
+      if (first || waited > slaSeconds) {
+        sla.total++;
+        if (first && waited <= slaSeconds) sla.met++;
+      }
     }
   }
 
@@ -96,6 +108,9 @@ export async function agentMetrics(organizationId: string, days: number) {
       waiting: assignments.filter((a) => a.status !== "resolvida" && !a.assigned_user_id).length,
       resolved: agents.reduce((sum, a) => sum + a.resolved, 0),
       firstResponseMedianSeconds: median(allFrt),
+      firstResponseSlaMinutes: settings.firstResponseMinutes,
+      /** Pedidos ja respondidos (ou estourados) e quantos dentro do prazo. */
+      sla: slaSeconds ? sla : null,
     },
     agents,
   };

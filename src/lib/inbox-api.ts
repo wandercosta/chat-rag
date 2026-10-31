@@ -20,6 +20,9 @@ export interface InboxAssignment {
   assignedUserEmail: string | null;
   sectorId: string | null;
   sectorName: string | null;
+  /** Com prazo de primeira resposta configurado e ainda sem resposta. */
+  firstResponseDueAt?: string;
+  firstResponseLate?: boolean;
   requestedAt: string;
   updatedAt: string;
 }
@@ -80,13 +83,24 @@ export interface TransferInput {
   reason?: string;
 }
 
-/** Aviso de transferencia que chega pelo tempo real. */
-export interface TransferEvent {
-  kind: "transfer";
-  conversationId: string;
-  byUserId: string;
-  toUserId: string | null;
-  toSectorId: string | null;
+/** Avisos que chegam pelo tempo real (so ids; o painel busca o resto). */
+export type InboxPanelEvent =
+  | { kind: "conversation_changed"; conversationId: string }
+  | { kind: "queued"; conversationId: string; sectorId: string | null }
+  | { kind: "visitor_message"; conversationId: string; assignedUserId: string | null }
+  | {
+      kind: "transfer";
+      conversationId: string;
+      byUserId: string;
+      toUserId: string | null;
+      toSectorId: string | null;
+    };
+
+export interface InboxSettings {
+  firstResponseMinutes: number | null;
+  emailOnAssignment: boolean;
+  /** A plataforma tem SMTP; sem ele o e-mail nao sai. */
+  emailAvailable: boolean;
 }
 
 export interface CannedResponse {
@@ -120,6 +134,16 @@ export const inboxApi = {
     postJson(`${base(organizationId)}/inbox/${conversationId}/notes`, { content }),
 };
 
+export const inboxSettingsApi = {
+  get: (organizationId: string) =>
+    apiFetch<InboxSettings>(`${base(organizationId)}/inbox-settings`),
+  save: (organizationId: string, input: Omit<InboxSettings, "emailAvailable">) =>
+    apiFetch<InboxSettings>(`${base(organizationId)}/inbox-settings`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
+};
+
 export const sectorsApi = {
   list: (organizationId: string) =>
     apiFetch<InboxSector[]>(`${base(organizationId)}/inbox-sectors`),
@@ -151,7 +175,7 @@ export const cannedResponsesApi = {
 export function useInboxEvents(
   organizationId: string | null,
   onChange: (conversationId: string) => void,
-  onTransfer?: (event: TransferEvent) => void,
+  onEvent?: (event: InboxPanelEvent) => void,
 ) {
   useEffect(() => {
     if (!organizationId) return;
@@ -160,13 +184,13 @@ export function useInboxEvents(
     });
     source.onmessage = (e) => {
       try {
-        const event = JSON.parse(e.data) as { kind?: string; conversationId?: string };
+        const event = JSON.parse(e.data) as InboxPanelEvent;
         if (event.conversationId) onChange(event.conversationId);
-        if (event.kind === "transfer") onTransfer?.(event as TransferEvent);
+        onEvent?.(event);
       } catch {
         // evento malformado: a proxima mudanca recarrega de qualquer jeito.
       }
     };
     return () => source.close();
-  }, [organizationId, onChange, onTransfer]);
+  }, [organizationId, onChange, onEvent]);
 }

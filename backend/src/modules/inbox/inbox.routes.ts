@@ -39,6 +39,9 @@ const assignSchema = z.object({ userId: z.string().uuid().nullable() });
 const statusSchema = z.object({ status: z.enum(["aberta", "pendente", "resolvida"]) });
 const textSchema = z.object({ content: z.string().trim().min(1).max(4000) });
 
+/** O painel recebe so ids; resposta do atendente e status vao para o widget. */
+const PANEL_EVENTS = new Set(["conversation_changed", "transfer", "queued", "visitor_message"]);
+
 type ConversationParams = { Params: { organizationId: string; conversationId: string } };
 
 /**
@@ -100,7 +103,7 @@ export async function inboxRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const stream = startSse(request, reply);
       const unsubscribe = await realtime.subscribe(request.params.organizationId, (event) => {
-        if (event.kind === "conversation_changed" || event.kind === "transfer") stream.send(event);
+        if (PANEL_EVENTS.has(event.kind)) stream.send(event);
       });
       stream.onClose(unsubscribe);
     },

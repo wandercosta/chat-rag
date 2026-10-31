@@ -85,6 +85,18 @@ function MetricsPage() {
               value={formatDuration(report.team.firstResponseMedianSeconds)}
             />
           </div>
+          {report.team.sla && (
+            <p className="text-sm text-muted-foreground">
+              Dentro do prazo de {report.team.firstResponseSlaMinutes} min:{" "}
+              <span className="font-semibold text-foreground">
+                {report.team.sla.total
+                  ? `${Math.round((report.team.sla.met / report.team.sla.total) * 100)}%`
+                  : "—"}
+              </span>{" "}
+              ({report.team.sla.met} de {report.team.sla.total} pedidos já respondidos ou com prazo
+              vencido).
+            </p>
+          )}
           <Card>
             <CardContent className="p-0">
               <Table>

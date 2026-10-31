@@ -14,6 +14,10 @@ export type InboxEvent =
   | { kind: "conversation_changed"; conversationId: string }
   | { kind: "agent_message"; conversationId: string; content: string; createdAt: string }
   | { kind: "status"; conversationId: string; status: InboxStatus }
+  /** Conversa entrou na fila (pedido de atendente): som/aviso de quem atende. */
+  | { kind: "queued"; conversationId: string; sectorId: string | null }
+  /** Cliente escreveu numa conversa com humano: aviso de quem esta com ela. */
+  | { kind: "visitor_message"; conversationId: string; assignedUserId: string | null }
   /** Conversa transferida: o painel de quem recebe (pessoa ou setor) avisa. */
   | {
       kind: "transfer";

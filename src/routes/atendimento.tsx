@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { ConversationView } from "@/components/inbox/conversation-view";
 import { CannedResponsesDialog } from "@/components/inbox/canned-responses-dialog";
 import { SectorsDialog } from "@/components/inbox/sectors-dialog";
-import { useTransferNotice } from "@/components/inbox/transfer-notice";
+import { AlertPrefsButton } from "@/components/inbox/alert-prefs-button";
+import { useAlertPrefs, useInboxAlerts } from "@/components/inbox/inbox-alerts";
+import { InboxSettingsDialog } from "@/components/inbox/inbox-settings-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -42,6 +44,9 @@ export const Route = createFileRoute("/atendimento")({
       },
     ],
   }),
+  // Link do e-mail de atribuicao: /atendimento?conversa=<id>.
+  validateSearch: (search: Record<string, unknown>): { conversa?: string } =>
+    typeof search.conversa === "string" ? { conversa: search.conversa } : {},
   component: InboxPage,
 });
 
@@ -57,7 +62,9 @@ function InboxPage() {
   const { tenantId, profile } = useSession();
   const queryClient = useQueryClient();
   const [view, setView] = useState<InboxView>("fila");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const { conversa } = Route.useSearch();
+  const [openId, setOpenId] = useState<string | null>(conversa ?? null);
+  const [alertPrefs, setAlertPrefs] = useAlertPrefs();
   const [sectorId, setSectorId] = useState("todos");
 
   const listQuery = useQuery({
@@ -70,7 +77,7 @@ function InboxPage() {
     queryFn: () => sectorsApi.list(tenantId!),
     enabled: !!tenantId,
   });
-  const onTransfer = useTransferNotice(sectorsQuery.data ?? [], setOpenId);
+  const onEvent = useInboxAlerts(sectorsQuery.data ?? [], alertPrefs, setOpenId);
 
   // Qualquer mudanca numa conversa recarrega a fila e, se for a aberta, o detalhe.
   const onChange = useCallback(
@@ -82,7 +89,7 @@ function InboxPage() {
     },
     [queryClient, tenantId],
   );
-  useInboxEvents(tenantId, onChange, onTransfer);
+  useInboxEvents(tenantId, onChange, onEvent);
 
   const rows = listQuery.data ?? [];
 
@@ -92,12 +99,18 @@ function InboxPage() {
         title="Caixa de entrada"
         description="Conversas do widget que pediram atendente. Enquanto uma pessoa atende, o assistente não responde."
         actions={
-          profile === "Administrador" ? (
-            <div className="flex flex-wrap gap-2">
-              <SectorsDialog tenantId={tenantId} />
-              <CannedResponsesDialog tenantId={tenantId} />
-            </div>
-          ) : null
+          <div className="flex flex-wrap gap-2">
+            {(profile === "Administrador" || profile === "Atendente") && (
+              <AlertPrefsButton prefs={alertPrefs} onChange={setAlertPrefs} />
+            )}
+            {profile === "Administrador" && (
+              <>
+                <InboxSettingsDialog tenantId={tenantId} />
+                <SectorsDialog tenantId={tenantId} />
+                <CannedResponsesDialog tenantId={tenantId} />
+              </>
+            )}
+          </div>
         }
       />
 
@@ -197,6 +210,16 @@ function ConversationRow({
             {c.channel !== "widget" && <Badge variant="secondary">{channelLabel[c.channel]}</Badge>}
             {c.assignment && (
               <Badge variant="outline">{inboxStatusLabel[c.assignment.status]}</Badge>
+            )}
+            {c.assignment?.firstResponseDueAt && (
+              <Badge variant={c.assignment.firstResponseLate ? "destructive" : "outline"}>
+                {c.assignment.firstResponseLate
+                  ? "Prazo estourado"
+                  : `Responder até ${new Date(c.assignment.firstResponseDueAt).toLocaleTimeString(
+                      "pt-BR",
+                      { hour: "2-digit", minute: "2-digit" },
+                    )}`}
+              </Badge>
             )}
             {c.assignment?.sectorName && <Badge variant="outline">{c.assignment.sectorName}</Badge>}
             {c.assignment?.assignedUserEmail && (

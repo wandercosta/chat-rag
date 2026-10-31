@@ -60,6 +60,11 @@ const schema = z.object({
   PUBLIC_API_URL: optional(z.string().url()),
   META_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
   TELEGRAM_API_URL: z.string().url().default("https://api.telegram.org"),
+  // E-mail de aviso (caixa de entrada). Sem SMTP_URL, nenhum e-mail sai.
+  // Ex.: smtps://usuario:senha@smtp.provedor.com:465. PANEL_URL monta o link.
+  SMTP_URL: optional(z.string().url()),
+  SMTP_FROM: z.string().default("ChatRAG <nao-responda@localhost>"),
+  PANEL_URL: optional(z.string().url()),
   // Midia recebida acima deste tamanho nao e baixada (fica "falhou" no painel).
   CHANNEL_MEDIA_MAX_BYTES: z.coerce
     .number()
