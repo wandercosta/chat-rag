@@ -24,6 +24,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `campaigns`: campanhas (ADR-006, etapa 6) — publico por segmento com opt-in, modelo (WhatsApp) ou texto (Telegram), agendamento, ritmo e metricas.
 - `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
+- `team-chat`: chat interno da equipe do tenant — canal Geral da organizacao e conversas diretas entre duas pessoas, com nao lidas e tempo real (ver "Chat interno da equipe" abaixo).
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
 Todos os modulos do ADR-006 ja existem no codigo, com as mesmas regras de fronteira:
@@ -103,6 +104,15 @@ Detalhes de comportamento e configuracao na Meta em `integrations/whatsapp.md`. 
 - **Exportacao CSV:** `;` e BOM (Excel em portugues), com celulas que comecam com `=`, `+`, `-` ou `@` prefixadas por apostrofo contra injecao de formula. So administrador; auditada como evento de seguranca.
 - **Exclusao (LGPD):** so administrador; apaga o contato, identidades, etiquetas e as conversas dele. A auditoria guarda o id, nunca nome ou e-mail.
 - **Papeis:** Administrador e Atendente criam e editam contatos; Analista so le. Importar, exportar, excluir e gerir etiquetas, campos e segmentos e so do Administrador.
+
+## Chat interno da equipe
+
+- **O que e:** conversa entre as pessoas da organizacao no painel (`/equipe`). Um canal **Geral** por organizacao (criado na primeira leitura) e **conversas diretas** entre duas pessoas (`team_threads`, par ordenado `user_a < user_b`, unico por organizacao). Nada daqui vai para cliente, canal ou assistente.
+- **Quem usa:** todo membro da organizacao, em qualquer papel. O Master nao entra, nem com sessao de suporte: o guard do modulo exige membership, nao so `requireOrgRole` (conversa entre colegas nao e dado de suporte). Conversa direta so e lida pelas duas pessoas; terceiros recebem 404. Conversa direta so abre com quem e membro da organizacao.
+- **Nao lidas:** `team_thread_reads` guarda ate quando cada pessoa leu cada thread. Ler a pagina mais recente marca como lida; mensagem da propria pessoa nao conta.
+- **Tempo real:** mesmo SSE + Redis da caixa de entrada, evento `team_message` so com ids (`threadId`, `authorUserId`). Em conversa direta o evento leva os dois participantes e a rota `.../team-chat/events` so entrega a eles; as rotas da caixa de entrada e do widget ignoram esse evento.
+- **Autor que saiu:** a mensagem fica, sem e-mail ("ex-membro"); responder numa conversa direta com quem saiu e recusado (400).
+- **Retencao:** o worker de retencao apaga mensagens do chat alem do prazo da organizacao (`organizations.retention_days`, padrao 90 dias).
 
 ## Caixa de entrada (ADR-006, etapa 2)
 

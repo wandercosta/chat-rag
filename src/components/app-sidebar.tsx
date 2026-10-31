@@ -20,6 +20,7 @@ import {
   Workflow,
   Webhook,
   Timer,
+  MessagesSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,6 +49,7 @@ const tenantItems: Item[] = [
   { title: "Base de conhecimento", url: "/conhecimento", icon: Library, perm: "knowledge" },
   { title: "Playground", url: "/playground", icon: FlaskConical, perm: "assistants" },
   { title: "Caixa de entrada", url: "/atendimento", icon: Inbox, perm: "inbox" },
+  { title: "Chat da equipe", url: "/equipe", icon: MessagesSquare, perm: "team_chat" },
   { title: "Contatos", url: "/contatos", icon: Contact, perm: "contacts" },
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, perm: "campaigns" },
   { title: "Automações", url: "/automacoes", icon: Workflow, perm: "automations" },

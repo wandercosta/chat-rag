@@ -3,7 +3,7 @@ import { redis } from "../db/redis.js";
 import type { InboxStatus } from "../db/types.js";
 
 /**
- * Eventos da caixa de entrada (ADR-006 #10). Viajam pelo Redis para chegar a
+ * Eventos da caixa de entrada (ADR-006 #10) e do chat interno da equipe. Viajam pelo Redis para chegar a
  * qualquer instancia da API que tenha um painel ou widget conectado, num canal
  * por organizacao: um evento nunca e publicado no canal de outro tenant.
  *
@@ -25,6 +25,14 @@ export type InboxEvent =
       byUserId: string;
       toUserId: string | null;
       toSectorId: string | null;
+    }
+  /** Chat interno da equipe: so ids. `participants` null = canal Geral; numa
+   * conversa direta, so as duas pessoas recebem o evento. */
+  | {
+      kind: "team_message";
+      threadId: string;
+      authorUserId: string;
+      participants: [string, string] | null;
     };
 
 type Listener = (event: InboxEvent) => void;
