@@ -66,6 +66,24 @@ export const usageRepository = {
       .then((r) => r.rows);
   },
 
+  /** Tokens de chat pagos pela chave da plataforma (limite do ADR-007). */
+  platformTokensSince(organizationId: string, since: Date) {
+    return sql<{ tokens: string | null }>`
+      select sum(
+        coalesce((payload->>'inputTokens')::bigint, 0) +
+        coalesce((payload->>'outputTokens')::bigint, 0)
+      ) as tokens
+      from usage_events
+      where organization_id = ${organizationId}
+        and type = 'rag_query'
+        and created_at >= ${since}
+        and payload ? 'inputTokens'
+        and coalesce(payload->>'keySource', 'plataforma') = 'plataforma'
+    `
+      .execute(db)
+      .then((r) => Number(r.rows[0]?.tokens ?? 0));
+  },
+
   platformAverageRagLatencyMs(since: Date) {
     return sql<{ avg_latency_ms: string | null }>`
       select avg((payload->>'latencyMs')::numeric) as avg_latency_ms

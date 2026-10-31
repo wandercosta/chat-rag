@@ -72,6 +72,9 @@ const schema = z.object({
   SMTP_URL: optional(z.string().url()),
   SMTP_FROM: z.string().default("ChatRAG <nao-responda@localhost>"),
   PANEL_URL: optional(z.string().url()),
+  // Teto mensal de tokens da IA da plataforma por tenant no modo "padrao"
+  // (ADR-007). Sem valor, o padrao e sem limite; o Master ajusta por tenant.
+  PLATFORM_AI_MONTHLY_TOKENS: optional(z.coerce.number().int().positive()),
   // Midia recebida acima deste tamanho nao e baixada (fica "falhou" no painel).
   CHANNEL_MEDIA_MAX_BYTES: z.coerce
     .number()

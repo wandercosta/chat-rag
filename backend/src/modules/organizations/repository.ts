@@ -1,5 +1,5 @@
 import { db } from "../../db/client.js";
-import type { RetentionMode } from "../../db/types.js";
+import type { AiLimitMode, RetentionMode } from "../../db/types.js";
 import type { TenantRole } from "../../db/types.js";
 
 export const organizationsRepository = {
@@ -37,6 +37,39 @@ export const organizationsRepository = {
       .where("id", "=", id)
       .executeTakeFirst();
     return { days: row?.retention_days ?? null, mode: row?.retention_mode ?? "excluir" };
+  },
+
+  findAiLimit(id: string) {
+    return db
+      .selectFrom("organizations")
+      .select(["ai_limit_mode", "ai_monthly_tokens"])
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
+  setAiLimit(id: string, mode: AiLimitMode, tokens: number | null) {
+    return db
+      .updateTable("organizations")
+      .set({ ai_limit_mode: mode, ai_monthly_tokens: tokens })
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
+  /** true so na primeira chamada do mes: o update marca e serve de trava. */
+  async claimLimitNotice(id: string, month: string) {
+    const row = await db
+      .updateTable("organizations")
+      .set({ ai_limit_notified_month: month })
+      .where("id", "=", id)
+      .where((eb) =>
+        eb.or([
+          eb("ai_limit_notified_month", "is", null),
+          eb("ai_limit_notified_month", "<>", month),
+        ]),
+      )
+      .returning("id")
+      .executeTakeFirst();
+    return !!row;
   },
 
   setRetentionPolicy(id: string, days: number | null, mode?: RetentionMode) {

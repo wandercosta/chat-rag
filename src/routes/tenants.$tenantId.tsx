@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError, masterApi, type SupportSession } from "@/lib/api-client";
 import { TenantChannelsCard } from "@/components/platform/tenant-channels-card";
+import { TenantAiLimitCard } from "@/components/platform/tenant-ai-limit-card";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/tenants/$tenantId")({
@@ -165,6 +166,7 @@ function TenantDetail() {
 
       <TenantCredentialsCard tenantId={tenantId} hasActiveSupport={!!active} />
       <TenantModelsCard tenantId={tenantId} />
+      <TenantAiLimitCard tenantId={tenantId} />
       <TenantChannelsCard tenantId={tenantId} hasActiveSupport={!!active} />
 
       <Card className="overflow-hidden p-0">
