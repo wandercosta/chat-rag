@@ -1,6 +1,6 @@
 import { assistantsService, handoffService } from "../assistants/index.js";
 import { conversationsService, gapsService, visitorsService } from "../conversations/index.js";
-import { usageService } from "../analytics/index.js";
+import { aiQuotaService, usageService } from "../analytics/index.js";
 import { retrievalService } from "./retrieval.service.js";
 import {
   NO_ANSWER_SENTINEL,
@@ -209,7 +209,14 @@ export const answerService = {
     let citations: Citation[];
     let usage: ChatResult["usage"];
 
-    if (provider.kind === "extractive") {
+    // Teto mensal da IA da plataforma (ADR-007): acima dele, modo extrativo, sem custo.
+    const limitReached =
+      provider.kind !== "extractive" &&
+      provider.keySource === "plataforma" &&
+      (await aiQuotaService.isExhausted(organizationId));
+    if (limitReached) void aiQuotaService.noticeLimitReached(organizationId);
+
+    if (provider.kind === "extractive" || limitReached) {
       reply = extractiveReply(allCitations);
       citations = allCitations.slice(0, 1);
     } else {
@@ -254,6 +261,7 @@ export const answerService = {
         // O modelo que respondeu (pode ser o do .env, nao o do assistente).
         model: usage?.model ?? assistant.model_id,
         chunksUsed: retrieval.chunks.length,
+        ...(limitReached && { limitReached: true }),
         ...(usage && {
           inputTokens: usage.inputTokens,
           outputTokens: usage.outputTokens,

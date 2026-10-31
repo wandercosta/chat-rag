@@ -34,10 +34,15 @@ export interface OrganizationsTable {
   status: TenantStatus;
   retention_days: number | null;
   retention_mode: ColumnType<RetentionMode, RetentionMode | undefined, RetentionMode>;
+  ai_limit_mode: ColumnType<AiLimitMode, AiLimitMode | undefined, AiLimitMode>;
+  /** bigint: o pg devolve como string. */
+  ai_monthly_tokens: ColumnType<string | null, number | null | undefined, number | null>;
+  ai_limit_notified_month: ColumnType<string | null, string | null | undefined, string | null>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export type RetentionMode = "excluir" | "anonimizar";
+export type AiLimitMode = "padrao" | "personalizado" | "sem_limite";
 
 export interface RolesTable {
   name: TenantRole;

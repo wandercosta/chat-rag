@@ -6,8 +6,8 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 ## Navegacao prevista
 
-- Visao geral do tenant
-- Organizacoes/tenants (somente master)
+- Visao geral do tenant (com o consumo do mes da IA incluida na plataforma quando ha limite, ADR-007; Administrador e Analista)
+- Organizacoes/tenants (somente master; o detalhe do tenant tem o card "Limite de IA da plataforma": padrao, personalizado ou sem limite, com o consumo do mes)
 - Visao geral da plataforma (somente master): estados das organizacoes e consumo cruzando tenants por periodo (so contagens, sem conteudo), com custo estimado e o card "Preco por modelo" (US$ por 1M tokens, entrada e saida)
 - Assistentes
 - Base de conhecimento: topicos e fontes

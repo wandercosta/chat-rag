@@ -41,7 +41,7 @@ import { automationsRoutes } from "./modules/automations/index.js";
 import { privacyRoutes } from "./modules/privacy/index.js";
 import { webhooksRoutes } from "./modules/webhooks/index.js";
 import { apiTokensRoutes, publicApiV1Routes } from "./modules/public-api/index.js";
-import { analyticsRoutes, platformUsageRoutes } from "./modules/analytics/index.js";
+import { aiQuotaRoutes, analyticsRoutes, platformUsageRoutes } from "./modules/analytics/index.js";
 
 /** Fabrica da app, separada de server.ts (que so faz `listen`), para poder
  * subir a aplicacao real em testes de integracao HTTP sem abrir uma porta —
@@ -106,6 +106,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(publicApiV1Routes);
   await app.register(analyticsRoutes);
   await app.register(platformUsageRoutes);
+  await app.register(aiQuotaRoutes);
   await app.register(demoRoutes);
 
   app.get("/health", async () => ({ ok: true }));
