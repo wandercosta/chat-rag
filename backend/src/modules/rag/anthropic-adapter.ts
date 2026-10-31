@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ChatMessage, ChatProvider } from "./provider.types.js";
+import type { ChatMessage, ChatProvider, ChatResult } from "./provider.types.js";
 
 /** Modelos que aceitam o fallback de recusa do lado do servidor
  * (`fallbacks: "default"`). Nos demais a requisicao vai sem ele. */
@@ -35,13 +35,23 @@ export function toAnthropicMessages(messages: ChatMessage[]): {
   };
 }
 
-/** Texto da resposta; recusa (stop_reason "refusal") vira vazio, que conta como lacuna. */
-function textOf(response: Anthropic.Message | Anthropic.Beta.BetaMessage) {
-  if (response.stop_reason === "refusal") return "";
-  return response.content
+/**
+ * Texto da resposta; recusa (stop_reason "refusal") vira vazio, que conta como
+ * lacuna. O consumo vem com o modelo que de fato respondeu (com fallback de
+ * recusa, pode ser outro).
+ */
+function resultOf(response: Anthropic.Message | Anthropic.Beta.BetaMessage): ChatResult {
+  const usage = {
+    model: response.model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+  if (response.stop_reason === "refusal") return { text: "", usage };
+  const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
     .join("")
     .trim();
+  return { text, usage };
 }
 
 /**
@@ -71,7 +81,7 @@ export function createAnthropicChat(apiKey: string, model: string): ChatProvider
       const response = SERVER_FALLBACK_MODELS.has(model)
         ? await client.beta.messages.create(withFallback(messages))
         : await client.messages.create(params(messages));
-      return textOf(response);
+      return resultOf(response);
     },
     /**
      * Mesmo pedido em streaming. Com fallback, o texto do modelo que recusou
@@ -82,11 +92,11 @@ export function createAnthropicChat(apiKey: string, model: string): ChatProvider
       if (SERVER_FALLBACK_MODELS.has(model)) {
         const stream = client.beta.messages.stream(withFallback(messages));
         stream.on("text", (delta) => onDelta(delta));
-        return textOf(await stream.finalMessage());
+        return resultOf(await stream.finalMessage());
       }
       const stream = client.messages.stream(params(messages));
       stream.on("text", (delta) => onDelta(delta));
-      return textOf(await stream.finalMessage());
+      return resultOf(await stream.finalMessage());
     },
   };
 }

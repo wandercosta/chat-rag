@@ -13,7 +13,7 @@
 
 Exibir por organizacao e assistente: conversas, mensagens, avaliacoes, lacunas, fontes consultadas, indexacoes com erro, latencia e consumo estimado.
 
-Na plataforma (Master, `/plataforma`): conversas por canal, mensagens recebidas, perguntas ao assistente, respostas sem contexto, respostas de atendentes e latencia media, no total e por organizacao. Custo estimado entra quando houver tabela de precos por modelo.
+Na plataforma (Master, `/plataforma`): conversas por canal, mensagens recebidas, perguntas ao assistente, respostas sem contexto, respostas de atendentes e latencia media, no total e por organizacao. Custo estimado em dolar (total e a parte paga pela plataforma), pelos tokens de cada resposta e o preco por modelo definido pelo Master; modelos sem preco aparecem listados e ficam fora da conta. Tokens de embeddings ainda nao entram.
 
 ## Alertas futuros
 

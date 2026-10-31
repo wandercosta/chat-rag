@@ -14,7 +14,10 @@ vi.mock("./provider-resolver.js", async (importOriginal) => {
     ...original,
     resolveChatProvider: async () => ({
       kind: "llm" as const,
-      chat: async (messages: { content: string }[]) => pieces(messages.at(-1)!.content).join(""),
+      chat: async (messages: { content: string }[]) => ({
+        text: pieces(messages.at(-1)!.content).join(""),
+        usage: { model: "modelo-simulado", inputTokens: 120, outputTokens: 30 },
+      }),
       stream: async (
         messages: { content: string }[],
         _model: string,
@@ -22,7 +25,10 @@ vi.mock("./provider-resolver.js", async (importOriginal) => {
       ) => {
         const parts = pieces(messages.at(-1)!.content);
         parts.forEach(onDelta);
-        return parts.join("");
+        return {
+          text: parts.join(""),
+          usage: { model: "modelo-simulado", inputTokens: 120, outputTokens: 30 },
+        };
       },
     }),
   };
@@ -127,6 +133,19 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("resposta em streaming", () => {
       url,
       headers: { cookie: t.admin },
       payload: { message: "Qual o prazo de entrega para capitais?" },
+    });
+    // O consumo da resposta (tokens e modelo) fica no evento, para o custo estimado.
+    const event = await db
+      .selectFrom("usage_events")
+      .select("payload")
+      .where("organization_id", "=", t.organizationId)
+      .where("type", "=", "rag_query")
+      .executeTakeFirstOrThrow();
+    expect(event.payload).toMatchObject({
+      model: "modelo-simulado",
+      inputTokens: 120,
+      outputTokens: 30,
+      keySource: "plataforma",
     });
     expect(plain.json()).toMatchObject({
       answer: "O prazo e de 3 dias uteis [1].",

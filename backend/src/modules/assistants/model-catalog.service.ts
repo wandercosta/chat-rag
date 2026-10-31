@@ -10,4 +10,9 @@ export const modelCatalogService = {
   findById(modelId: string) {
     return modelCatalogRepository.findById(modelId);
   },
+
+  /** Preco por modelo (US$ por 1M tokens), so dos que tem preco definido. */
+  prices() {
+    return modelCatalogRepository.prices();
+  },
 };

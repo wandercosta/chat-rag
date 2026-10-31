@@ -42,6 +42,30 @@ export const usageRepository = {
       .execute();
   },
 
+  /** Tokens por organizacao, modelo e dono da chave (custo estimado). */
+  tokensByOrganizationAndModel(since: Date) {
+    return sql<{
+      organization_id: string;
+      model: string;
+      key_source: string;
+      input_tokens: string;
+      output_tokens: string;
+    }>`
+      select organization_id,
+        payload->>'model' as model,
+        coalesce(payload->>'keySource', 'plataforma') as key_source,
+        sum((payload->>'inputTokens')::bigint) as input_tokens,
+        sum((payload->>'outputTokens')::bigint) as output_tokens
+      from usage_events
+      where type = 'rag_query'
+        and created_at >= ${since}
+        and payload ? 'inputTokens'
+      group by 1, 2, 3
+    `
+      .execute(db)
+      .then((r) => r.rows);
+  },
+
   platformAverageRagLatencyMs(since: Date) {
     return sql<{ avg_latency_ms: string | null }>`
       select avg((payload->>'latencyMs')::numeric) as avg_latency_ms
