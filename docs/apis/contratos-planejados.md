@@ -61,7 +61,7 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `GET|POST /organizations/:organizationId/collections`, `GET|PUT|DELETE .../assistants/:assistantId/collections[/:collectionId]` (escopo de conhecimento do assistente — ver ADR-003)
 - `GET|POST /organizations/:organizationId/topics`, `PATCH .../topics/:topicId` (inclusive mover o topico entre colecoes)
 - `GET /organizations/:organizationId/topics/:topicId/sources`, `POST .../sources`, `POST .../sources/upload` (multipart), `POST .../sources/:sourceId/{approve,reindex,archive}`, `POST .../sources/:sourceId/review` (`{ reviewed }`, marca ou tira a revisao; 409 em fonte aguardando revisao ou arquivada; a fonte traz `reviewed_at`/`reviewed_by`; o assistente aceita `reviewedSourcesOnly`), `POST .../sources/activate-pending` (destrava fontes presas em `aguardando_ativacao` apos uma chave de IA valida existir)
-- `POST /organizations/:organizationId/assistants/:assistantId/playground-messages`
+- `POST /organizations/:organizationId/assistants/:assistantId/playground-messages` (com `Accept: text/event-stream`, responde em SSE: `{ type: "delta", text }` enquanto o modelo escreve e `{ type: "done", ...resposta }` no fim; `{ type: "error", error }` se falhar depois de comecar)
 - `GET /organizations/:organizationId/conversations[/:conversationId]`, `POST .../feedback` (o detalhe traz `attachments` em cada mensagem: id, tipo, nome, tamanho, estado e erro, sem a chave do storage; o detalhe da caixa de entrada tambem)
 - `PATCH /organizations/:organizationId/channels/:id` com `{ humanAgentTag: boolean }` (so Administrador; so Messenger e Instagram, 404 nos outros): liga a tag "Agente humano" da Meta, que estende a janela do atendente para 7 dias; devolve `{ id, provider, config }` e vai para a auditoria
 - `GET /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId` (arquivo recebido pelo canal; Administrador, Atendente e Analista, ou Master em sessao de suporte; sempre `Content-Disposition: attachment` e `X-Content-Type-Options: nosniff`; 404 se o anexo nao e daquela conversa e organizacao ou ainda nao esta pronto)
@@ -100,7 +100,7 @@ Widget publico (sem sessao; autenticado por chave + origem, ver `embed`):
 
 - `POST /widget/config`
 - `POST /widget/conversations` (aceita `externalUserId`, `visitorName`, `visitorEmail`, `context` opcionais, nao assinados, e `identityToken` (JWT HS256 assinado com o segredo da chave). So com token valido a resposta pode vir `200` com `isResumed: true` e o historico; token invalido da 401; com a chave exigindo assinatura, os campos sem token sao ignorados. Ver `docs/integrations/widget-embed.md`)
-- `POST /widget/conversations/:conversationId/messages`
+- `POST /widget/conversations/:conversationId/messages` (com `Accept: text/event-stream`, mesmos eventos `delta`/`done`/`error` do playground; o `done` traz `answer`, `citations` e `humanHandling` e vale mais que os pedacos)
 - `POST /widget/conversations/:conversationId/feedback`
 - `POST /widget/conversations/:conversationId/handoff` (com a caixa de entrada ligada no assistente, coloca a conversa na fila e retorna `{ inbox: true, status }`; senao, link `wa.me` direto ou lista de setores para o widget mostrar botoes quando ha mais de um configurado)
 - `POST /widget/conversations/:conversationId/messages` responde `{ answer: null, humanHandling: true }` enquanto um humano cuida da conversa

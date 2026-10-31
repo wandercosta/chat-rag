@@ -101,4 +101,4 @@ O WhatsApp e configurado pela organizacao. O assistente pode fornecer contexto p
 
 ## Estado da implementacao
 
-Bundle publico em `widget/` (~18kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff, identidade/contexto do visitante (com ou sem assinatura, ver secoes acima), aparencia "data-* > assistente > organizacao" com logo e Shadow DOM. Falta: resposta em streaming (hoje request/response simples).
+Bundle publico em `widget/` (~18kB, sem dependencias, ver `widget/README.md`), cobrindo config/conversa/mensagem/feedback/handoff, identidade/contexto do visitante (com ou sem assinatura, ver secoes acima), aparencia "data-* > assistente > organizacao" com logo e Shadow DOM. A resposta do assistente chega em streaming (o texto aparece enquanto o modelo escreve e a resposta final substitui o parcial, com as fontes).

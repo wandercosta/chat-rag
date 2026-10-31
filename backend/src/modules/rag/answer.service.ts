@@ -13,6 +13,7 @@ import {
   type Citation,
 } from "./answer.text.js";
 import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
+import { createStreamGuard } from "./stream-guard.js";
 import { NoActiveCredentialError, resolveChatProvider } from "./provider-resolver.js";
 import type { ChatMessage } from "./provider.types.js";
 
@@ -105,6 +106,8 @@ export const answerService = {
       /** Canal sem botao de atendente: sem resposta na base e com caixa de
        * entrada ligada, a propria resposta avisa que um humano vai assumir. */
       handoff?: "botao" | "automatico";
+      /** Streaming: cada pedaco da resposta do modelo, ja sem a marca de "sem resposta". */
+      onDelta?: (text: string) => void;
     } = {},
   ) {
     const question = sanitizeUserInput(rawQuestion);
@@ -223,7 +226,10 @@ export const answerService = {
         { role: "user", content: question },
       ];
 
-      reply = await provider.chat(messages, assistant.model_id);
+      reply =
+        options.onDelta && provider.stream
+          ? await provider.stream(messages, assistant.model_id, createStreamGuard(options.onDelta))
+          : await provider.chat(messages, assistant.model_id);
 
       // Recuperou contexto, mas o contexto nao responde a pergunta (ou o
       // modelo recusou e devolveu vazio): conta como lacuna igual, senao a

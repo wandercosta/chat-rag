@@ -59,5 +59,4 @@ python -m http.server 4174 --directory ..   # a partir de widget/
 
 ## O que falta
 
-- Streaming de resposta (hoje e request/response simples).
 - Testes automatizados (hoje so o roteiro manual acima).
