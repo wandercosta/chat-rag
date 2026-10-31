@@ -37,7 +37,13 @@ export const taxonomyRepository = {
   },
 
   /** So etiquetas da propria organizacao entram na ligacao. */
+  /** Troca as etiquetas; devolve as que o contato nao tinha antes. */
   async setContactTags(organizationId: string, contactId: string, tagIds: string[]) {
+    const before = await db
+      .selectFrom("contact_tag_links")
+      .select("tag_id")
+      .where("contact_id", "=", contactId)
+      .execute();
     const valid = tagIds.length
       ? await db
           .selectFrom("contact_tags")
@@ -55,15 +61,20 @@ export const taxonomyRepository = {
           .execute();
       }
     });
+    const had = new Set(before.map((r) => r.tag_id));
+    return valid.map((t) => t.id).filter((id) => !had.has(id));
   },
 
-  async addContactTags(contactId: string, tagIds: string[]) {
-    if (tagIds.length === 0) return;
-    await db
+  /** Acrescenta etiquetas; devolve so as que entraram agora. */
+  async addContactTags(contactId: string, tagIds: string[]): Promise<string[]> {
+    if (tagIds.length === 0) return [];
+    const rows = await db
       .insertInto("contact_tag_links")
       .values(tagIds.map((tag_id) => ({ contact_id: contactId, tag_id })))
       .onConflict((oc) => oc.columns(["contact_id", "tag_id"]).doNothing())
+      .returning("tag_id")
       .execute();
+    return rows.map((r) => r.tag_id);
   },
 
   tagsOf(contactIds: string[]) {

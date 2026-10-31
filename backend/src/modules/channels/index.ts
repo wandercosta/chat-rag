@@ -7,4 +7,5 @@ export { channelsWebhookRoutes } from "./webhook.routes.js";
 export { processChannelJob } from "./jobs.js";
 export { replyWindowHours } from "./connections.service.js";
 export { sendToContact, channelsQuery, renderTemplate } from "./outbound.service.js";
+export { automationTemplateSender } from "./automation-sender.js";
 export type { OutboundContent, OutboundResult } from "./outbound.service.js";

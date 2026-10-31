@@ -7,3 +7,6 @@ export { automationsService } from "./automations.service.js";
 export { automationsRoutes } from "./automations.routes.js";
 export { onIncomingMessage, scanAllNoReply, scanNoReply } from "./engine.js";
 export type { MessageOutcome } from "./engine.js";
+export { onTagAdded } from "./tag-trigger.js";
+export { setTemplateSender } from "./template-sender.js";
+export type { TemplateSender } from "./template-sender.js";

@@ -4,8 +4,9 @@ import { inboxService } from "../inbox/index.js";
 import { automationsRepository } from "./automations.repository.js";
 import { matches } from "./conditions.js";
 import type { Action } from "./rules.js";
+import { sendTemplate } from "./template-sender.js";
 
-type RuleRow = Awaited<ReturnType<typeof automationsRepository.enabled>>[number];
+export type RuleRow = Awaited<ReturnType<typeof automationsRepository.enabled>>[number];
 
 export interface IncomingMessage {
   conversationId: string;
@@ -27,12 +28,17 @@ export interface MessageOutcome {
   handedOff: boolean;
 }
 
-/** Executa as acoes de uma regra; `reply` volta para quem chamou. */
-async function runActions(
+/**
+ * Executa as acoes de uma regra; `reply` volta para quem chamou. Sem conversa
+ * (gatilho de etiqueta), o validador de regras so deixa acoes sobre o contato.
+ */
+export async function runActions(
   organizationId: string,
-  conversationId: string,
+  conversationId: string | null,
   contactId: string | null,
   actions: Action[],
+  responsibleUserId: string | null = null,
+  contactName: string | null = null,
 ) {
   const done: string[] = [];
   let reply: string | null = null;
@@ -50,21 +56,41 @@ async function runActions(
           done.push("etiqueta ignorada (sem contato ou etiqueta removida)");
         }
         break;
+      case "enviar_modelo":
+        if (!contactId) {
+          done.push("modelo ignorado (sem contato)");
+          break;
+        }
+        await sendTemplate({
+          organizationId,
+          contactId,
+          responsibleUserId,
+          connectionId: action.connectionId,
+          templateId: action.templateId,
+          params: action.params,
+          contactName,
+        });
+        done.push("enviou o modelo");
+        break;
       case "encaminhar_humano":
+        if (!conversationId) break;
         await inboxService.requestHuman(organizationId, conversationId);
         handedOff = true;
         done.push("passou para a fila");
         break;
       case "atribuir":
+        if (!conversationId) break;
         await inboxService.assignBySystem(organizationId, conversationId, action.userId);
         handedOff = true;
         done.push("atribuiu a conversa");
         break;
       case "devolver_fila":
+        if (!conversationId) break;
         await inboxService.assignBySystem(organizationId, conversationId, null);
         done.push("devolveu para a fila");
         break;
       case "nota_interna":
+        if (!conversationId) break;
         await inboxService.addSystemNote(organizationId, conversationId, action.text);
         done.push("anotou");
         break;
@@ -73,10 +99,10 @@ async function runActions(
   return { reply, handedOff, detail: done.join(", ") };
 }
 
-async function runLogged(
+export async function runLogged(
   organizationId: string,
   rule: RuleRow,
-  conversationId: string,
+  conversationId: string | null,
   run: () => Promise<string>,
 ) {
   try {

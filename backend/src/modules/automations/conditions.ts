@@ -7,6 +7,8 @@ export interface RuleContext {
   isFirstMessage: boolean;
   contactTagIds: string[];
   now: Date;
+  /** Gatilho "etiqueta adicionada": a etiqueta que acabou de entrar. */
+  addedTagId?: string;
 }
 
 /** Horario comercial e no fuso do Brasil, independente de onde o servidor roda. */
@@ -74,6 +76,8 @@ export function matches(conditions: Condition[], ctx: RuleContext): boolean {
       case "sem_resposta_ha":
         // O tempo e conferido pela varredura (engine.ts), nao aqui.
         return true;
+      case "etiqueta_adicionada":
+        return ctx.addedTagId === condition.tagId;
     }
   });
 }

@@ -8,11 +8,16 @@ import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
 import { CHANNEL_MESSAGES_QUEUE, type ChannelJob } from "./queue/channel-messages.queue.js";
-import { processChannelJob } from "./modules/channels/index.js";
+import { automationTemplateSender, processChannelJob } from "./modules/channels/index.js";
 import { CAMPAIGNS_QUEUE, type CampaignTickJob } from "./queue/campaigns.queue.js";
 import { runCampaignTick } from "./modules/campaigns/index.js";
-import { AUTOMATIONS_QUEUE, scheduleNoReplyScan } from "./queue/automations.queue.js";
-import { scanAllNoReply } from "./modules/automations/index.js";
+import {
+  AUTOMATIONS_QUEUE,
+  TAG_ADDED_JOB,
+  scheduleNoReplyScan,
+  type TagAddedJob,
+} from "./queue/automations.queue.js";
+import { onTagAdded, scanAllNoReply, setTemplateSender } from "./modules/automations/index.js";
 import { WEBHOOKS_QUEUE, type WebhookDeliveryJob } from "./queue/webhooks.queue.js";
 import { processWebhookDelivery } from "./modules/webhooks/index.js";
 
@@ -120,11 +125,21 @@ campaignWorker.on("failed", (job, err) => {
   console.error(`lote de campanha falhou (${job?.data.campaignId}):`, err.message);
 });
 
-// Automacoes (ADR-006 #4): varredura do gatilho "sem resposta" a cada minuto.
-const automationWorker = new Worker(AUTOMATIONS_QUEUE, async () => scanAllNoReply(), {
-  connection: { url: env.REDIS_URL },
-  concurrency: 1,
-});
+// Automacoes (ADR-006 #4): varredura do gatilho "sem resposta" a cada minuto e
+// gatilho "etiqueta adicionada". O envio de modelo pedido por uma regra sai
+// pelo modulo de canais, registrado aqui para nao criar ciclo entre modulos.
+setTemplateSender(automationTemplateSender);
+const automationWorker = new Worker(
+  AUTOMATIONS_QUEUE,
+  async (job) => {
+    if (job.name === TAG_ADDED_JOB) {
+      const { organizationId, contactId, tagId } = job.data as TagAddedJob;
+      return onTagAdded(organizationId, contactId, tagId);
+    }
+    return scanAllNoReply();
+  },
+  { connection: { url: env.REDIS_URL }, concurrency: 1 },
+);
 
 automationWorker.on("failed", (_job, err) => {
   console.error("varredura de automacoes falhou:", err.message);

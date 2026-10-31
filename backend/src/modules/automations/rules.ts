@@ -4,7 +4,7 @@ import { z } from "zod";
  * Formato das regras (ADR-006 #4). Validado na entrada da API e lido do
  * jsonb do banco; tudo que a regra pode fazer esta listado aqui.
  */
-export const triggerSchema = z.enum(["mensagem_recebida", "sem_resposta"]);
+export const triggerSchema = z.enum(["mensagem_recebida", "sem_resposta", "etiqueta_adicionada"]);
 export type Trigger = z.infer<typeof triggerSchema>;
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "horario no formato HH:MM");
@@ -28,6 +28,8 @@ export const conditionSchema = z.discriminatedUnion("type", [
     weekdays: z.array(z.number().int().min(0).max(6)).max(7),
   }),
   z.object({ type: z.literal("sem_resposta_ha"), minutes: z.number().int().min(1).max(10_080) }),
+  /** Qual etiqueta disparou o gatilho "etiqueta adicionada". */
+  z.object({ type: z.literal("etiqueta_adicionada"), tagId: z.string().uuid() }),
 ]);
 export type Condition = z.infer<typeof conditionSchema>;
 
@@ -38,6 +40,16 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("atribuir"), userId: z.string().uuid() }),
   z.object({ type: z.literal("nota_interna"), text: z.string().trim().min(1).max(2000) }),
   z.object({ type: z.literal("devolver_fila") }),
+  /**
+   * Modelo aprovado do WhatsApp para o contato (fora da janela de 24 horas).
+   * Nos parametros, `{nome}` vira o nome do contato.
+   */
+  z.object({
+    type: z.literal("enviar_modelo"),
+    connectionId: z.string().uuid(),
+    templateId: z.string().uuid(),
+    params: z.array(z.string().trim().min(1).max(200)).max(10),
+  }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
 
@@ -56,6 +68,11 @@ const ALLOWED: Record<Trigger, { conditions: Condition["type"][]; actions: Actio
   sem_resposta: {
     conditions: ["sem_resposta_ha", "canal", "contato_tem_etiqueta"],
     actions: ["devolver_fila", "atribuir", "nota_interna", "adicionar_etiqueta"],
+  },
+  // Sem conversa de origem: so acoes sobre o contato.
+  etiqueta_adicionada: {
+    conditions: ["etiqueta_adicionada", "contato_tem_etiqueta"],
+    actions: ["enviar_modelo", "adicionar_etiqueta"],
   },
 };
 
@@ -86,6 +103,15 @@ export const ruleInputSchema = z
       !rule.conditions.some((c) => c.type === "sem_resposta_ha")
     ) {
       ctx.addIssue({ code: "custom", message: "informe depois de quantos minutos sem resposta" });
+    }
+    if (
+      rule.trigger === "etiqueta_adicionada" &&
+      !rule.conditions.some((c) => c.type === "etiqueta_adicionada")
+    ) {
+      ctx.addIssue({ code: "custom", message: "informe qual etiqueta dispara a regra" });
+    }
+    if (rule.actions.filter((a) => a.type === "enviar_modelo").length > 1) {
+      ctx.addIssue({ code: "custom", message: "uma regra envia no maximo um modelo" });
     }
     if (rule.actions.filter((a) => a.type === "responder").length > 1) {
       ctx.addIssue({ code: "custom", message: "uma regra responde no maximo uma vez" });

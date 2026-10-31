@@ -144,7 +144,12 @@ export function RuleEditorDialog({
     setValue({
       ...value,
       trigger,
-      conditions: trigger === "sem_resposta" ? [newCondition("sem_resposta_ha")] : [],
+      conditions:
+        trigger === "sem_resposta"
+          ? [newCondition("sem_resposta_ha")]
+          : trigger === "etiqueta_adicionada"
+            ? [newCondition("etiqueta_adicionada")]
+            : [],
       actions: [newAction(allowedFor[trigger].actions[0])],
     });
 
@@ -236,6 +241,7 @@ export function RuleEditorDialog({
                   value={a}
                   tags={tags}
                   agents={agents}
+                  tenantId={tenantId}
                   onChange={(next) =>
                     setValue({
                       ...value,

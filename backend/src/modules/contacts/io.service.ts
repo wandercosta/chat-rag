@@ -4,6 +4,7 @@ import { contactsRepository, type ContactValues } from "./contacts.repository.js
 import { insertContact } from "./created.js";
 import { parseCsv, toCsv } from "./csv.js";
 import { isTruthy, normalizeEmail, normalizeKey, normalizePhone } from "./normalize.js";
+import { announceTagsAdded } from "./tag-events.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
 
 /** Teto por arquivo: importacao roda na requisicao, nao em fila. */
@@ -140,7 +141,8 @@ export async function importContacts(
       }
       tagIds.push(tagCache.get(tagName)!);
     }
-    await taxonomyRepository.addContactTags(contact!.id, tagIds);
+    const added = await taxonomyRepository.addContactTags(contact!.id, tagIds);
+    await announceTagsAdded(organizationId, contact!.id, added);
   }
 
   await auditService.record({

@@ -3,6 +3,7 @@ import { contactsRepository } from "./contacts.repository.js";
 import { insertContact } from "./created.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
+import { announceTagsAdded } from "./tag-events.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
 
 /**
@@ -152,7 +153,8 @@ export const contactLinks = {
   async addTag(organizationId: string, contactId: string, tagId: string) {
     const tags = await taxonomyRepository.listTags(organizationId);
     if (!tags.some((t) => t.id === tagId)) return false;
-    await taxonomyRepository.addContactTags(contactId, [tagId]);
+    const added = await taxonomyRepository.addContactTags(contactId, [tagId]);
+    await announceTagsAdded(organizationId, contactId, added);
     return true;
   },
 
