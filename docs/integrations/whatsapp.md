@@ -12,6 +12,15 @@ Etapa 4 da Fase 3 (ADR-006). O tenant conecta um numero da **propria** conta do 
 - **Recibos:** enviada, entregue, lida ou falhou, mostrados embaixo de cada mensagem e atualizados em tempo real. Um recibo atrasado nunca rebaixa o status (lida nao volta para entregue).
 - **Midia:** imagem, audio, video, documento e figurinha sao baixados pelo worker (`GET /{media-id}` na Graph e download com o token do numero) e guardados no storage da plataforma; o texto da mensagem e a legenda ou, sem legenda, o tipo (`[imagem recebida]` etc.). No painel o arquivo aparece na mensagem: imagem em miniatura, audio e video com player, documento para baixar. Acima de `CHANNEL_MEDIA_MAX_BYTES` (padrao 25 MB) ou com erro da Meta, o anexo fica como "nao recebido" com o motivo; a conversa segue normal. Localizacao e contato compartilhado continuam so como rotulo.
 
+## Cadastro integrado da Meta (Embedded Signup)
+
+Com o app da Meta **da plataforma** configurado (`META_APP_ID`, `META_APP_SECRET`, `META_ES_CONFIG_ID` e `META_WEBHOOK_VERIFY_TOKEN` no `.env` da API), o card **Canais** ganha o botao "WhatsApp com a Meta": o tenant entra com a conta da Meta numa janela da propria Meta, escolhe ou cria a conta do WhatsApp Business e o numero, e volta conectado, sem copiar ids nem token.
+
+- **Fluxo:** o painel carrega o SDK oficial (`connect.facebook.net`) e chama `FB.login` com o `config_id` do cadastro integrado. A Meta devolve um `code` e, por `postMessage` (`WA_EMBEDDED_SIGNUP`), o id do numero e da conta. A API troca o `code` pelo token da conta (`/oauth/access_token` com a chave secreta do app, que nunca sai do servidor), confere o numero como na conexao manual, guarda o token cifrado e assina os webhooks da conta para o app da plataforma (`POST /{waba}/subscribed_apps`). Se a assinatura falhar, o canal fica em **erro** com o motivo.
+- **Webhook unico:** conexoes do cadastro integrado recebem pelo endereco do app da plataforma, `POST /webhooks/whatsapp` (sem id). A assinatura e conferida com `META_APP_SECRET` e cada mudanca vai para a conexao pelo numero (`metadata.phone_number_id`); so conexoes criadas pelo cadastro integrado entram por ali (`config.signup = "embedded"`). A verificacao (`GET`) usa `META_WEBHOOK_VERIFY_TOKEN`.
+- **Configurar o app da plataforma (uma vez):** app do tipo Empresa com o produto WhatsApp, empresa verificada e acesso de Tech Provider aprovado pela Meta; em **WhatsApp › Cadastro integrado**, criar a configuracao (o id dela e o `META_ES_CONFIG_ID`) e liberar o dominio do painel; em **WhatsApp › Configuracao › Webhook**, cadastrar `https://<api>/webhooks/whatsapp` com o `META_WEBHOOK_VERIFY_TOKEN` e assinar **messages**.
+- **Ainda nao:** registrar um numero novo (PIN de dois fatores, `POST /{numero}/register`) pelo painel; o cadastro integrado da Meta ja cobre o caso comum de numero existente.
+
 ## Configurar na Meta (uma vez por numero)
 
 1. Em [developers.facebook.com](https://developers.facebook.com), crie um app do tipo **Empresa** e adicione o produto **WhatsApp**.

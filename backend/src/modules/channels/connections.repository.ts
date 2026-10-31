@@ -41,6 +41,26 @@ export const connectionsRepository = {
       .execute();
   },
 
+  /** Visao do Master: so estado e identificacao, nunca segredo nem token de verificacao. */
+  listForMaster(organizationId: string) {
+    return db
+      .selectFrom("channel_connections")
+      .select([
+        "id",
+        "provider",
+        "name",
+        "external_id",
+        "config",
+        "status",
+        "status_detail",
+        "created_at",
+        "updated_at",
+      ])
+      .where("organization_id", "=", organizationId)
+      .orderBy("created_at")
+      .execute();
+  },
+
   findById(organizationId: string, id: string) {
     return db
       .selectFrom("channel_connections")
@@ -53,6 +73,16 @@ export const connectionsRepository = {
   /** So para o webhook e o worker: a organizacao vem da propria conexao. */
   findByIdForWebhook(id: string) {
     return db.selectFrom("channel_connections").selectAll().where("id", "=", id).executeTakeFirst();
+  },
+
+  /** Webhook unico do app da plataforma: a conexao vem pelo numero. */
+  findByExternalForWebhook(provider: ChannelProvider, externalId: string) {
+    return db
+      .selectFrom("channel_connections")
+      .selectAll()
+      .where("provider", "=", provider)
+      .where("external_id", "=", externalId)
+      .executeTakeFirst();
   },
 
   existsExternal(provider: ChannelProvider, externalId: string) {

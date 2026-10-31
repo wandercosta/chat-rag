@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiError, masterApi, type SupportSession } from "@/lib/api-client";
+import { TenantChannelsCard } from "@/components/platform/tenant-channels-card";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/tenants/$tenantId")({
@@ -164,6 +165,7 @@ function TenantDetail() {
 
       <TenantCredentialsCard tenantId={tenantId} hasActiveSupport={!!active} />
       <TenantModelsCard tenantId={tenantId} />
+      <TenantChannelsCard tenantId={tenantId} hasActiveSupport={!!active} />
 
       <Card className="overflow-hidden p-0">
         <CardHeader>

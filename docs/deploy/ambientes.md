@@ -10,6 +10,7 @@ Homologacao e producao possuem banco, bucket, filas, chaves e widget keys distin
 
 ## Variaveis opcionais da plataforma
 
+- `META_APP_ID`, `META_APP_SECRET`, `META_ES_CONFIG_ID` e `META_WEBHOOK_VERIFY_TOKEN`: cadastro integrado da Meta (WhatsApp) com o app da plataforma. Sem eles, o painel so oferece a conexao manual. A chave secreta do app vai so no `.env`.
 - `SMTP_URL`, `SMTP_FROM` e `PANEL_URL`: e-mail de aviso da caixa de entrada. Sem `SMTP_URL`, nenhum e-mail sai e o painel mostra a opcao como indisponivel. A credencial do SMTP vai so no `.env`.
 
 ## Publicacao futura

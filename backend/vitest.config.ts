@@ -43,6 +43,11 @@ export default defineConfig({
       TELEGRAM_API_URL: "http://127.0.0.1:4599",
       // Teto baixo para o teste de arquivo grande (src/test/fake-graph-api.ts).
       CHANNEL_MEDIA_MAX_BYTES: "4096",
+      // App da plataforma simulado (cadastro integrado da Meta).
+      META_APP_ID: "100200300",
+      META_APP_SECRET: "segredo-do-app-da-plataforma",
+      META_ES_CONFIG_ID: "cfg-cadastro-integrado",
+      META_WEBHOOK_VERIFY_TOKEN: "verificacao-da-plataforma",
     },
   },
 });

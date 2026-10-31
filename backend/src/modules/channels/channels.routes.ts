@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { env } from "../../config/env.js";
 import type { ChannelProvider } from "../../db/types.js";
-import { requireOrgRole, requireSession } from "../identity/index.js";
+import { requireMasterSupportSession, requireOrgRole, requireSession } from "../identity/index.js";
 import { AssignedToAnotherUserError } from "../inbox/index.js";
 import {
   AssistantNotFoundError,
@@ -11,6 +11,12 @@ import {
   DuplicateConnectionError,
   connectionsService,
 } from "./connections.service.js";
+import { connectionsRepository } from "./connections.repository.js";
+import {
+  EmbeddedSignupUnavailableError,
+  connectWithEmbeddedSignup,
+  embeddedSignupConfig,
+} from "./embedded-signup.js";
 import {
   NotAChannelConversationError,
   TemplateNotFoundError,
@@ -55,6 +61,13 @@ const connectSchemas = {
       .regex(/^\d{5,15}:[\w-]{30,60}$/, "token no formato do BotFather (123456:ABC...)"),
   }),
 };
+
+const embeddedSchema = z.object({
+  ...common,
+  code: z.string().trim().min(1).max(2000),
+  phoneNumberId: metaId("do numero na Meta"),
+  wabaId: metaId("da conta WhatsApp Business"),
+});
 
 const templateSendSchema = z.object({
   templateId: z.string().uuid(),
@@ -134,6 +147,37 @@ export async function channelsRoutes(app: FastifyInstance) {
       return handleError(err, reply);
     }
   });
+
+  // Cadastro integrado da Meta: o painel so mostra o botao se houver app da plataforma.
+  app.get<OrgParams>(`${base}/embedded-signup`, adminOnly, async () => ({
+    config: embeddedSignupConfig(),
+  }));
+
+  app.post<OrgParams>(`${base}/whatsapp/embedded`, adminOnly, async (request, reply) => {
+    const body = embeddedSchema.parse(request.body);
+    try {
+      const connection = await connectWithEmbeddedSignup(
+        request.auth!.userId,
+        request.params.organizationId,
+        body,
+        webhookUrlBuilder(request, "whatsapp"),
+      );
+      return reply.code(201).send(connection);
+    } catch (err) {
+      if (err instanceof EmbeddedSignupUnavailableError)
+        return reply.code(409).send({ error: "cadastro integrado nao configurado na plataforma" });
+      return handleError(err, reply);
+    }
+  });
+
+  // Estado dos canais de um tenant para o Master: so metadados (provedor,
+  // nome, numero/Pagina e estado), sem segredo; como o estado da chave de IA,
+  // so com sessao de suporte ativa (o numero e dado do tenant).
+  app.get<OrgParams>(
+    "/master/tenants/:organizationId/channels",
+    { preHandler: requireMasterSupportSession },
+    async (request) => connectionsRepository.listForMaster(request.params.organizationId),
+  );
 
   app.post<ItemParams>(`${base}/:id/check`, adminOnly, async (request, reply) => {
     try {

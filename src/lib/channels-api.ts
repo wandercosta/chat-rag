@@ -48,6 +48,21 @@ export const channelsApi = {
       method: "PATCH",
       body: JSON.stringify({ humanAgentTag }),
     }),
+  /** Cadastro integrado da Meta: `config` null quando a plataforma nao tem o app. */
+  embeddedSignupConfig: (organizationId: string) =>
+    apiFetch<{ config: { appId: string; configId: string } | null }>(
+      `${base(organizationId)}/channels/embedded-signup`,
+    ),
+  connectEmbedded: (
+    organizationId: string,
+    input: {
+      name: string;
+      assistantId: string;
+      code: string;
+      phoneNumberId: string;
+      wabaId: string;
+    },
+  ) => post<ChannelConnection>(`${base(organizationId)}/channels/whatsapp/embedded`, input),
   check: (organizationId: string, id: string) =>
     post<{ status: string; detail: string | null }>(`${base(organizationId)}/channels/${id}/check`),
   remove: (organizationId: string, id: string) =>
