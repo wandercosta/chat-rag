@@ -1,3 +1,4 @@
+import type { RetentionMode } from "../../db/types.js";
 import { db } from "../../db/client.js";
 import { identityService } from "../identity/index.js";
 import { auditService } from "../audit/index.js";
@@ -69,18 +70,26 @@ export const organizationsService = {
 
   /** null = usa o padrao de plataforma (90 dias). Usado pelo modulo assistants
    * para resolver a politica efetiva de retencao (docs/security). */
-  getRetentionDays(organizationId: string) {
-    return organizationsRepository.findRetentionDays(organizationId);
+  /** Prazo (null = padrao da plataforma) e o que fazer ao vencer. */
+  getRetentionPolicy(organizationId: string) {
+    return organizationsRepository.findRetentionPolicy(organizationId);
   },
 
-  async setRetentionDays(actorUserId: string, organizationId: string, days: number | null) {
-    await organizationsRepository.setRetentionDays(organizationId, days);
+  async setRetentionPolicy(
+    actorUserId: string,
+    organizationId: string,
+    days: number | null,
+    mode?: RetentionMode,
+  ) {
+    await organizationsRepository.setRetentionPolicy(organizationId, days, mode);
     await auditService.record({
       actorUserId,
       organizationId,
       action: "Alterou politica de retencao da organizacao",
       type: "configuracao",
-      target: days === null ? "padrao de plataforma (90 dias)" : `${days} dias`,
+      target: `${days === null ? "padrao de plataforma (90 dias)" : `${days} dias`}${
+        mode ? `, ${mode}` : ""
+      }`,
     });
   },
 

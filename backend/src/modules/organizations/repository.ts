@@ -1,4 +1,5 @@
 import { db } from "../../db/client.js";
+import type { RetentionMode } from "../../db/types.js";
 import type { TenantRole } from "../../db/types.js";
 
 export const organizationsRepository = {
@@ -29,19 +30,19 @@ export const organizationsRepository = {
     return db.updateTable("organizations").set({ status }).where("id", "=", id).execute();
   },
 
-  async findRetentionDays(id: string): Promise<number | null> {
+  async findRetentionPolicy(id: string) {
     const row = await db
       .selectFrom("organizations")
-      .select("retention_days")
+      .select(["retention_days", "retention_mode"])
       .where("id", "=", id)
       .executeTakeFirst();
-    return row?.retention_days ?? null;
+    return { days: row?.retention_days ?? null, mode: row?.retention_mode ?? "excluir" };
   },
 
-  setRetentionDays(id: string, days: number | null) {
+  setRetentionPolicy(id: string, days: number | null, mode?: RetentionMode) {
     return db
       .updateTable("organizations")
-      .set({ retention_days: days })
+      .set({ retention_days: days, ...(mode && { retention_mode: mode }) })
       .where("id", "=", id)
       .execute();
   },

@@ -32,6 +32,15 @@ export const notesRepository = {
   },
 
   /** Exportacao da organizacao (LGPD). */
+  async deleteFor(organizationId: string, conversationIds: string[]) {
+    if (conversationIds.length === 0) return;
+    await db
+      .deleteFrom("conversation_notes")
+      .where("organization_id", "=", organizationId)
+      .where("conversation_id", "in", conversationIds)
+      .execute();
+  },
+
   listForOrganization(organizationId: string) {
     return db
       .selectFrom("conversation_notes")

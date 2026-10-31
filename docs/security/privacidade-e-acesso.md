@@ -70,4 +70,7 @@ Padrao inicial: 90 dias para conversas; organizacao e assistente podem definir p
 
 Midia recebida pelos canais fica no storage da plataforma (`media/<organizacao>/`) e segue a conversa: o expurgo por retencao e a exclusao de contato apagam os arquivos antes das linhas. O painel so ve o arquivo pela rota da conversa, com as mesmas permissoes de leitura dela.
 
-Um worker agendado expurga/anonimiza conversas alem da politica efetiva de cada organizacao/assistente e gera `audit_event` agregado (organizacao, quantidade, timestamp), sem conteudo de conversa. Ver ADR-002; job criado junto com a funcionalidade de retencao configuravel.
+Um worker agendado trata as conversas alem da politica efetiva de cada organizacao/assistente e gera `audit_event` agregado (organizacao, quantidade, timestamp), sem conteudo de conversa. Ver ADR-002. O que acontece ao vencer o prazo e escolha da organizacao (`organizations.retention_mode`):
+
+- **Excluir** (padrao): a conversa sai com mensagens, notas, anexos e feedback.
+- **Anonimizar**: a conversa fica para metricas (papel, horario e recibo de cada mensagem, status de atendimento e feedback), mas o texto de todas as mensagens vira "[conteudo removido pela politica de retencao]", as fontes citadas e o erro do provedor somem, os anexos (linhas e arquivos) e as notas internas sao apagados e a conversa perde a ligacao com visitante e contato (`anonymized_at` marca a data; a varredura nao repete). O cadastro do contato no CRM segue o proprio ciclo (excluir contato).

@@ -203,6 +203,12 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<TenantRole>("Analista");
+  const rolesQuery = useQuery({
+    queryKey: ["roles", tenantId],
+    queryFn: () => membersApi.roles(tenantId!),
+    enabled: !!tenantId && open,
+  });
+  const roleDescription = rolesQuery.data?.find((r) => r.name === role)?.description;
 
   const create = useMutation({
     mutationFn: () => {
@@ -290,6 +296,9 @@ function NewMemberDialog({ tenantId }: { tenantId: string | null }) {
                 ))}
               </SelectContent>
             </Select>
+            {roleDescription && (
+              <p className="text-xs text-muted-foreground">{roleDescription}</p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

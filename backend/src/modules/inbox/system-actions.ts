@@ -41,6 +41,11 @@ export const inboxSystemActions = {
     return assignmentsRepository.list(organizationId, "abertas", "", { limit: 500 });
   },
 
+  /** Retencao em modo "anonimizar": notas internas podem citar o cliente. */
+  deleteNotesFor(organizationId: string, conversationIds: string[]) {
+    return notesRepository.deleteFor(organizationId, conversationIds);
+  },
+
   /** Notas internas da organizacao (exportacao LGPD). */
   exportNotes(organizationId: string) {
     return notesRepository.listForOrganization(organizationId);

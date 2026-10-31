@@ -14,6 +14,10 @@ export const membersRepository = {
       .execute();
   },
 
+  listRoles() {
+    return db.selectFrom("roles").select(["name", "description"]).orderBy("position").execute();
+  },
+
   findByUserAndOrganization(organizationId: string, userId: string) {
     return db
       .selectFrom("memberships")

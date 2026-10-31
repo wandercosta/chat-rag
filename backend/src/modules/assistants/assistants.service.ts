@@ -1,3 +1,4 @@
+import type { RetentionMode } from "../../db/types.js";
 import { auditService } from "../audit/index.js";
 import { organizationsService } from "../organizations/index.js";
 import { assistantsRepository, type AssistantUpdateInput } from "./assistants.repository.js";
@@ -74,24 +75,25 @@ export const assistantsService = {
   /** Politica efetiva por assistente: assistente > organizacao > padrao de
    * plataforma. Usado pelo job de retencao (modulo conversations). */
   async listAllWithEffectiveRetention(): Promise<
-    { id: string; organizationId: string; retentionDays: number }[]
+    { id: string; organizationId: string; retentionDays: number; mode: RetentionMode }[]
   > {
     const rows = await assistantsRepository.listAll();
-    const orgCache = new Map<string, number | null>();
+    const orgCache = new Map<string, { days: number | null; mode: RetentionMode }>();
 
     const result = [];
     for (const row of rows) {
       if (!orgCache.has(row.organization_id)) {
         orgCache.set(
           row.organization_id,
-          await organizationsService.getRetentionDays(row.organization_id),
+          await organizationsService.getRetentionPolicy(row.organization_id),
         );
       }
-      const orgDays = orgCache.get(row.organization_id) ?? null;
+      const org = orgCache.get(row.organization_id)!;
       result.push({
         id: row.id,
         organizationId: row.organization_id,
-        retentionDays: row.retention_days ?? orgDays ?? PLATFORM_DEFAULT_RETENTION_DAYS,
+        retentionDays: row.retention_days ?? org.days ?? PLATFORM_DEFAULT_RETENTION_DAYS,
+        mode: org.mode,
       });
     }
     return result;

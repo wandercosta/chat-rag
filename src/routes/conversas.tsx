@@ -110,7 +110,14 @@ function ConversationsPage() {
             <TableBody>
               {rows.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-mono text-xs">{c.id.slice(0, 8)}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {c.id.slice(0, 8)}
+                    {c.anonymized_at && (
+                      <Badge variant="outline" className="ml-2 font-sans">
+                        anonimizada
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{assistantNames.get(c.assistant_id) ?? c.assistant_id}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">

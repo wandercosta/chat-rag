@@ -14,6 +14,10 @@ export const membersService = {
     return membersRepository.listForOrganization(organizationId);
   },
 
+  roles() {
+    return membersRepository.listRoles();
+  },
+
   /** Papel do usuario na organizacao, ou null se ele nao for membro. */
   async roleOf(organizationId: string, userId: string): Promise<TenantRole | null> {
     const membership = await membersRepository.findByUserAndOrganization(organizationId, userId);
