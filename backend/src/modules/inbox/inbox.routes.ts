@@ -13,13 +13,28 @@ import {
   inboxService,
   type InboxActor,
 } from "./inbox.service.js";
+import {
+  ForbiddenTransferError,
+  InvalidTransferTargetError,
+  transferConversation,
+} from "./transfer.js";
 
 const readRoles = ["Administrador", "Atendente", "Analista"] as const;
 const agentRoles = ["Administrador", "Atendente"] as const;
 
 const listQuerySchema = z.object({
   view: z.enum(["fila", "minhas", "abertas", "resolvidas", "assistente"]).default("fila"),
+  sectorId: z.string().uuid().optional(),
 });
+const transferSchema = z
+  .object({
+    userId: z.string().uuid().nullable().optional(),
+    sectorId: z.string().uuid().nullable().optional(),
+    reason: z.string().trim().max(500).optional(),
+  })
+  .refine((b) => b.userId !== undefined || b.sectorId !== undefined, {
+    message: "informe a pessoa ou o setor de destino",
+  });
 const assignSchema = z.object({ userId: z.string().uuid().nullable() });
 const statusSchema = z.object({ status: z.enum(["aberta", "pendente", "resolvida"]) });
 const textSchema = z.object({ content: z.string().trim().min(1).max(4000) });
@@ -64,8 +79,16 @@ export async function inboxRoutes(app: FastifyInstance) {
     "/organizations/:organizationId/inbox",
     { preHandler: requireOrgRole(readRoles) },
     async (request) => {
-      const { view } = listQuerySchema.parse(request.query);
-      return inboxService.list(request.params.organizationId, view, request.auth!.userId);
+      const { view, sectorId } = listQuerySchema.parse(request.query);
+      const membership = request.auth!.memberships.find(
+        (m) => m.organizationId === request.params.organizationId,
+      );
+      return inboxService.list(
+        request.params.organizationId,
+        view,
+        { userId: request.auth!.userId, role: membership?.role ?? null },
+        { sectorId },
+      );
     },
   );
 
@@ -77,7 +100,7 @@ export async function inboxRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const stream = startSse(request, reply);
       const unsubscribe = await realtime.subscribe(request.params.organizationId, (event) => {
-        if (event.kind === "conversation_changed") stream.send(event);
+        if (event.kind === "conversation_changed" || event.kind === "transfer") stream.send(event);
       });
       stream.onClose(unsubscribe);
     },
@@ -111,6 +134,30 @@ export async function inboxRoutes(app: FastifyInstance) {
           body.userId,
         );
       } catch (err) {
+        return handleInboxError(err, reply);
+      }
+    },
+  );
+
+  app.post<ConversationParams>(
+    "/organizations/:organizationId/inbox/:conversationId/transfer",
+    { preHandler: requireOrgRole(agentRoles) },
+    async (request, reply) => {
+      const actor = actorOf(request);
+      if (!actor) return reply.code(403).send({ error: "acesso de suporte nao atende conversas" });
+      const body = transferSchema.parse(request.body);
+      try {
+        return await transferConversation(
+          actor,
+          request.params.organizationId,
+          request.params.conversationId,
+          body,
+        );
+      } catch (err) {
+        if (err instanceof ForbiddenTransferError)
+          return reply.code(403).send({ error: "so quem esta com a conversa pode transferir" });
+        if (err instanceof InvalidTransferTargetError)
+          return reply.code(422).send({ error: "pessoa ou setor de destino invalido" });
         return handleInboxError(err, reply);
       }
     },

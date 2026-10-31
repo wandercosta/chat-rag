@@ -1,11 +1,11 @@
 import { auditService } from "../audit/index.js";
-import { contactsService } from "../contacts/index.js";
 import { conversationsService } from "../conversations/index.js";
 import { membersService } from "../identity/index.js";
 import { webhooksService } from "../webhooks/index.js";
 import { realtime, type InboxEvent } from "../../realtime/events.js";
 import type { InboxStatus, TenantRole } from "../../db/types.js";
-import { assignmentsRepository, type AssignmentView } from "./assignments.repository.js";
+import { assignmentsRepository } from "./assignments.repository.js";
+import { inboxViews, isActive } from "./inbox-views.js";
 import { notesRepository } from "./notes.repository.js";
 import { inboxSystemActions } from "./system-actions.js";
 import {
@@ -15,7 +15,6 @@ import {
   OutsideWindowError,
   assertWindowOpen,
   claimForReply,
-  replyWindowEndsAt,
   requireReplyable,
   type InboxActor,
 } from "./reply.js";
@@ -29,47 +28,13 @@ export {
 };
 export type { InboxActor };
 
+export type { InboxView, InboxViewer } from "./inbox-views.js";
+
 export class InvalidAssigneeError extends Error {}
 export class ForbiddenAssignmentError extends Error {}
 
-export type InboxView = AssignmentView | "assistente";
-
 /** Quem pode receber e responder conversas. */
 const AGENT_ROLES: readonly TenantRole[] = ["Administrador", "Atendente"];
-
-type AssignmentRow = NonNullable<Awaited<ReturnType<typeof assignmentsRepository.find>>>;
-
-function isActive(row: AssignmentRow | undefined): row is AssignmentRow {
-  return !!row && row.status !== "resolvida";
-}
-
-async function memberEmails(organizationId: string): Promise<Map<string, string>> {
-  const members = await membersService.list(organizationId);
-  return new Map(members.map((m) => [m.user_id, m.email]));
-}
-
-function toAssignment(row: AssignmentRow, emails: Map<string, string>) {
-  return {
-    status: row.status,
-    assignedUserId: row.assigned_user_id,
-    assignedUserEmail: row.assigned_user_id ? (emails.get(row.assigned_user_id) ?? null) : null,
-    requestedAt: row.requested_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-/** Nome do contato do CRM (etapa 3) no lugar do "visitante anonimo". */
-async function withContactLabels<T extends { contact_id: string | null }>(
-  organizationId: string,
-  conversations: T[],
-) {
-  const ids = conversations.flatMap((c) => (c.contact_id ? [c.contact_id] : []));
-  const labels = await contactsService.labelsFor(organizationId, ids);
-  return conversations.map((c) => ({
-    ...c,
-    contact_label: c.contact_id ? (labels.get(c.contact_id) ?? null) : null,
-  }));
-}
 
 async function notify(organizationId: string, conversationId: string, extra?: InboxEvent) {
   await realtime.publish(organizationId, { kind: "conversation_changed", conversationId });
@@ -77,60 +42,8 @@ async function notify(organizationId: string, conversationId: string, extra?: In
 }
 
 const inboxCore = {
-  async list(organizationId: string, view: InboxView, userId: string) {
-    if (view === "assistente") {
-      const recent = await conversationsService.listSummaries(organizationId, {
-        channel: "widget",
-        limit: 100,
-      });
-      const withHuman = new Set(
-        await assignmentsRepository.activeAmong(
-          organizationId,
-          recent.map((c) => c.id),
-        ),
-      );
-      const free = recent.filter((c) => !withHuman.has(c.id)).slice(0, 50);
-      return (await withContactLabels(organizationId, free)).map((c) => ({
-        ...c,
-        assignment: null,
-      }));
-    }
-
-    const rows = await assignmentsRepository.list(organizationId, view, userId);
-    const byId = new Map(rows.map((r) => [r.conversation_id, r]));
-    const [summaries, emails] = await Promise.all([
-      conversationsService.listSummaries(organizationId, { ids: [...byId.keys()] }),
-      memberEmails(organizationId),
-    ]);
-    return (await withContactLabels(organizationId, summaries)).map((c) => ({
-      ...c,
-      assignment: toAssignment(byId.get(c.id)!, emails),
-    }));
-  },
-
-  async get(organizationId: string, conversationId: string) {
-    const conversation = await conversationsService.getWithMessages(organizationId, conversationId);
-    if (!conversation) return null;
-
-    const [row, notes, emails] = await Promise.all([
-      assignmentsRepository.find(organizationId, conversationId),
-      notesRepository.listFor(organizationId, conversationId),
-      memberEmails(organizationId),
-    ]);
-    const emailOf = (id: string | null) => (id ? (emails.get(id) ?? null) : null);
-    const [withLabel] = await withContactLabels(organizationId, [conversation]);
-
-    return {
-      ...withLabel,
-      messages: conversation.messages.map((m) => ({
-        ...m,
-        author_email: emailOf(m.author_user_id),
-      })),
-      assignment: row ? toAssignment(row, emails) : null,
-      replyWindowEndsAt: await replyWindowEndsAt(conversation),
-      notes: notes.map((n) => ({ ...n, author_email: emailOf(n.author_user_id) })),
-    };
-  },
+  list: inboxViews.list,
+  get: inboxViews.get,
 
   /** Enquanto ha humano na conversa, o assistente nao responde (ADR-006 #5). */
   async isWithHuman(organizationId: string, conversationId: string): Promise<boolean> {
