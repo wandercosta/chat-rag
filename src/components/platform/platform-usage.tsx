@@ -29,6 +29,8 @@ const CHANNEL_LABELS: Record<string, string> = {
 };
 
 const number = (value: number) => value.toLocaleString("pt-BR");
+const usd = (value: number) =>
+  value.toLocaleString("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -61,8 +63,8 @@ export function PlatformUsageSection({ tenants }: { tenants: Organization[] }) {
         <div>
           <h2 className="text-lg font-semibold">Consumo da plataforma</h2>
           <p className="text-sm text-muted-foreground">
-            Contagens de todos os tenants, sem conteúdo de conversa. Custo estimado ainda não entra
-            (falta a tabela de preços por modelo).
+            Contagens de todos os tenants, sem conteúdo de conversa. O custo estimado usa os tokens
+            de cada resposta e o preço por modelo definido abaixo.
           </p>
         </div>
         <Select value={days} onValueChange={setDays}>
@@ -84,10 +86,15 @@ export function PlatformUsageSection({ tenants }: { tenants: Organization[] }) {
 
       {usage && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Stat label="Mensagens recebidas" value={number(usage.totals.messagesReceived)} />
             <Stat label="Perguntas ao assistente" value={number(usage.totals.ragQueries)} />
             <Stat label="Respostas de atendentes" value={number(usage.totals.agentReplies)} />
+            <Stat
+              label="Custo estimado (todas as chaves)"
+              value={usd(usage.totals.estimatedCostUsd)}
+            />
+            <Stat label="Pago pela plataforma" value={usd(usage.totals.platformCostUsd)} />
             <Stat
               label="Latência média do assistente"
               value={
@@ -97,6 +104,12 @@ export function PlatformUsageSection({ tenants }: { tenants: Organization[] }) {
               }
             />
           </div>
+
+          {usage.unpricedModels.length > 0 && (
+            <p className="text-sm text-destructive">
+              Sem preço, fora do custo: {usage.unpricedModels.join(", ")}.
+            </p>
+          )}
 
           <Card>
             <CardHeader className="pb-2">
@@ -128,6 +141,7 @@ export function PlatformUsageSection({ tenants }: { tenants: Organization[] }) {
                     <TableHead className="text-right">Perguntas ao assistente</TableHead>
                     <TableHead className="text-right">Sem resposta na base</TableHead>
                     <TableHead className="text-right">Respostas de atendentes</TableHead>
+                    <TableHead className="text-right">Custo estimado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,6 +162,9 @@ export function PlatformUsageSection({ tenants }: { tenants: Organization[] }) {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {number(o.agentReplies)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {usd(o.estimatedCostUsd)}
                       </TableCell>
                     </TableRow>
                   ))}

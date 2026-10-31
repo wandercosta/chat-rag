@@ -8,7 +8,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 
 - Visao geral do tenant
 - Organizacoes/tenants (somente master)
-- Visao geral da plataforma (somente master): estados das organizacoes e consumo cruzando tenants por periodo (so contagens, sem conteudo)
+- Visao geral da plataforma (somente master): estados das organizacoes e consumo cruzando tenants por periodo (so contagens, sem conteudo), com custo estimado e o card "Preco por modelo" (US$ por 1M tokens, entrada e saida)
 - Assistentes
 - Base de conhecimento: topicos e fontes
 - Conversas

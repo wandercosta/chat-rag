@@ -15,7 +15,7 @@ import {
 import { detectSmalltalk, smalltalkReply } from "./smalltalk.js";
 import { createStreamGuard } from "./stream-guard.js";
 import { NoActiveCredentialError, resolveChatProvider } from "./provider-resolver.js";
-import type { ChatMessage } from "./provider.types.js";
+import type { ChatMessage, ChatResult } from "./provider.types.js";
 
 export class AssistantNotFoundError extends Error {}
 export type { Citation };
@@ -207,6 +207,7 @@ export const answerService = {
     const allCitations = toCitations(retrieval.chunks, question);
     let reply: string;
     let citations: Citation[];
+    let usage: ChatResult["usage"];
 
     if (provider.kind === "extractive") {
       reply = extractiveReply(allCitations);
@@ -226,10 +227,12 @@ export const answerService = {
         { role: "user", content: question },
       ];
 
-      reply =
+      const result =
         options.onDelta && provider.stream
           ? await provider.stream(messages, assistant.model_id, createStreamGuard(options.onDelta))
           : await provider.chat(messages, assistant.model_id);
+      reply = result.text;
+      usage = result.usage;
 
       // Recuperou contexto, mas o contexto nao responde a pergunta (ou o
       // modelo recusou e devolveu vazio): conta como lacuna igual, senao a
@@ -248,8 +251,14 @@ export const answerService = {
       type: "rag_query",
       payload: {
         latencyMs: Date.now() - startedAt,
-        model: assistant.model_id,
+        // O modelo que respondeu (pode ser o do .env, nao o do assistente).
+        model: usage?.model ?? assistant.model_id,
         chunksUsed: retrieval.chunks.length,
+        ...(usage && {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          keySource: provider.keySource ?? "plataforma",
+        }),
       },
     });
 

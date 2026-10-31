@@ -137,6 +137,12 @@ export const masterApi = {
   getTenantCredentials: (organizationId: string) =>
     get<CredentialStatus[]>(`/master/tenants/${organizationId}/ai-credentials`),
   listModelCatalog: () => get<CatalogModel[]>("/master/model-catalog"),
+  /** Preco do modelo (US$ por 1M tokens); null tira o preco. */
+  setModelPrice: (modelId: string, inputPerMTok: number | null, outputPerMTok: number | null) =>
+    apiFetch<CatalogModel>(`/master/model-catalog/${encodeURIComponent(modelId)}/price`, {
+      method: "PUT",
+      body: JSON.stringify({ inputPerMTok, outputPerMTok }),
+    }),
   listTenantModels: (organizationId: string) =>
     get<AllowedModel[]>(`/master/tenants/${organizationId}/allowed-models`),
   /** Lista vazia volta a valer o padrao da plataforma (catalogo ativo, ADR-004),
@@ -153,6 +159,9 @@ export interface CatalogModel {
   label: string;
   note: string | null;
   enabled: boolean;
+  /** US$ por 1M tokens (texto decimal), ou null sem preco. */
+  input_price_per_mtok?: string | null;
+  output_price_per_mtok?: string | null;
 }
 
 // --- assistants ------------------------------------------------------

@@ -113,6 +113,9 @@ export interface AiModelCatalogTable {
   label: string;
   note: string | null;
   enabled: boolean;
+  /** US$ por 1 milhao de tokens (numeric volta como texto do driver). */
+  input_price_per_mtok: ColumnType<string | null, number | null | undefined, number | null>;
+  output_price_per_mtok: ColumnType<string | null, number | null | undefined, number | null>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, PauseCircle, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ModelPricesCard } from "@/components/platform/model-prices-card";
 import { PlatformUsageSection } from "@/components/platform/platform-usage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
@@ -128,6 +129,7 @@ function PlatformOverview() {
       </Card>
 
       <PlatformUsageSection tenants={tenants} />
+      <ModelPricesCard />
     </>
   );
 }
