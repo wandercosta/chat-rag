@@ -54,6 +54,8 @@ Autenticacao por `Authorization: Bearer crg_...`; 401 token invalido/revogado, 4
 - `PUT /organizations/:organizationId/retention` (`{ days: number | null, mode?: "excluir" | "anonimizar" }`, politica de retencao da organizacao; `GET /organizations/:organizationId` traz `retention_mode`)
 - `GET /organizations/:organizationId/roles` (papeis da tabela `roles` com a descricao, em ordem; so Administrador)
 - `GET|POST /organizations/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment`
+- `GET /master/tenants/:organizationId/channels` (estado dos canais do tenant: provedor, nome, numero/Pagina, estado e motivo; sem segredo; exige sessao de suporte ativa)
+- `GET /organizations/:organizationId/channels/embedded-signup` (`{ config: { appId, configId } | null }`), `POST .../channels/whatsapp/embedded` (`{ name, assistantId, code, phoneNumberId, wabaId }`; 409 sem app da plataforma; 422 se a Meta recusar o code) — so Administrador; `GET|POST /webhooks/whatsapp` (webhook unico do app da plataforma, assinado com `META_APP_SECRET`)
 - `GET /master/tenants/:organizationId/ai-credentials`, `DELETE .../ai-credentials/:environment` (suporte Master, so estado, exige sessao de suporte ativa)
 - `GET|POST|PATCH /organizations/:organizationId/assistants[/:assistantId]`
 - `GET|POST|PATCH /master/model-catalog[/:modelId]`, `GET|PUT /master/tenants/:organizationId/allowed-models`, `GET /organizations/:organizationId/allowed-models`

@@ -4,6 +4,7 @@ import { Copy, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { ConnectChannelDialog } from "@/components/channels/connect-channel-dialog";
+import { EmbeddedSignupDialog } from "@/components/channels/embedded-signup-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ function ChannelsPage() {
         description="Mensagens desses canais chegam ao assistente e, quando pedem atendente, à caixa de entrada. Só a API oficial de cada provedor é usada."
         actions={
           <>
+            <EmbeddedSignupDialog tenantId={tenantId} />
             {(["whatsapp", "instagram", "messenger", "telegram"] as const).map((provider) => (
               <ConnectChannelDialog key={provider} tenantId={tenantId} provider={provider} />
             ))}

@@ -21,7 +21,7 @@ O painel sera inicialmente criado visualmente no Lovable. O resultado deve ser u
 ## Telas essenciais
 
 1. **Master - tenants:** lista, criacao, status, limites, configuracoes iniciais e usuario administrador inicial.
-2. **Master - detalhe do tenant:** uso, auditoria, suporte, suspensao/reativacao e acesso de suporte explicito, temporario e auditado ao contexto do tenant.
+2. **Master - detalhe do tenant:** uso, auditoria, suporte, suspensao/reativacao e acesso de suporte explicito, temporario e auditado ao contexto do tenant. Com sessao de suporte ativa, o card **Canais** mostra o estado de cada canal (provedor, nome, numero/Pagina, ativo/erro e motivo), sem tokens. Em **Canais** do tenant, o botao "WhatsApp com a Meta" aparece quando a plataforma tem o app do cadastro integrado.
 3. Lista/criacao de assistentes.
 4. Detalhe do assistente: identidade, instrucoes opcionais, colecoes, modo de resposta, privacidade, retencao, WhatsApp e aparencia.
 5. Base: topicos, fontes, status de indexacao, erros e reindexacao.

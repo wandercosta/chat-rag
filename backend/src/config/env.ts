@@ -58,6 +58,13 @@ const schema = z.object({
   // webhook que o tenant cola na Meta/Telegram; sem ele, vem do Host da
   // requisicao do painel. As URLs base das APIs oficiais so mudam em teste.
   PUBLIC_API_URL: optional(z.string().url()),
+  // Cadastro integrado da Meta (Embedded Signup) pelo app da propria
+  // plataforma. Sem os tres primeiros, o painel so oferece a conexao manual.
+  // META_WEBHOOK_VERIFY_TOKEN e o texto cadastrado no webhook unico do app.
+  META_APP_ID: optional(z.string()),
+  META_APP_SECRET: optional(z.string()),
+  META_ES_CONFIG_ID: optional(z.string()),
+  META_WEBHOOK_VERIFY_TOKEN: optional(z.string()),
   META_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
   TELEGRAM_API_URL: z.string().url().default("https://api.telegram.org"),
   // E-mail de aviso (caixa de entrada). Sem SMTP_URL, nenhum e-mail sai.

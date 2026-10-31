@@ -53,6 +53,8 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   const sent: SentMessage[] = [];
   const metaMessages: MetaMessage[] = [];
   const telegram: TelegramCall[] = [];
+  /** Contas (WABA) que assinaram os webhooks do app da plataforma. */
+  const subscribedApps: string[] = [];
   let counter = 0;
   const app: FastifyInstance = Fastify({ logger: false });
 
@@ -102,6 +104,21 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
       return { display_phone_number: "+55 11 4000-0000", verified_name: "Loja Teste" };
     },
   );
+
+  // Cadastro integrado: troca do code pelo token e assinatura dos webhooks da conta.
+  app.get<{ Querystring: { code?: string; client_secret?: string } }>(
+    "/v21.0/oauth/access_token",
+    async (request, reply) => {
+      if (request.query.code !== "code-valido") {
+        return reply.code(400).send({ error: { message: "Invalid verification code" } });
+      }
+      return { access_token: "EAAtokendocadastrointegrado1234567" };
+    },
+  );
+  app.post<{ Params: { waba: string } }>("/v21.0/:waba/subscribed_apps", async (request) => {
+    subscribedApps.push(request.params.waba);
+    return { success: true };
+  });
 
   app.post<{ Params: { id: string }; Body: SentMessage["body"] | MetaMessage["body"] }>(
     "/v21.0/:id/messages",
@@ -165,5 +182,5 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   );
 
   await app.listen({ port: FAKE_GRAPH_PORT, host: "127.0.0.1" });
-  return { sent, metaMessages, telegram, close: () => app.close() };
+  return { sent, metaMessages, telegram, subscribedApps, close: () => app.close() };
 }

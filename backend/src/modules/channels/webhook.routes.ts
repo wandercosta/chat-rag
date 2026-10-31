@@ -5,6 +5,8 @@ import { organizationsService } from "../organizations/index.js";
 import { enqueueChannelJob } from "../../queue/channel-messages.queue.js";
 import { connectionsRepository } from "./connections.repository.js";
 import { providers, secretsOf } from "./providers.js";
+import { verifySignature } from "./whatsapp.webhook.js";
+import { env } from "../../config/env.js";
 
 const providerSchema = z.enum(["whatsapp", "messenger", "instagram", "telegram"]);
 const paramsSchema = z.object({ provider: providerSchema, connectionId: z.string().uuid() });
@@ -13,6 +15,35 @@ const verifyQuerySchema = z.object({
   "hub.verify_token": z.string(),
   "hub.challenge": z.string(),
 });
+
+type WebhookConnection = NonNullable<
+  Awaited<ReturnType<typeof connectionsRepository.findByIdForWebhook>>
+>;
+
+/** Mensagens e recibos so da propria conta da conexao, para a fila. */
+async function enqueueParsed(connection: WebhookConnection, payload: unknown) {
+  const parsed = providers[connection.provider as ChannelProvider].parse(payload, connection);
+  for (const message of parsed.messages) {
+    await enqueueChannelJob({ kind: "inbound", connectionId: connection.id, message });
+  }
+  for (const status of parsed.statuses) {
+    await enqueueChannelJob({ kind: "status", connectionId: connection.id, ...status });
+  }
+}
+
+/** Numeros citados no corpo do WhatsApp (metadata.phone_number_id de cada mudanca). */
+function phoneNumberIdsOf(payload: unknown): string[] {
+  const entries =
+    (
+      payload as {
+        entry?: { changes?: { value?: { metadata?: { phone_number_id?: string } } }[] }[];
+      }
+    )?.entry ?? [];
+  const ids = entries.flatMap((e) =>
+    (e.changes ?? []).map((c) => c.value?.metadata?.phone_number_id ?? ""),
+  );
+  return [...new Set(ids.filter(Boolean))];
+}
 
 /** Conexao existente e do mesmo provedor da URL; senao, nada a fazer. */
 async function connectionFor(params: unknown) {
@@ -37,6 +68,43 @@ export async function channelsWebhookRoutes(app: FastifyInstance) {
     } catch (err) {
       done(err as Error, undefined);
     }
+  });
+
+  // Webhook unico do app da plataforma (cadastro integrado): a Meta assina
+  // com a chave do app da plataforma e a conexao vem pelo numero de cada
+  // mudanca. So conexoes criadas pelo cadastro integrado entram por aqui.
+  app.get("/webhooks/whatsapp", async (request, reply) => {
+    const query = verifyQuerySchema.safeParse(request.query);
+    if (
+      !query.success ||
+      !env.META_WEBHOOK_VERIFY_TOKEN ||
+      query.data["hub.verify_token"] !== env.META_WEBHOOK_VERIFY_TOKEN
+    ) {
+      return reply.code(403).send({ error: "verificacao recusada" });
+    }
+    return reply.type("text/plain").send(query.data["hub.challenge"]);
+  });
+
+  app.post("/webhooks/whatsapp", async (request, reply) => {
+    const body = request.body as { raw: Buffer; json: unknown } | undefined;
+    const secret = env.META_APP_SECRET;
+    if (
+      !body ||
+      !secret ||
+      !verifySignature(body.raw, request.headers["x-hub-signature-256"] as string, secret)
+    ) {
+      return reply.code(401).send({ error: "autenticacao do provedor invalida" });
+    }
+    for (const phoneNumberId of phoneNumberIdsOf(body.json)) {
+      const connection = await connectionsRepository.findByExternalForWebhook(
+        "whatsapp",
+        phoneNumberId,
+      );
+      if (connection?.config.signup !== "embedded") continue;
+      if (await organizationsService.isSuspended(connection.organization_id)) continue;
+      await enqueueParsed(connection, body.json);
+    }
+    return reply.code(200).send({ ok: true });
   });
 
   // Verificacao que a Meta faz ao cadastrar a URL: devolve o challenge se o
@@ -70,13 +138,7 @@ export async function channelsWebhookRoutes(app: FastifyInstance) {
       return reply.code(200).send({ ok: true });
     }
 
-    const parsed = provider.parse(body.json, connection);
-    for (const message of parsed.messages) {
-      await enqueueChannelJob({ kind: "inbound", connectionId: connection.id, message });
-    }
-    for (const status of parsed.statuses) {
-      await enqueueChannelJob({ kind: "status", connectionId: connection.id, ...status });
-    }
+    await enqueueParsed(connection, body.json);
     return reply.code(200).send({ ok: true });
   });
 }
