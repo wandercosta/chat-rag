@@ -16,6 +16,23 @@ export function createOpenAiChat(apiKey: string, fixedModel?: string): ChatProvi
       });
       return response.choices[0]?.message?.content ?? "";
     },
+    async stream(messages, model, onDelta) {
+      const stream = await client.chat.completions.create({
+        model: fixedModel ?? model,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        temperature: 0.2,
+        stream: true,
+      });
+      let text = "";
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) {
+          text += delta;
+          onDelta(delta);
+        }
+      }
+      return text;
+    },
   };
 }
 

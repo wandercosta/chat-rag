@@ -192,11 +192,23 @@ export class ChatRagWidget {
 
     try {
       const conversationId = await this.ensureConversation();
-      const { answer, citations } = await this.api.sendMessage(
+      // A resposta aparece enquanto o assistente escreve; no fim, a final
+      // substitui o texto parcial (e leva as fontes).
+      let partial: RenderedMessage | null = null;
+      const { answer, citations } = await this.api.sendMessageStream(
         this.options.key,
         conversationId,
         text,
+        (delta) => {
+          if (!partial) {
+            partial = { role: "assistente", content: "" };
+            this.messages.push(partial);
+          }
+          partial.content += delta;
+          this.renderMessages();
+        },
       );
+      if (partial) this.messages.splice(this.messages.indexOf(partial), 1);
       // Sem resposta = um atendente esta na conversa; a dele chega por evento.
       if (answer !== null) this.messages.push({ role: "assistente", content: answer, citations });
     } catch (err) {

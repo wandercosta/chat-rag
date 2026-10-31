@@ -14,6 +14,8 @@ export interface ChatProvider {
   /** "extractive" nao chama LLM: a resposta e montada a partir dos trechos. */
   kind: "llm" | "extractive";
   chat(messages: ChatMessage[], model: string): Promise<string>;
+  /** Mesma resposta, mas avisando cada pedaco de texto assim que chega. */
+  stream?(messages: ChatMessage[], model: string, onDelta: (text: string) => void): Promise<string>;
 }
 
 export interface EmbeddingProvider {

@@ -7,6 +7,8 @@ export interface SseStream {
   send(data: unknown): void;
   /** Roda quando o cliente desconecta (ou na hora, se ja desconectou). */
   onClose(cleanup: () => void | Promise<void>): void;
+  /** Fecha a resposta (stream de uma resposta so, como a do assistente). */
+  end(): void;
 }
 
 /**
@@ -58,5 +60,37 @@ export function startSse(request: FastifyRequest, reply: FastifyReply): SseStrea
       if (closed) runCleanup(cleanup);
       else cleanups.push(cleanup);
     },
+    end() {
+      clearInterval(heartbeat);
+      if (!closed) reply.raw.end();
+    },
   };
+}
+
+/** O cliente pediu a resposta em pedacos (Server-Sent Events). */
+export function wantsStream(request: FastifyRequest) {
+  return (request.headers.accept ?? "").includes("text/event-stream");
+}
+
+/**
+ * Resposta em streaming: eventos `{ type: "delta", text }` enquanto o modelo
+ * escreve e um `{ type: "done", ...resposta final }`, que e a que vale (pode
+ * trocar o texto parcial, ex.: quando a base nao tinha a resposta). Erro
+ * depois de comecar vira `{ type: "error", error }`.
+ */
+export async function streamReply<T extends object>(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  run: (onDelta: (text: string) => void) => Promise<T>,
+  describeError: (err: unknown) => string,
+) {
+  const stream = startSse(request, reply);
+  try {
+    const result = await run((text) => stream.send({ type: "delta", text }));
+    stream.send({ type: "done", ...result });
+  } catch (err) {
+    stream.send({ type: "error", error: describeError(err) });
+  } finally {
+    stream.end();
+  }
 }

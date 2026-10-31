@@ -1,10 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
-import { answerService } from "../rag/index.js";
 import { inboxService } from "../inbox/index.js";
 import { contactsService } from "../contacts/index.js";
-import { onIncomingMessage } from "../automations/index.js";
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
@@ -18,6 +16,8 @@ import { InvalidIdentityTokenError, visitorIdentity } from "./visitor-identity.j
 import { handlePublicError, originOf } from "./public-helpers.js";
 import { rateLimits } from "./rate-limit.js";
 import { WIDGET_SCRIPT_CONTENT } from "./widget-code.js";
+import { replyToWidgetMessage } from "./widget-message.js";
+import { streamReply, wantsStream } from "../../realtime/sse.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
 const startConversationSchema = keySchema.extend({
@@ -155,43 +155,16 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
-        // Com um humano na conversa o assistente fica calado (ADR-006 #5): a
-        // mensagem e gravada e chega ao painel pelo tempo real.
-        if (await inboxService.isWithHuman(resolved.organizationId, conversation.id)) {
-          await conversationsService.addVisitorMessage(conversation.id, body.message);
-          await inboxService.onVisitorMessage(resolved.organizationId, conversation.id);
-          return { answer: null, citations: [], humanHandling: true };
+        // Streaming (Accept: text/event-stream): a resposta sai em pedacos.
+        if (wantsStream(request)) {
+          return streamReply(
+            request,
+            reply,
+            (onDelta) => replyToWidgetMessage(resolved, conversation, body.message, onDelta),
+            () => "nao foi possivel responder agora",
+          );
         }
-
-        // Automacoes (ADR-006 #4) antes do assistente: uma regra que responde
-        // ou passa para humano deixa o assistente quieto nessa mensagem.
-        const automation = await onIncomingMessage(resolved.organizationId, {
-          conversationId: conversation.id,
-          contactId: conversation.contact_id,
-          channel: "widget",
-          text: body.message,
-          isFirstMessage: !conversation.messages.some((m) => m.role === "visitante"),
-        });
-        if (automation.suppressAssistant) {
-          await conversationsService.addVisitorMessage(conversation.id, body.message);
-          if (automation.reply) {
-            await conversationsService.addAssistantMessage(conversation.id, automation.reply);
-          }
-          await inboxService.touched(resolved.organizationId, conversation.id);
-          return { answer: automation.reply, citations: [], humanHandling: automation.handedOff };
-        }
-
-        const result = await answerService.answer(
-          resolved.organizationId,
-          resolved.assistantId,
-          body.message,
-          {
-            conversationId: request.params.conversationId,
-            environment: resolved.environment,
-          },
-        );
-        await inboxService.touched(resolved.organizationId, conversation.id);
-        return { answer: result.answer, citations: result.citations, humanHandling: false };
+        return await replyToWidgetMessage(resolved, conversation, body.message);
       } catch (err) {
         return handlePublicError(err, reply);
       }
