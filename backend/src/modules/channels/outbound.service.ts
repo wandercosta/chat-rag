@@ -53,6 +53,9 @@ export async function sendToContact(input: {
     if (!template || template.status !== "APPROVED") {
       return { status: "falhou", messageId: null, error: "modelo nao aprovado" };
     }
+    if (template.connection_id !== connection.id) {
+      return { status: "falhou", messageId: null, error: "modelo de outro numero" };
+    }
   }
   const content =
     input.content.kind === "template"

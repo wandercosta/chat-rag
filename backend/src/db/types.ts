@@ -391,7 +391,7 @@ export interface AutomationRulesTable {
   organization_id: string;
   name: string;
   enabled: ColumnType<boolean, boolean | undefined, boolean>;
-  trigger: "mensagem_recebida" | "sem_resposta";
+  trigger: "mensagem_recebida" | "sem_resposta" | "etiqueta_adicionada";
   conditions: ColumnType<import("../modules/automations/rules.js").Condition[], string, string>;
   actions: ColumnType<import("../modules/automations/rules.js").Action[], string, string>;
   version: ColumnType<number, number | undefined, number>;

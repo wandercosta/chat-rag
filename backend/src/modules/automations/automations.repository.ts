@@ -101,7 +101,7 @@ export const automationsRepository = {
     organizationId: string;
     ruleId: string;
     ruleVersion: number;
-    conversationId: string;
+    conversationId: string | null;
     status: "ok" | "erro";
     detail: string;
   }) {

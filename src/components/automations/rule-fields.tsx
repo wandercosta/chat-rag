@@ -10,6 +10,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Action, ChannelName, Condition } from "@/lib/automations-api";
 import { channelLabel } from "@/lib/channels-api";
+import { TemplateActionFields } from "./template-action-fields";
 
 export interface Option {
   id: string;
@@ -19,7 +20,7 @@ export interface Option {
 const CHANNELS: ChannelName[] = ["widget", "whatsapp", "telegram", "instagram", "messenger"];
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-function Pick({
+export function Pick({
   value,
   options,
   onChange,
@@ -94,6 +95,7 @@ export function ConditionFields({
         />
       );
     case "contato_tem_etiqueta":
+    case "etiqueta_adicionada":
       return (
         <Pick
           label="Etiqueta"
@@ -161,11 +163,13 @@ export function ActionFields({
   onChange,
   tags,
   agents,
+  tenantId,
 }: {
   value: Action;
   onChange: (a: Action) => void;
   tags: Option[];
   agents: Option[];
+  tenantId: string | null;
 }) {
   switch (value.type) {
     case "responder":
@@ -196,6 +200,8 @@ export function ActionFields({
           onChange={(userId) => onChange({ ...value, userId })}
         />
       );
+    case "enviar_modelo":
+      return <TemplateActionFields tenantId={tenantId} value={value} onChange={onChange} />;
     default:
       return null;
   }

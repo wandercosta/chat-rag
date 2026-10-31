@@ -5,6 +5,7 @@ import { contactsRepository, type ContactValues } from "./contacts.repository.js
 import { insertContact } from "./created.js";
 import { identitiesRepository } from "./identities.repository.js";
 import { normalizeEmail, normalizePhone } from "./normalize.js";
+import { announceTagsAdded } from "./tag-events.js";
 import { taxonomyRepository } from "./taxonomy.repository.js";
 import { contactLinks } from "./links.service.js";
 
@@ -115,7 +116,12 @@ const contactsCore = {
       ...optInChange(null, input.optIn, "painel"),
     });
     if (input.tagIds?.length) {
-      await taxonomyRepository.setContactTags(organizationId, contact.id, input.tagIds);
+      const added = await taxonomyRepository.setContactTags(
+        organizationId,
+        contact.id,
+        input.tagIds,
+      );
+      await announceTagsAdded(organizationId, contact.id, added);
     }
     await auditService.record({
       actorUserId,
@@ -138,7 +144,8 @@ const contactsCore = {
       ...optInChange(current, input.optIn, "painel"),
     });
     if (input.tagIds !== undefined) {
-      await taxonomyRepository.setContactTags(organizationId, id, input.tagIds);
+      const added = await taxonomyRepository.setContactTags(organizationId, id, input.tagIds);
+      await announceTagsAdded(organizationId, id, added);
     }
     await auditService.record({
       actorUserId,

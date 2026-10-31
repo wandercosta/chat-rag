@@ -1,7 +1,7 @@
 /** Automacoes (ADR-006 #4, etapa 7; docs/apis/contratos-planejados.md). */
 import { apiFetch } from "./api-client";
 
-export type Trigger = "mensagem_recebida" | "sem_resposta";
+export type Trigger = "mensagem_recebida" | "sem_resposta" | "etiqueta_adicionada";
 export type ChannelName = "widget" | "whatsapp" | "telegram" | "instagram" | "messenger";
 
 export type Condition =
@@ -10,7 +10,8 @@ export type Condition =
   | { type: "contato_tem_etiqueta"; tagId: string }
   | { type: "primeira_mensagem" }
   | { type: "fora_do_horario"; start: string; end: string; weekdays: number[] }
-  | { type: "sem_resposta_ha"; minutes: number };
+  | { type: "sem_resposta_ha"; minutes: number }
+  | { type: "etiqueta_adicionada"; tagId: string };
 
 export type Action =
   | { type: "responder"; text: string }
@@ -18,7 +19,8 @@ export type Action =
   | { type: "encaminhar_humano" }
   | { type: "atribuir"; userId: string }
   | { type: "nota_interna"; text: string }
-  | { type: "devolver_fila" };
+  | { type: "devolver_fila" }
+  | { type: "enviar_modelo"; connectionId: string; templateId: string; params: string[] };
 
 export interface RuleInput {
   name: string;
@@ -46,6 +48,7 @@ export interface RuleRun {
 export const triggerLabel: Record<Trigger, string> = {
   mensagem_recebida: "Quando chegar mensagem (antes do assistente)",
   sem_resposta: "Quando o cliente ficar sem resposta de quem atende",
+  etiqueta_adicionada: "Quando o contato ganhar uma etiqueta",
 };
 
 /** O que cada gatilho aceita; espelha a validacao do backend (rules.ts). */
@@ -67,6 +70,10 @@ export const allowedFor: Record<
     conditions: ["sem_resposta_ha", "canal", "contato_tem_etiqueta"],
     actions: ["devolver_fila", "atribuir", "nota_interna", "adicionar_etiqueta"],
   },
+  etiqueta_adicionada: {
+    conditions: ["etiqueta_adicionada", "contato_tem_etiqueta"],
+    actions: ["enviar_modelo", "adicionar_etiqueta"],
+  },
 };
 
 export const conditionLabel: Record<Condition["type"], string> = {
@@ -76,6 +83,7 @@ export const conditionLabel: Record<Condition["type"], string> = {
   primeira_mensagem: "É a primeira mensagem da conversa",
   fora_do_horario: "Fora do horário de atendimento",
   sem_resposta_ha: "Sem resposta há (minutos)",
+  etiqueta_adicionada: "A etiqueta adicionada é",
 };
 
 export const actionLabel: Record<Action["type"], string> = {
@@ -85,6 +93,7 @@ export const actionLabel: Record<Action["type"], string> = {
   atribuir: "Atribuir a",
   nota_interna: "Escrever nota interna",
   devolver_fila: "Devolver para a fila",
+  enviar_modelo: "Enviar modelo do WhatsApp",
 };
 
 const base = (organizationId: string) => `/organizations/${organizationId}/automations`;
