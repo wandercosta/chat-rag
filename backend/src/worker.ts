@@ -4,9 +4,24 @@ import { redis } from "./db/redis.js";
 import { extractionService, sourcesService } from "./modules/knowledge/index.js";
 import { indexingService } from "./modules/rag/index.js";
 import { retentionService } from "./modules/conversations/index.js";
+import { inboxService } from "./modules/inbox/index.js";
+import { teamChatService } from "./modules/team-chat/index.js";
 import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
+import { CHANNEL_MESSAGES_QUEUE, type ChannelJob } from "./queue/channel-messages.queue.js";
+import { automationTemplateSender, processChannelJob } from "./modules/channels/index.js";
+import { CAMPAIGNS_QUEUE, type CampaignTickJob } from "./queue/campaigns.queue.js";
+import { runCampaignTick } from "./modules/campaigns/index.js";
+import {
+  AUTOMATIONS_QUEUE,
+  TAG_ADDED_JOB,
+  scheduleNoReplyScan,
+  type TagAddedJob,
+} from "./queue/automations.queue.js";
+import { onTagAdded, scanAllNoReply, setTemplateSender } from "./modules/automations/index.js";
+import { WEBHOOKS_QUEUE, type WebhookDeliveryJob } from "./queue/webhooks.queue.js";
+import { processWebhookDelivery } from "./modules/webhooks/index.js";
 
 // Limite de jobs simultaneos por tenant (ADR-002 #4): evita que um upload em
 // massa de uma organizacao monopolize a fila de indexacao das demais.
@@ -79,7 +94,21 @@ const retentionWorker = new Worker(
   RETENTION_QUEUE,
   async () => {
     const summary = await retentionService.purgeExpired();
-    console.log("retencao executada:", summary);
+    // Anonimizar tambem tira as notas internas (tabela do modulo inbox).
+    for (const row of summary) {
+      await inboxService.deleteNotesFor(row.organizationId, row.anonymizedConversationIds);
+    }
+    // O chat interno da equipe segue o prazo da organizacao.
+    const teamChat = await teamChatService.purgeExpired();
+    console.log(
+      "retencao executada:",
+      summary.map(({ organizationId, deleted, anonymized }) => ({
+        organizationId,
+        deleted,
+        anonymized,
+      })),
+      teamChat.length > 0 ? { chatInterno: teamChat } : "",
+    );
   },
   { connection: { url: env.REDIS_URL }, concurrency: 1 },
 );
@@ -88,6 +117,63 @@ retentionWorker.on("failed", (job, err) => {
   console.error("job de retencao falhou:", err.message);
 });
 
-await scheduleRetentionSweep();
+// Canais (ADR-006): mensagens recebidas, recibos e envios pela fila, para o
+// webhook responder rapido e o envio ter novas tentativas.
+const channelWorker = new Worker<ChannelJob>(
+  CHANNEL_MESSAGES_QUEUE,
+  async (job) => processChannelJob(job.data),
+  { connection: { url: env.REDIS_URL }, concurrency: 5 },
+);
 
-console.log("worker de indexacao e retencao iniciado");
+channelWorker.on("failed", (job, err) => {
+  console.error(`job de canal falhou (${job?.data.kind}):`, err.message);
+});
+
+// Campanhas (ADR-006 #9): um lote por minuto por campanha, com teto por
+// organizacao (modules/campaigns/sender.ts).
+const campaignWorker = new Worker<CampaignTickJob>(
+  CAMPAIGNS_QUEUE,
+  async (job) => runCampaignTick(job.data.organizationId, job.data.campaignId),
+  { connection: { url: env.REDIS_URL }, concurrency: 2 },
+);
+
+campaignWorker.on("failed", (job, err) => {
+  console.error(`lote de campanha falhou (${job?.data.campaignId}):`, err.message);
+});
+
+// Automacoes (ADR-006 #4): varredura do gatilho "sem resposta" a cada minuto e
+// gatilho "etiqueta adicionada". O envio de modelo pedido por uma regra sai
+// pelo modulo de canais, registrado aqui para nao criar ciclo entre modulos.
+setTemplateSender(automationTemplateSender);
+const automationWorker = new Worker(
+  AUTOMATIONS_QUEUE,
+  async (job) => {
+    if (job.name === TAG_ADDED_JOB) {
+      const { organizationId, contactId, tagId } = job.data as TagAddedJob;
+      return onTagAdded(organizationId, contactId, tagId);
+    }
+    return scanAllNoReply();
+  },
+  { connection: { url: env.REDIS_URL }, concurrency: 1 },
+);
+
+automationWorker.on("failed", (_job, err) => {
+  console.error("varredura de automacoes falhou:", err.message);
+});
+
+// Webhooks de saida (etapa 8): uma tentativa por job; a fila refaz com espera
+// crescente (queue/webhooks.queue.ts).
+const webhookWorker = new Worker<WebhookDeliveryJob>(
+  WEBHOOKS_QUEUE,
+  async (job) => processWebhookDelivery(job.data.deliveryId, job.attemptsMade + 1),
+  { connection: { url: env.REDIS_URL }, concurrency: 10 },
+);
+
+webhookWorker.on("failed", (job, err) => {
+  console.error(`entrega de webhook falhou (${job?.data.deliveryId}):`, err.message);
+});
+
+await scheduleRetentionSweep();
+await scheduleNoReplyScan();
+
+console.log("worker de indexacao, retencao, canais, campanhas, automacoes e webhooks iniciado");

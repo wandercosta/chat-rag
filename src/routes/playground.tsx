@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApiError, assistantsApi, playgroundApi, type Citation } from "@/lib/api-client";
+import { ApiError, assistantsApi, type Citation, type PlaygroundAnswer } from "@/lib/api-client";
+import { postStreaming } from "@/lib/sse-stream";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/playground")({
@@ -38,6 +39,8 @@ export const Route = createFileRoute("/playground")({
 interface ChatMessage {
   role: "visitante" | "assistente";
   content: string;
+  /** Resposta ainda chegando em pedacos; a final substitui esta. */
+  partial?: boolean;
   usedContext?: boolean;
   citations?: Citation[];
 }
@@ -79,11 +82,21 @@ function Playground() {
 
   const send = useMutation({
     mutationFn: (message: string) =>
-      playgroundApi.send(tenantId!, selected, { message, conversationId }),
+      postStreaming<PlaygroundAnswer>(
+        `/organizations/${tenantId}/assistants/${selected}/playground-messages`,
+        { message, conversationId, environment: "teste" },
+        (delta) =>
+          setMessages((m) => {
+            const last = m.at(-1);
+            return last?.partial
+              ? [...m.slice(0, -1), { ...last, content: last.content + delta }]
+              : [...m, { role: "assistente", content: delta, partial: true }];
+          }),
+      ),
     onSuccess: (result) => {
       setConversationId(result.conversationId);
       setMessages((m) => [
-        ...m,
+        ...m.filter((x) => !x.partial),
         {
           role: "assistente",
           content: result.answer,
@@ -99,7 +112,10 @@ function Playground() {
           : err instanceof ApiError
             ? err.message
             : "Não foi possível obter a resposta.";
-      setMessages((m) => [...m, { role: "assistente", content: message }]);
+      setMessages((m) => [
+        ...m.filter((x) => !x.partial),
+        { role: "assistente", content: message },
+      ]);
     },
   });
 

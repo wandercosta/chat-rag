@@ -25,6 +25,9 @@ export interface WidgetOptions {
   /** Dados livres (ex.: {"plano":"Pro","pedido":"4821"}) que o hospedeiro
    * quer que o assistente considere ao responder, alem da base. */
   context: Record<string, unknown> | null;
+  /** Vem da config do assistente: pedido de atendente cai na caixa de
+   * entrada do painel em vez do WhatsApp. */
+  humanInbox: boolean;
 }
 
 /** Aparencia configurada no painel (assistente > Widget). */
@@ -34,12 +37,15 @@ export interface Appearance {
   accentColor?: string;
   position?: Position;
   theme?: Theme;
+  /** Logo do cabecalho (https), padrao da organizacao ou do assistente. */
+  logoUrl?: string;
 }
 
 export interface ConfigResponse {
   assistantId: string;
   environment: "teste" | "producao";
   appearance?: Appearance;
+  humanInbox?: boolean;
 }
 
 /** Trecho e documento de origem que embasaram uma resposta. */
@@ -57,10 +63,16 @@ export interface HandoffSector {
 
 export type HandoffResponse =
   | { needsSectorSelection: true; sectors: HandoffSector[] }
-  | { needsSectorSelection: false; whatsappUrl: string; sectorName: string };
+  | { needsSectorSelection: false; whatsappUrl: string; sectorName: string }
+  | { inbox: true; status: "aberta" | "pendente" | "resolvida" };
+
+/** Eventos de tempo real da conversa (so os que o visitante pode ver). */
+export type InboxEvent =
+  | { kind: "agent_message"; conversationId: string; content: string; createdAt: string }
+  | { kind: "status"; conversationId: string; status: "aberta" | "pendente" | "resolvida" };
 
 export interface ChatMessage {
-  role: "visitante" | "assistente";
+  role: "visitante" | "assistente" | "atendente";
   content: string;
   citations?: Citation[];
 }

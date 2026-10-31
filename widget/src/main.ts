@@ -55,6 +55,7 @@ function readOptions(): WidgetOptions | null {
     visitorName: attr("data-visitor-name") || null,
     visitorEmail: attr("data-visitor-email") || null,
     context: readContext(),
+    humanInbox: false,
   };
 }
 
@@ -69,6 +70,7 @@ function applyAppearance(options: WidgetOptions, appearance: Appearance | undefi
   if (appearance.position && !scriptEl?.hasAttribute("data-position"))
     options.position = appearance.position;
   if (appearance.theme && !scriptEl?.hasAttribute("data-theme")) options.theme = appearance.theme;
+  if (appearance.logoUrl && !options.avatarUrl) options.avatarUrl = appearance.logoUrl;
 }
 
 async function init() {
@@ -82,6 +84,7 @@ async function init() {
   try {
     config = await createApiClient(options.apiBaseUrl).getConfig(options.key);
     applyAppearance(options, config.appearance);
+    options.humanInbox = config.humanInbox === true;
   } catch (err) {
     configError = err;
   }

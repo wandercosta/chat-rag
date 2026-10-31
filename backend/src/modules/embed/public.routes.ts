@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { conversationsService, visitorsService } from "../conversations/index.js";
-import { AssistantNotFoundError, NoActiveCredentialError, answerService } from "../rag/index.js";
+import { inboxService } from "../inbox/index.js";
+import { contactsService } from "../contacts/index.js";
 import {
   NoHandoffConfiguredError,
   SectorNotFoundError,
@@ -9,14 +10,14 @@ import {
   handoffService,
 } from "../assistants/index.js";
 import { usageService } from "../analytics/index.js";
-import {
-  DomainNotAllowedError,
-  InvalidKeyError,
-  OrganizationSuspendedError,
-  publicAccessService,
-} from "./public-access.service.js";
+import { mergeAppearance, widgetDefaultsRepository } from "./appearance.js";
+import { publicAccessService } from "./public-access.service.js";
+import { InvalidIdentityTokenError, visitorIdentity } from "./visitor-identity.js";
+import { handlePublicError, originOf } from "./public-helpers.js";
 import { rateLimits } from "./rate-limit.js";
 import { WIDGET_SCRIPT_CONTENT } from "./widget-code.js";
+import { replyToWidgetMessage } from "./widget-message.js";
+import { streamReply, wantsStream } from "../../realtime/sse.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
 const startConversationSchema = keySchema.extend({
@@ -24,17 +25,12 @@ const startConversationSchema = keySchema.extend({
   visitorName: z.string().min(1).max(200).optional(),
   visitorEmail: z.string().email().optional(),
   context: z.record(z.unknown()).optional(),
+  // Token assinado pelo backend do cliente (docs/integrations/widget-embed.md).
+  identityToken: z.string().min(1).max(4000).optional(),
 });
 const messageSchema = keySchema.extend({ message: z.string().min(1).max(4000) });
 const feedbackSchema = keySchema.extend({ rating: z.enum(["positivo", "negativo"]) });
 const handoffSchema = keySchema.extend({ sectorId: z.string().uuid().optional() });
-
-function originOf(request: import("fastify").FastifyRequest): string | undefined {
-  return (
-    (request.headers.origin as string | undefined) ??
-    (request.headers.referer as string | undefined)
-  );
-}
 
 export async function embedPublicRoutes(app: FastifyInstance) {
   app.get("/chat-widget.js", async (_request, reply) => {
@@ -62,12 +58,18 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         assistantId: resolved.assistantId,
         type: "widget_loaded",
       });
-      const assistant = await assistantsService.get(resolved.organizationId, resolved.assistantId);
+      const [assistant, defaults] = await Promise.all([
+        assistantsService.get(resolved.organizationId, resolved.assistantId),
+        widgetDefaultsRepository.get(resolved.organizationId),
+      ]);
       return {
         assistantId: resolved.assistantId,
         environment: resolved.environment,
-        // Aparencia definida no painel; atributos data-* do <script> sobrescrevem.
-        appearance: assistant?.widget_settings ?? {},
+        // Padrao da organizacao < assistente < atributos data-* do <script>.
+        appearance: mergeAppearance(defaults, assistant?.widget_settings),
+        // Pedido de atendente vai para a caixa de entrada do painel (ADR-006)
+        // em vez do link do WhatsApp.
+        humanInbox: assistant?.human_inbox_enabled ?? false,
       };
     } catch (err) {
       return handlePublicError(err, reply);
@@ -87,19 +89,36 @@ export async function embedPublicRoutes(app: FastifyInstance) {
         return reply.code(429).send({ error: "limite de novas conversas excedido" });
       }
 
-      const visitor = await visitorsService.resolve(resolved.organizationId, {
-        externalUserId: body.externalUserId,
-        name: body.visitorName,
-        email: body.visitorEmail,
-        context: body.context,
-      });
+      let identity;
+      try {
+        identity = visitorIdentity(resolved, body);
+      } catch (err) {
+        if (err instanceof InvalidIdentityTokenError) {
+          return reply.code(401).send({ error: `token de identidade invalido: ${err.message}` });
+        }
+        throw err;
+      }
+      const visitor = await visitorsService.resolve(resolved.organizationId, identity);
 
+      // So identidade assinada retoma a conversa anterior (com o historico).
       const { conversation, isResumed, messages } = await conversationsService.startOrResume(
         resolved.organizationId,
         resolved.assistantId,
         "widget",
         visitor?.id ?? null,
+        !!identity.verified,
       );
+      // Visitante identificado (e-mail ou id externo) vira contato do CRM.
+      if (visitor) {
+        const contactId = await contactsService.resolveForVisitor(resolved.organizationId, visitor);
+        if (contactId && conversation.contact_id !== contactId) {
+          await conversationsService.setContact(
+            resolved.organizationId,
+            conversation.id,
+            contactId,
+          );
+        }
+      }
       return reply.code(isResumed ? 200 : 201).send({
         conversationId: conversation.id,
         isResumed,
@@ -136,16 +155,16 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
-        const result = await answerService.answer(
-          resolved.organizationId,
-          resolved.assistantId,
-          body.message,
-          {
-            conversationId: request.params.conversationId,
-            environment: resolved.environment,
-          },
-        );
-        return { answer: result.answer, citations: result.citations };
+        // Streaming (Accept: text/event-stream): a resposta sai em pedacos.
+        if (wantsStream(request)) {
+          return streamReply(
+            request,
+            reply,
+            (onDelta) => replyToWidgetMessage(resolved, conversation, body.message, onDelta),
+            () => "nao foi possivel responder agora",
+          );
+        }
+        return await replyToWidgetMessage(resolved, conversation, body.message);
       } catch (err) {
         return handlePublicError(err, reply);
       }
@@ -195,6 +214,18 @@ export async function embedPublicRoutes(app: FastifyInstance) {
           return reply.code(404).send({ error: "conversa nao encontrada" });
         }
 
+        const assistant = await assistantsService.get(
+          resolved.organizationId,
+          resolved.assistantId,
+        );
+        if (assistant?.human_inbox_enabled) {
+          const assignment = await inboxService.requestHuman(
+            resolved.organizationId,
+            conversation.id,
+          );
+          return { inbox: true, status: assignment.status };
+        }
+
         const lastQuestion =
           [...conversation.messages].reverse().find((m) => m.role === "visitante")?.content ?? "";
         const resolution = await handoffService.resolveForWidget(
@@ -216,19 +247,4 @@ export async function embedPublicRoutes(app: FastifyInstance) {
       }
     },
   );
-}
-
-function handlePublicError(err: unknown, reply: import("fastify").FastifyReply) {
-  if (err instanceof InvalidKeyError) return reply.code(401).send({ error: "chave invalida" });
-  if (err instanceof DomainNotAllowedError)
-    return reply.code(403).send({ error: "dominio nao autorizado" });
-  if (err instanceof OrganizationSuspendedError) {
-    return reply.code(403).send({ error: "atendimento indisponivel" });
-  }
-  if (err instanceof AssistantNotFoundError)
-    return reply.code(404).send({ error: "assistente nao encontrado" });
-  if (err instanceof NoActiveCredentialError) {
-    return reply.code(409).send({ error: "assistente indisponivel no momento" });
-  }
-  throw err;
 }

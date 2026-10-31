@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { env } from "../../config/env.js";
+import { env } from "../config/env.js";
 
 /**
  * Envelope encryption (ADR-002 #1): uma KEK protege uma DEK por segredo, que
@@ -65,4 +65,42 @@ export function maskSecret(plaintext: string): string {
   const tail = plaintext.slice(-4);
   const head = plaintext.slice(0, Math.min(3, Math.max(0, plaintext.length - 4)));
   return `${head}${"•".repeat(8)}${tail}`;
+}
+
+/** Envelope num unico valor jsonb (segredos de canal, ADR-006 #7); a chave de
+ * IA continua em colunas proprias por compatibilidade. */
+export interface SerializedEnvelope {
+  ciphertext: string;
+  iv: string;
+  authTag: string;
+  wrappedDek: string;
+  dekIv: string;
+  dekAuthTag: string;
+  kekVersion: number;
+}
+
+export function serializeEnvelope(envelope: Envelope): SerializedEnvelope {
+  const b64 = (b: Buffer) => b.toString("base64");
+  return {
+    ciphertext: b64(envelope.ciphertext),
+    iv: b64(envelope.iv),
+    authTag: b64(envelope.authTag),
+    wrappedDek: b64(envelope.wrappedDek),
+    dekIv: b64(envelope.dekIv),
+    dekAuthTag: b64(envelope.dekAuthTag),
+    kekVersion: envelope.kekVersion,
+  };
+}
+
+export function deserializeEnvelope(value: SerializedEnvelope): Envelope {
+  const buf = (s: string) => Buffer.from(s, "base64");
+  return {
+    ciphertext: buf(value.ciphertext),
+    iv: buf(value.iv),
+    authTag: buf(value.authTag),
+    wrappedDek: buf(value.wrappedDek),
+    dekIv: buf(value.dekIv),
+    dekAuthTag: buf(value.dekAuthTag),
+    kekVersion: value.kekVersion,
+  };
 }

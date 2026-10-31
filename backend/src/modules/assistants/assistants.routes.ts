@@ -17,6 +17,10 @@ const updateSchema = z.object({
   modelId: z.string().min(1).optional(),
   instructions: z.string().nullable().optional(),
   retentionDays: z.number().int().positive().nullable().optional(),
+  // Pedido de atendente no widget cai na caixa de entrada do painel (ADR-006).
+  humanInboxEnabled: z.boolean().optional(),
+  // So trechos de fontes revisadas por uma pessoa (sources.reviewed_at).
+  reviewedSourcesOnly: z.boolean().optional(),
   widgetSettings: z
     .object({
       title: z.string().max(60).optional(),
@@ -27,6 +31,13 @@ const updateSchema = z.object({
         .optional(),
       position: z.enum(["bottom-right", "bottom-left"]).optional(),
       theme: z.enum(["light", "dark", "sync"]).optional(),
+      // Mesmo formato do padrao da organizacao (embed/appearance.ts).
+      logoUrl: z
+        .string()
+        .url()
+        .max(500)
+        .refine((u) => u.startsWith("https://"), "o logo precisa de endereco https")
+        .optional(),
     })
     .strict()
     .optional(),

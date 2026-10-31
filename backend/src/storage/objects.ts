@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, SOURCES_BUCKET } from "./s3.js";
 
 export async function putSourceFile(key: string, body: Buffer, contentType: string): Promise<void> {
@@ -27,4 +27,20 @@ export function sourceObjectKey(
   filename: string,
 ): string {
   return `${organizationId}/${sourceId}/${filename}`;
+}
+
+/** Midia recebida pelos canais, no mesmo bucket com prefixo proprio. */
+export function mediaObjectKey(organizationId: string, attachmentId: string): string {
+  return `media/${organizationId}/${attachmentId}`;
+}
+
+export async function deleteObjects(keys: string[]): Promise<void> {
+  for (let i = 0; i < keys.length; i += 1000) {
+    await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: SOURCES_BUCKET,
+        Delete: { Objects: keys.slice(i, i + 1000).map((Key) => ({ Key })), Quiet: true },
+      }),
+    );
+  }
 }

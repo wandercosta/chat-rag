@@ -14,7 +14,10 @@ const createTenantSchema = z.object({
 });
 
 const statusSchema = z.object({ status: z.enum(["ativo", "suspenso"]) });
-const retentionSchema = z.object({ days: z.number().int().positive().nullable() });
+const retentionSchema = z.object({
+  days: z.number().int().positive().nullable(),
+  mode: z.enum(["excluir", "anonimizar"]).optional(),
+});
 
 export async function organizationsRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
@@ -58,10 +61,11 @@ export async function organizationsRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(["Administrador"]) },
     async (request) => {
       const body = retentionSchema.parse(request.body);
-      await organizationsService.setRetentionDays(
+      await organizationsService.setRetentionPolicy(
         request.auth!.userId,
         request.params.organizationId,
         body.days,
+        body.mode,
       );
       return { ok: true };
     },

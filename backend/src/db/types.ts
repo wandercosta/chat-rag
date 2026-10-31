@@ -1,7 +1,7 @@
 import type { ColumnType, Generated } from "kysely";
 
 export type TenantStatus = "ativo" | "suspenso";
-export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista" | "Atendente";
 export type AuditType = "acesso" | "configuracao" | "conteudo" | "seguranca";
 export type CredentialEnvironment = "teste" | "producao" | "ambos";
 export type CredentialStatus = "valida" | "invalida" | "substituida" | "removida";
@@ -17,8 +17,12 @@ export type SourceStatus =
   | "pronta"
   | "erro"
   | "arquivada";
-export type ConversationChannel = "widget" | "whatsapp" | "playground";
-export type MessageRole = "visitante" | "assistente";
+export type ConversationChannel =
+  "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
+export type ChannelProvider = "whatsapp" | "telegram" | "instagram" | "messenger";
+export type DeliveryStatus = "enviando" | "enviada" | "entregue" | "lida" | "falhou";
+export type MessageRole = "visitante" | "assistente" | "atendente";
+export type InboxStatus = "aberta" | "pendente" | "resolvida";
 export type FeedbackRating = "positivo" | "negativo";
 export type GapStatus = "pendente" | "resolvida";
 export type EmbedKeyStatus = "ativa" | "revogada";
@@ -29,13 +33,43 @@ export interface OrganizationsTable {
   slug: string;
   status: TenantStatus;
   retention_days: number | null;
+  retention_mode: ColumnType<RetentionMode, RetentionMode | undefined, RetentionMode>;
+  ai_limit_mode: ColumnType<AiLimitMode, AiLimitMode | undefined, AiLimitMode>;
+  /** bigint: o pg devolve como string. */
+  ai_monthly_tokens: ColumnType<string | null, number | null | undefined, number | null>;
+  ai_limit_notified_month: ColumnType<string | null, string | null | undefined, string | null>;
   created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type RetentionMode = "excluir" | "anonimizar";
+export type AiLimitMode = "padrao" | "personalizado" | "sem_limite";
+
+export interface RolesTable {
+  name: TenantRole;
+  description: string;
+  position: number;
 }
 
 export interface UsersTable {
   id: Generated<string>;
   email: string;
   password_hash: string;
+  totp_secret: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  totp_pending: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  totp_enabled_at: Date | null;
+  recovery_codes: ColumnType<
+    string[],
+    string | undefined,
+    string | import("kysely").RawBuilder<unknown>
+  >;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -84,6 +118,9 @@ export interface AiModelCatalogTable {
   label: string;
   note: string | null;
   enabled: boolean;
+  /** US$ por 1 milhao de tokens (numeric volta como texto do driver). */
+  input_price_per_mtok: ColumnType<string | null, number | null | undefined, number | null>;
+  output_price_per_mtok: ColumnType<string | null, number | null | undefined, number | null>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -103,6 +140,8 @@ export interface AssistantsTable {
   instructions: string | null;
   retention_days: number | null;
   widget_settings: ColumnType<WidgetSettings, string | undefined, string>;
+  human_inbox_enabled: Generated<boolean>;
+  reviewed_sources_only: Generated<boolean>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -142,6 +181,8 @@ export interface SourcesTable {
   storage_key: string | null;
   error_message: string | null;
   chunk_count: Generated<number>;
+  reviewed_at: ColumnType<Date | null, string | undefined, string | null>;
+  reviewed_by: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string>;
 }
@@ -153,6 +194,7 @@ export interface VisitorsTable {
   name: string | null;
   email: string | null;
   context: unknown;
+  identity_verified: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -161,8 +203,11 @@ export interface ConversationsTable {
   organization_id: string;
   assistant_id: string;
   visitor_id: string | null;
+  contact_id: string | null;
+  channel_connection_id: string | null;
   channel: ConversationChannel;
   started_at: ColumnType<Date, string | undefined, never>;
+  anonymized_at: ColumnType<Date | null, string | undefined, string | null>;
 }
 
 export interface MessagesTable {
@@ -171,6 +216,228 @@ export interface MessagesTable {
   role: MessageRole;
   content: string;
   citations: ColumnType<MessageCitation[], string | undefined, string>;
+  author_user_id: string | null;
+  provider_message_id: string | null;
+  delivery_status: DeliveryStatus | null;
+  delivery_error: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type AttachmentKind = "imagem" | "audio" | "video" | "documento" | "figurinha";
+export type AttachmentStatus = "pendente" | "pronto" | "falhou";
+
+export interface MessageAttachmentsTable {
+  id: Generated<string>;
+  organization_id: string;
+  message_id: string;
+  kind: AttachmentKind;
+  mime_type: string | null;
+  file_name: string | null;
+  size_bytes: number | null;
+  storage_key: string | null;
+  status: ColumnType<AttachmentStatus, AttachmentStatus | undefined>;
+  error: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ChannelConnectionsTable {
+  id: Generated<string>;
+  organization_id: string;
+  assistant_id: string;
+  provider: ChannelProvider;
+  name: string;
+  external_id: string;
+  config: ColumnType<Record<string, string>, string | undefined, string>;
+  secret: ColumnType<import("../crypto/envelope.js").SerializedEnvelope, string, string>;
+  secret_hint: string;
+  verify_token: string;
+  status: ColumnType<"ativo" | "erro" | "inativo", "ativo" | "erro" | "inativo" | undefined>;
+  status_detail: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ChannelTemplatesTable {
+  id: Generated<string>;
+  organization_id: string;
+  connection_id: string;
+  name: string;
+  language: string;
+  category: string | null;
+  status: string;
+  body: string;
+  variables: number;
+  synced_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ConversationAssignmentsTable {
+  conversation_id: string;
+  organization_id: string;
+  status: InboxStatus;
+  assigned_user_id: string | null;
+  sector_id: string | null;
+  requested_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface InboxSettingsTable {
+  organization_id: string;
+  first_response_minutes: number | null;
+  email_on_assignment: ColumnType<boolean, boolean | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface InboxSectorsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface InboxSectorMembersTable {
+  sector_id: string;
+  user_id: string;
+  organization_id: string;
+}
+
+export interface ConversationNotesTable {
+  id: Generated<string>;
+  organization_id: string;
+  conversation_id: string;
+  author_user_id: string | null;
+  content: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type ContactChannel = "widget" | "whatsapp" | "telegram" | "instagram" | "messenger";
+export type ContactFieldType = "texto" | "numero" | "data";
+
+export interface ContactsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  custom_fields: ColumnType<Record<string, string>, string | undefined, string>;
+  opt_in_at: Date | null;
+  opt_in_source: string | null;
+  opted_out_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface ContactIdentitiesTable {
+  id: Generated<string>;
+  organization_id: string;
+  contact_id: string;
+  channel: ContactChannel;
+  value: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ContactTagsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  color: Generated<string>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ContactTagLinksTable {
+  contact_id: string;
+  tag_id: string;
+}
+
+export interface ContactFieldsTable {
+  id: Generated<string>;
+  organization_id: string;
+  key: string;
+  label: string;
+  type: ContactFieldType;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+/** Filtro salvo de contatos. Todos os criterios presentes precisam valer. */
+export interface ContactFilter {
+  search?: string;
+  tagIds?: string[];
+  tagMatch?: "any" | "all";
+  optIn?: boolean;
+  fields?: { key: string; value: string }[];
+}
+
+export interface ContactSegmentsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  filter: ColumnType<ContactFilter, string, string>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type CampaignStatus = "rascunho" | "agendada" | "enviando" | "concluida" | "cancelada";
+export type RecipientStatus = "pendente" | "enviada" | "falhou" | "ignorada";
+
+export interface CampaignsTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  connection_id: string | null;
+  segment_id: string | null;
+  audience_filter: ColumnType<ContactFilter | null, string | null | undefined, string | null>;
+  template_id: string | null;
+  template_params: ColumnType<string[], string | undefined, string>;
+  text: string | null;
+  status: ColumnType<CampaignStatus, CampaignStatus | undefined, CampaignStatus>;
+  rate_per_minute: ColumnType<number, number | undefined, number>;
+  scheduled_at: Date | null;
+  started_at: Date | null;
+  finished_at: Date | null;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CampaignRecipientsTable {
+  id: Generated<string>;
+  organization_id: string;
+  campaign_id: string;
+  contact_id: string;
+  address: string;
+  status: ColumnType<RecipientStatus, RecipientStatus | undefined, RecipientStatus>;
+  message_id: string | null;
+  error: string | null;
+  sent_at: Date | null;
+}
+
+export interface AutomationRulesTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  enabled: ColumnType<boolean, boolean | undefined, boolean>;
+  trigger: "mensagem_recebida" | "sem_resposta" | "etiqueta_adicionada";
+  conditions: ColumnType<import("../modules/automations/rules.js").Condition[], string, string>;
+  actions: ColumnType<import("../modules/automations/rules.js").Action[], string, string>;
+  version: ColumnType<number, number | undefined, number>;
+  updated_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export interface AutomationRunsTable {
+  id: Generated<string>;
+  organization_id: string;
+  rule_id: string;
+  rule_version: number;
+  conversation_id: string | null;
+  status: "ok" | "erro";
+  detail: ColumnType<string, string | undefined, string>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CannedResponsesTable {
+  id: Generated<string>;
+  organization_id: string;
+  title: string;
+  content: string;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -187,6 +454,8 @@ export interface WidgetSettings {
   accentColor?: string;
   position?: "bottom-right" | "bottom-left";
   theme?: "light" | "dark" | "sync";
+  /** Logo ou avatar do cabecalho (URL https). */
+  logoUrl?: string;
 }
 
 export interface FeedbacksTable {
@@ -231,6 +500,19 @@ export interface EmbedKeysTable {
   status: EmbedKeyStatus;
   created_at: ColumnType<Date, string | undefined, never>;
   revoked_at: ColumnType<Date, string | undefined, string> | null;
+  identity_secret: ColumnType<
+    import("../crypto/envelope.js").SerializedEnvelope | null,
+    string | null | undefined,
+    string | null
+  >;
+  identity_secret_hint: string | null;
+  require_signed_identity: ColumnType<boolean, boolean | undefined, boolean>;
+}
+
+export interface WidgetDefaultsTable {
+  organization_id: string;
+  settings: ColumnType<WidgetSettings, string | undefined, string>;
+  updated_at: ColumnType<Date, string | undefined, string>;
 }
 
 export interface AllowedDomainsTable {
@@ -267,6 +549,34 @@ export type UsageEventType =
   | "widget_loaded"
   | "widget_rate_limited";
 
+export type TeamThreadKind = "geral" | "direto";
+
+/** Chat interno da equipe: canal Geral da organizacao ou conversa direta. */
+export interface TeamThreadsTable {
+  id: Generated<string>;
+  organization_id: string;
+  kind: TeamThreadKind;
+  user_a: string | null;
+  user_b: string | null;
+  last_message_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TeamMessagesTable {
+  id: Generated<string>;
+  organization_id: string;
+  thread_id: string;
+  author_user_id: string | null;
+  content: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TeamThreadReadsTable {
+  thread_id: string;
+  user_id: string;
+  last_read_at: Date;
+}
+
 export interface UsageEventsTable {
   id: Generated<string>;
   organization_id: string;
@@ -276,7 +586,49 @@ export interface UsageEventsTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface ApiTokensTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  token_prefix: string;
+  token_hash: string;
+  scopes: ColumnType<string[], string, string>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  last_used_at: Date | null;
+  revoked_at: Date | null;
+}
+
+export interface WebhookEndpointsTable {
+  id: Generated<string>;
+  organization_id: string;
+  url: string;
+  events: ColumnType<string[], string, string>;
+  secret: ColumnType<import("../crypto/envelope.js").SerializedEnvelope, string, string>;
+  enabled: Generated<boolean>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export type WebhookDeliveryStatus = "pendente" | "entregue" | "falhou";
+
+export interface WebhookDeliveriesTable {
+  id: Generated<string>;
+  organization_id: string;
+  endpoint_id: string;
+  event: string;
+  payload: ColumnType<Record<string, unknown>, string, string>;
+  status: Generated<WebhookDeliveryStatus>;
+  attempts: Generated<number>;
+  last_status_code: number | null;
+  last_error: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  delivered_at: Date | null;
+}
+
 export interface Database {
+  roles: RolesTable;
   organizations: OrganizationsTable;
   users: UsersTable;
   memberships: MembershipsTable;
@@ -293,12 +645,38 @@ export interface Database {
   visitors: VisitorsTable;
   conversations: ConversationsTable;
   messages: MessagesTable;
+  message_attachments: MessageAttachmentsTable;
   feedbacks: FeedbacksTable;
   knowledge_gaps: KnowledgeGapsTable;
   source_chunks: SourceChunksTable;
   embed_keys: EmbedKeysTable;
+  widget_defaults: WidgetDefaultsTable;
   allowed_domains: AllowedDomainsTable;
   support_access_sessions: SupportAccessSessionsTable;
   handoff_configs: HandoffConfigsTable;
   usage_events: UsageEventsTable;
+  conversation_assignments: ConversationAssignmentsTable;
+  inbox_sectors: InboxSectorsTable;
+  inbox_settings: InboxSettingsTable;
+  inbox_sector_members: InboxSectorMembersTable;
+  conversation_notes: ConversationNotesTable;
+  canned_responses: CannedResponsesTable;
+  contacts: ContactsTable;
+  contact_identities: ContactIdentitiesTable;
+  contact_tags: ContactTagsTable;
+  contact_tag_links: ContactTagLinksTable;
+  contact_fields: ContactFieldsTable;
+  contact_segments: ContactSegmentsTable;
+  channel_connections: ChannelConnectionsTable;
+  channel_templates: ChannelTemplatesTable;
+  campaigns: CampaignsTable;
+  campaign_recipients: CampaignRecipientsTable;
+  automation_rules: AutomationRulesTable;
+  automation_runs: AutomationRunsTable;
+  api_tokens: ApiTokensTable;
+  webhook_endpoints: WebhookEndpointsTable;
+  webhook_deliveries: WebhookDeliveriesTable;
+  team_threads: TeamThreadsTable;
+  team_messages: TeamMessagesTable;
+  team_thread_reads: TeamThreadReadsTable;
 }

@@ -1,3 +1,4 @@
+import type { AiLimitMode, RetentionMode } from "../../db/types.js";
 import { db } from "../../db/client.js";
 import { identityService } from "../identity/index.js";
 import { auditService } from "../audit/index.js";
@@ -69,19 +70,63 @@ export const organizationsService = {
 
   /** null = usa o padrao de plataforma (90 dias). Usado pelo modulo assistants
    * para resolver a politica efetiva de retencao (docs/security). */
-  getRetentionDays(organizationId: string) {
-    return organizationsRepository.findRetentionDays(organizationId);
+  /** Prazo (null = padrao da plataforma) e o que fazer ao vencer. */
+  getRetentionPolicy(organizationId: string) {
+    return organizationsRepository.findRetentionPolicy(organizationId);
   },
 
-  async setRetentionDays(actorUserId: string, organizationId: string, days: number | null) {
-    await organizationsRepository.setRetentionDays(organizationId, days);
+  async setRetentionPolicy(
+    actorUserId: string,
+    organizationId: string,
+    days: number | null,
+    mode?: RetentionMode,
+  ) {
+    await organizationsRepository.setRetentionPolicy(organizationId, days, mode);
     await auditService.record({
       actorUserId,
       organizationId,
       action: "Alterou politica de retencao da organizacao",
       type: "configuracao",
-      target: days === null ? "padrao de plataforma (90 dias)" : `${days} dias`,
+      target: `${days === null ? "padrao de plataforma (90 dias)" : `${days} dias`}${
+        mode ? `, ${mode}` : ""
+      }`,
     });
+  },
+
+  /** Teto da IA da plataforma (ADR-007): modo e tokens proprios, se houver. */
+  async getAiLimit(organizationId: string) {
+    const row = await organizationsRepository.findAiLimit(organizationId);
+    return {
+      mode: row?.ai_limit_mode ?? ("padrao" as AiLimitMode),
+      tokens: row?.ai_monthly_tokens ? Number(row.ai_monthly_tokens) : null,
+    };
+  },
+
+  /** So o Master define; o tenant apenas ve o consumo e o teto. */
+  async setAiLimit(
+    masterUserId: string,
+    organizationId: string,
+    mode: AiLimitMode,
+    tokens: number | null,
+  ) {
+    const result = await organizationsRepository.setAiLimit(
+      organizationId,
+      mode,
+      mode === "personalizado" ? tokens : null,
+    );
+    if (Number(result.numUpdatedRows) === 0) return false;
+    await auditService.record({
+      actorUserId: masterUserId,
+      organizationId,
+      action: "Alterou limite de IA da plataforma",
+      type: "configuracao",
+      target: mode === "personalizado" ? `${tokens} tokens por mes` : mode,
+    });
+    return true;
+  },
+
+  claimLimitNotice(organizationId: string, month: string) {
+    return organizationsRepository.claimLimitNotice(organizationId, month);
   },
 
   async setStatus(masterUserId: string, organizationId: string, status: "ativo" | "suspenso") {

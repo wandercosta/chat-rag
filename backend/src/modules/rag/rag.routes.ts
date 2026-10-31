@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireOrgRole, requireSession } from "../identity/index.js";
 import { AssistantNotFoundError, answerService } from "./answer.service.js";
 import { NoActiveCredentialError } from "./provider-resolver.js";
+import { streamReply, wantsStream } from "../../realtime/sse.js";
 
 const messageSchema = z.object({
   message: z.string().min(1),
@@ -18,16 +19,27 @@ export async function ragRoutes(app: FastifyInstance) {
     { preHandler: requireOrgRole(["Administrador", "Editor de base"]) },
     async (request, reply) => {
       const body = messageSchema.parse(request.body);
-      try {
-        return await answerService.answer(
+      const ask = (onDelta?: (text: string) => void) =>
+        answerService.answer(
           request.params.organizationId,
           request.params.assistantId,
           body.message,
           {
             conversationId: body.conversationId,
             environment: body.environment,
+            onDelta,
           },
         );
+      // Streaming no playground: mesmo formato do widget (eventos delta e done).
+      if (wantsStream(request)) {
+        return streamReply(request, reply, ask, (err) =>
+          err instanceof NoActiveCredentialError
+            ? "sem chave de IA valida configurada para esta organizacao"
+            : "nao foi possivel responder agora",
+        );
+      }
+      try {
+        return await ask();
       } catch (err) {
         if (err instanceof AssistantNotFoundError) {
           return reply.code(404).send({ error: "assistente nao encontrado" });

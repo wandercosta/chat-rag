@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CitationList } from "@/components/citation-list";
+import { MessageAttachments } from "@/components/conversations/message-attachments";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +110,14 @@ function ConversationsPage() {
             <TableBody>
               {rows.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-mono text-xs">{c.id.slice(0, 8)}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {c.id.slice(0, 8)}
+                    {c.anonymized_at && (
+                      <Badge variant="outline" className="ml-2 font-sans">
+                        anonimizada
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{assistantNames.get(c.assistant_id) ?? c.assistant_id}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
@@ -178,6 +186,13 @@ function TranscriptSheet({
               >
                 {m.content}
                 {m.citations?.length ? <CitationList citations={m.citations} /> : null}
+                {tenantId && conversationId && (
+                  <MessageAttachments
+                    organizationId={tenantId}
+                    conversationId={conversationId}
+                    attachments={m.attachments}
+                  />
+                )}
               </div>
             </div>
           ))}

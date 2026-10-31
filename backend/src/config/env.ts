@@ -12,6 +12,17 @@ const schema = z.object({
   APP_MASTER_KEY: z.string().min(32, "APP_MASTER_KEY precisa ter pelo menos 32 caracteres"),
   SESSION_COOKIE_NAME: z.string().default("chatrag_session"),
   SESSION_TTL_HOURS: z.coerce.number().default(12),
+  // Master so age com verificacao em duas etapas ativa (ligar em producao).
+  MASTER_2FA_REQUIRED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  // Webhooks de saida: so https para endereco publico. "true" libera http e
+  // rede privada/localhost, apenas para testes e desenvolvimento local.
+  WEBHOOKS_ALLOW_PRIVATE_NETWORK: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   // Origem(ns) do painel autorizadas a mandar cookie de sessao entre portas
   // diferentes em dev (localhost:8080 -> localhost:3333). Lista separada por
   // virgula; nunca usar "*" aqui porque a rota usa credentials/cookie.
@@ -42,6 +53,34 @@ const schema = z.object({
 
   // Pagina de demonstracao do widget (GET /demo) com a chave criada pelo seed.
   DEMO_WIDGET_KEY: optional(z.string()),
+
+  // Canais (ADR-006). Endereco publico da API, usado para montar a URL de
+  // webhook que o tenant cola na Meta/Telegram; sem ele, vem do Host da
+  // requisicao do painel. As URLs base das APIs oficiais so mudam em teste.
+  PUBLIC_API_URL: optional(z.string().url()),
+  // Cadastro integrado da Meta (Embedded Signup) pelo app da propria
+  // plataforma. Sem os tres primeiros, o painel so oferece a conexao manual.
+  // META_WEBHOOK_VERIFY_TOKEN e o texto cadastrado no webhook unico do app.
+  META_APP_ID: optional(z.string()),
+  META_APP_SECRET: optional(z.string()),
+  META_ES_CONFIG_ID: optional(z.string()),
+  META_WEBHOOK_VERIFY_TOKEN: optional(z.string()),
+  META_GRAPH_URL: z.string().url().default("https://graph.facebook.com/v21.0"),
+  TELEGRAM_API_URL: z.string().url().default("https://api.telegram.org"),
+  // E-mail de aviso (caixa de entrada). Sem SMTP_URL, nenhum e-mail sai.
+  // Ex.: smtps://usuario:senha@smtp.provedor.com:465. PANEL_URL monta o link.
+  SMTP_URL: optional(z.string().url()),
+  SMTP_FROM: z.string().default("ChatRAG <nao-responda@localhost>"),
+  PANEL_URL: optional(z.string().url()),
+  // Teto mensal de tokens da IA da plataforma por tenant no modo "padrao"
+  // (ADR-007). Sem valor, o padrao e sem limite; o Master ajusta por tenant.
+  PLATFORM_AI_MONTHLY_TOKENS: optional(z.coerce.number().int().positive()),
+  // Midia recebida acima deste tamanho nao e baixada (fica "falhou" no painel).
+  CHANNEL_MEDIA_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(25 * 1024 * 1024),
 });
 
 export const env = schema

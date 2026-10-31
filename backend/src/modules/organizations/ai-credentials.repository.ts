@@ -1,6 +1,6 @@
 import { db } from "../../db/client.js";
 import type { CredentialEnvironment, CredentialStatus } from "../../db/types.js";
-import type { Envelope } from "./ai-credentials.envelope.js";
+import type { Envelope } from "../../crypto/envelope.js";
 
 export interface UpsertCredentialInput {
   organizationId: string;

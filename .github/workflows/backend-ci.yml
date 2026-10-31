@@ -1,11 +1,16 @@
 name: backend-ci
 
+# So roda a caminho da main: PRs para main e o push que chega nela. O
+# trabalho do dia a dia vai por PR para a develop, sem pipeline, para nao
+# gastar minutos de Actions a cada commit (docs/deploy/ambientes.md).
 on:
   push:
+    branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
   pull_request:
+    branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"

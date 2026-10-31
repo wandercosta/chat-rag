@@ -4,18 +4,20 @@
  * podem ser adicionadas aqui seguindo o mesmo padrao conforme mais telas
  * saem do mock.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
 
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Corpo da resposta de erro (ex.: `twoFactorRequired` no login). */
+    public body: Record<string, unknown> | null = null,
   ) {
     super(message);
   }
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // So manda Content-Type quando ha corpo JSON: Fastify rejeita (400) uma
   // requisicao com esse header e corpo vazio (ex.: POST /auth/logout), e num
   // upload multipart quem define o header (com boundary) tem que ser o browser.
@@ -37,6 +39,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError(
       response.status,
       body?.error ?? body?.message ?? `erro HTTP ${response.status}`,
+      body,
     );
   }
   return body as T;
@@ -51,13 +54,14 @@ const post = <T>(path: string, body?: unknown) =>
 export interface AuthContext {
   userId: string;
   email: string;
+  twoFactorEnabled: boolean;
   isPlatform: boolean;
-  memberships: { organizationId: string; role: "Administrador" | "Editor de base" | "Analista" }[];
+  memberships: { organizationId: string; role: TenantRole }[];
 }
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    post<{ ok: true }>("/auth/login", { email, password }),
+  login: (email: string, password: string, code?: string) =>
+    post<{ ok: true }>("/auth/login", { email, password, ...(code ? { code } : {}) }),
   logout: () => post<{ ok: true }>("/auth/logout"),
   me: () => get<{ auth: AuthContext }>("/auth/me"),
 };
@@ -70,15 +74,21 @@ export interface Organization {
   slug: string;
   status: "ativo" | "suspenso";
   retention_days: number | null;
+  /** O que a retencao faz ao vencer o prazo. */
+  retention_mode: "excluir" | "anonimizar";
   created_at: string;
 }
 
 export const organizationsApi = {
   getMine: (organizationId: string) => get<Organization>(`/organizations/${organizationId}`),
-  setRetention: (organizationId: string, days: number | null) =>
+  setRetention: (
+    organizationId: string,
+    days: number | null,
+    mode?: Organization["retention_mode"],
+  ) =>
     apiFetch<{ ok: true }>(`/organizations/${organizationId}/retention`, {
       method: "PUT",
-      body: JSON.stringify({ days }),
+      body: JSON.stringify({ days, mode }),
     }),
 };
 
@@ -127,6 +137,12 @@ export const masterApi = {
   getTenantCredentials: (organizationId: string) =>
     get<CredentialStatus[]>(`/master/tenants/${organizationId}/ai-credentials`),
   listModelCatalog: () => get<CatalogModel[]>("/master/model-catalog"),
+  /** Preco do modelo (US$ por 1M tokens); null tira o preco. */
+  setModelPrice: (modelId: string, inputPerMTok: number | null, outputPerMTok: number | null) =>
+    apiFetch<CatalogModel>(`/master/model-catalog/${encodeURIComponent(modelId)}/price`, {
+      method: "PUT",
+      body: JSON.stringify({ inputPerMTok, outputPerMTok }),
+    }),
   listTenantModels: (organizationId: string) =>
     get<AllowedModel[]>(`/master/tenants/${organizationId}/allowed-models`),
   /** Lista vazia volta a valer o padrao da plataforma (catalogo ativo, ADR-004),
@@ -143,6 +159,9 @@ export interface CatalogModel {
   label: string;
   note: string | null;
   enabled: boolean;
+  /** US$ por 1M tokens (texto decimal), ou null sem preco. */
+  input_price_per_mtok?: string | null;
+  output_price_per_mtok?: string | null;
 }
 
 // --- assistants ------------------------------------------------------
@@ -157,6 +176,10 @@ export interface Assistant {
   instructions: string | null;
   retention_days: number | null;
   widget_settings: WidgetSettings;
+  /** Pedido de atendente no widget cai na caixa de entrada do painel. */
+  human_inbox_enabled: boolean;
+  /** So responde com trechos de fontes revisadas. */
+  reviewed_sources_only: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -169,6 +192,8 @@ export interface WidgetSettings {
   accentColor?: string;
   position?: "bottom-right" | "bottom-left";
   theme?: "light" | "dark" | "sync";
+  /** Logo do cabecalho (https). */
+  logoUrl?: string;
 }
 
 export interface CreateAssistantInput {
@@ -184,6 +209,8 @@ export interface UpdateAssistantInput {
   instructions?: string | null;
   retentionDays?: number | null;
   widgetSettings?: WidgetSettings;
+  humanInboxEnabled?: boolean;
+  reviewedSourcesOnly?: boolean;
 }
 
 export const assistantsApi = {
@@ -352,6 +379,8 @@ export interface Source {
   origin_url: string | null;
   error_message: string | null;
   chunk_count: number;
+  /** Quando alguem revisou (aprovou ou marcou como revisada). */
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -384,6 +413,9 @@ export const sourcesApi = {
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/approve`),
   reindex: (organizationId: string, sourceId: string) =>
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/reindex`),
+  /** Marca ou desmarca a fonte como revisada (assistentes "so fontes revisadas"). */
+  review: (organizationId: string, sourceId: string, reviewed: boolean) =>
+    post<Source>(`/organizations/${organizationId}/sources/${sourceId}/review`, { reviewed }),
   archive: (organizationId: string, sourceId: string) =>
     post<Source>(`/organizations/${organizationId}/sources/${sourceId}/archive`),
   /** Destrava fontes presas em "aguardando ativação" depois que uma chave de
@@ -394,7 +426,7 @@ export const sourcesApi = {
 
 // --- identity: membros do tenant ------------------------------------------------
 
-export type TenantRole = "Administrador" | "Editor de base" | "Analista";
+export type TenantRole = "Administrador" | "Editor de base" | "Analista" | "Atendente";
 
 export interface Member {
   id: string;
@@ -412,6 +444,9 @@ export interface CreateMemberInput {
 
 export const membersApi = {
   list: (organizationId: string) => get<Member[]>(`/organizations/${organizationId}/members`),
+  /** Papeis da tabela `roles`, com o que cada um faz. */
+  roles: (organizationId: string) =>
+    get<{ name: TenantRole; description: string }[]>(`/organizations/${organizationId}/roles`),
   create: (organizationId: string, input: CreateMemberInput) =>
     post<Member>(`/organizations/${organizationId}/members`, input),
   updateRole: (organizationId: string, membershipId: string, role: TenantRole) =>
@@ -435,6 +470,9 @@ export interface WidgetKey {
   masked: string;
   revoked_at: string | null;
   created_at: string;
+  /** Final do segredo de identidade (o texto nunca volta da API). */
+  identity_secret_hint: string | null;
+  require_signed_identity: boolean;
 }
 
 export interface AllowedDomain {
@@ -461,6 +499,31 @@ export const widgetKeysApi = {
     ),
   revoke: (organizationId: string, keyId: string) =>
     post<{ ok: true }>(`/organizations/${organizationId}/widget-keys/${keyId}/revoke`),
+  /** Segredo de identidade: o texto so existe nesta resposta. */
+  rotateIdentitySecret: (organizationId: string, keyId: string) =>
+    post<{ secret: string; hint: string }>(
+      `/organizations/${organizationId}/widget-keys/${keyId}/identity-secret`,
+    ),
+  removeIdentitySecret: (organizationId: string, keyId: string) =>
+    apiFetch<void>(`/organizations/${organizationId}/widget-keys/${keyId}/identity-secret`, {
+      method: "DELETE",
+    }),
+  setRequireSignedIdentity: (organizationId: string, keyId: string, on: boolean) =>
+    apiFetch<{ requireSignedIdentity: boolean }>(
+      `/organizations/${organizationId}/widget-keys/${keyId}`,
+      { method: "PATCH", body: JSON.stringify({ requireSignedIdentity: on }) },
+    ),
+};
+
+/** Aparencia padrao do widget da organizacao (o assistente sobrescreve). */
+export const widgetDefaultsApi = {
+  get: (organizationId: string) =>
+    get<WidgetSettings>(`/organizations/${organizationId}/widget-defaults`),
+  save: (organizationId: string, settings: WidgetSettings) =>
+    apiFetch<WidgetSettings>(`/organizations/${organizationId}/widget-defaults`, {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
 };
 
 // --- audit ------------------------------------------------
@@ -500,17 +563,35 @@ export interface Conversation {
   organization_id: string;
   assistant_id: string;
   visitor_id: string | null;
-  channel: "widget" | "whatsapp" | "playground";
+  channel: "widget" | "whatsapp" | "playground" | "telegram" | "instagram" | "messenger";
   started_at: string;
+  /** Retencao em modo "anonimizar": sem texto, anexos nem visitante. */
+  anonymized_at?: string | null;
 }
 
 export interface ConversationMessage {
   id: string;
   conversation_id: string;
-  role: "visitante" | "assistente";
+  role: "visitante" | "assistente" | "atendente";
   content: string;
   citations: Citation[];
+  /** Canais externos: recibo do provedor (WhatsApp...). */
+  delivery_status?: "enviando" | "enviada" | "entregue" | "lida" | "falhou" | null;
+  delivery_error?: string | null;
+  provider_message_id?: string | null;
+  /** Midia recebida pelos canais (o arquivo e baixado a parte). */
+  attachments?: MessageAttachment[];
   created_at: string;
+}
+
+export interface MessageAttachment {
+  id: string;
+  kind: "imagem" | "audio" | "video" | "documento" | "figurinha";
+  mime_type: string | null;
+  file_name: string | null;
+  size_bytes: number | null;
+  status: "pendente" | "pronto" | "falhou";
+  error: string | null;
 }
 
 export const conversationsApi = {
@@ -520,6 +601,15 @@ export const conversationsApi = {
     get<Conversation & { messages: ConversationMessage[] }>(
       `/organizations/${organizationId}/conversations/${conversationId}`,
     ),
+  /** O arquivo vem sempre como download; o painel monta a pre-visualizacao. */
+  async attachment(organizationId: string, conversationId: string, attachmentId: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
+      { credentials: "include" },
+    );
+    if (!response.ok) throw new ApiError(response.status, "não foi possível abrir o arquivo");
+    return response.blob();
+  },
 };
 
 // --- organizations: AI credentials ------------------------------------------------
