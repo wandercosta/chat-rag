@@ -12,6 +12,8 @@ export const WEBHOOK_EVENTS = [
   { id: "mensagem.recebida", label: "Mensagem recebida" },
   { id: "conversa.resolvida", label: "Conversa resolvida" },
   { id: "contato.criado", label: "Contato criado" },
+  { id: "negocio.criado", label: "Negócio criado" },
+  { id: "negocio.etapa_alterada", label: "Negócio mudou de etapa" },
 ] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]["id"];
 

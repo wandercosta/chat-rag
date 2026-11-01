@@ -42,6 +42,8 @@ export type Permission =
   | "automations"
   | "metrics"
   | "team_chat"
+  | "deals"
+  | "deals_write"
   | "write";
 
 const matrix: Record<Profile, Permission[]> = {
@@ -61,6 +63,7 @@ const matrix: Record<Profile, Permission[]> = {
     "campaigns",
     "automations",
     "metrics",
+    "deals",
     "write",
   ],
   Administrador: [
@@ -81,6 +84,8 @@ const matrix: Record<Profile, Permission[]> = {
     "automations",
     "metrics",
     "team_chat",
+    "deals",
+    "deals_write",
     "write",
   ],
   "Editor de base": ["assistants", "knowledge", "team_chat", "write"],
@@ -93,9 +98,18 @@ const matrix: Record<Profile, Permission[]> = {
     "automations",
     "metrics",
     "team_chat",
+    "deals",
   ],
   // Responde e resolve conversas; nao mexe em base, chaves nem usuarios.
-  Atendente: ["inbox", "inbox_reply", "contacts", "contacts_write", "team_chat"],
+  Atendente: [
+    "inbox",
+    "inbox_reply",
+    "contacts",
+    "contacts_write",
+    "team_chat",
+    "deals",
+    "deals_write",
+  ],
 };
 
 function deriveProfile(auth: ApiAuthContext): Profile {

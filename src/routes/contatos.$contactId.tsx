@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ContactDealsCard } from "@/components/deals/contact-deals-card";
 import { ApiError } from "@/lib/api-client";
 import {
   contactLabel,
@@ -197,6 +198,13 @@ function ContactPage() {
           </Card>
 
           <div className="space-y-4">
+            {can("deals") && tenantId && (
+              <ContactDealsCard
+                tenantId={tenantId}
+                contactId={contact.id}
+                contactLabel={contact.name ?? contact.email ?? contact.phone ?? "Contato"}
+              />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Canais</CardTitle>
