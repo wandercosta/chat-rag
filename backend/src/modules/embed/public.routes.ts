@@ -17,6 +17,7 @@ import { handlePublicError, originOf } from "./public-helpers.js";
 import { rateLimits } from "./rate-limit.js";
 import { WIDGET_SCRIPT_CONTENT } from "./widget-code.js";
 import { replyToWidgetMessage } from "./widget-message.js";
+import { withAttachments } from "./history.js";
 import { streamReply, wantsStream } from "../../realtime/sse.js";
 
 const keySchema = z.object({ key: z.string().min(1) });
@@ -122,11 +123,7 @@ export async function embedPublicRoutes(app: FastifyInstance) {
       return reply.code(isResumed ? 200 : 201).send({
         conversationId: conversation.id,
         isResumed,
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          citations: m.citations,
-        })),
+        messages: await withAttachments(messages),
       });
     } catch (err) {
       return handlePublicError(err, reply);

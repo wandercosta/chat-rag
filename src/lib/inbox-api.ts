@@ -132,6 +132,16 @@ export const inboxApi = {
     postJson(`${base(organizationId)}/inbox/${conversationId}/messages`, { content }),
   addNote: (organizationId: string, conversationId: string, content: string) =>
     postJson(`${base(organizationId)}/inbox/${conversationId}/notes`, { content }),
+  /** Arquivo para o cliente; o texto digitado vai como legenda. */
+  sendFile: (organizationId: string, conversationId: string, file: File, caption: string) => {
+    const form = new FormData();
+    if (caption) form.append("caption", caption);
+    form.append("file", file);
+    return apiFetch(`${base(organizationId)}/inbox/${conversationId}/files`, {
+      method: "POST",
+      body: form,
+    });
+  },
 };
 
 export const inboxSettingsApi = {

@@ -73,6 +73,28 @@ export const attachmentsRepository = {
       .executeTakeFirst();
   },
 
+  /** Arquivo enviado por atendente (so esses saem por link publico). */
+  findOutbound(attachmentId: string) {
+    return db
+      .selectFrom("message_attachments as a")
+      .innerJoin("messages as m", "m.id", "a.message_id")
+      .select(["a.id", "a.mime_type", "a.file_name", "a.kind", "a.status", "a.storage_key"])
+      .where("a.id", "=", attachmentId)
+      .where("m.role", "=", "atendente")
+      .executeTakeFirst();
+  },
+
+  /** Arquivo pronto de uma mensagem, com a chave do storage (envio ao canal). */
+  findReadyForMessage(messageId: string) {
+    return db
+      .selectFrom("message_attachments")
+      .select(["id", "kind", "mime_type", "file_name", "storage_key"])
+      .where("message_id", "=", messageId)
+      .where("status", "=", "pronto")
+      .orderBy("created_at")
+      .executeTakeFirst();
+  },
+
   /** Anonimizacao: apaga as linhas e devolve as chaves para apagar o arquivo. */
   async removeForConversations(conversationIds: string[]) {
     if (conversationIds.length === 0) return [];

@@ -68,11 +68,25 @@ export type HandoffResponse =
 
 /** Eventos de tempo real da conversa (so os que o visitante pode ver). */
 export type InboxEvent =
-  | { kind: "agent_message"; conversationId: string; content: string; createdAt: string }
+  | {
+      kind: "agent_message";
+      conversationId: string;
+      content: string;
+      createdAt: string;
+      attachments?: MessageAttachment[];
+    }
   | { kind: "status"; conversationId: string; status: "aberta" | "pendente" | "resolvida" };
+
+/** Arquivo enviado pelo atendente: link temporario, relativo a API. */
+export interface MessageAttachment {
+  kind: string;
+  fileName: string;
+  path: string;
+}
 
 export interface ChatMessage {
   role: "visitante" | "assistente" | "atendente";
   content: string;
   citations?: Citation[];
+  attachments?: MessageAttachment[];
 }

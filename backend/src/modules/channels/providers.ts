@@ -4,6 +4,13 @@ import {
   type SerializedEnvelope,
 } from "../../crypto/envelope.js";
 import type { ChannelProvider } from "../../db/types.js";
+import {
+  sendInstagramMedia,
+  sendMessengerMedia,
+  sendTelegramMedia,
+  sendWhatsAppMedia,
+  type OutboundMedia,
+} from "./media-send.js";
 import { metaMessagingClient, parseMessagingWebhook } from "./meta-messaging.js";
 import { parseTelegramUpdate, telegramClient, verifySecretToken } from "./telegram.js";
 import { whatsappClient } from "./whatsapp.client.js";
@@ -43,6 +50,13 @@ export interface ProviderAdapter {
     text: string,
     options?: { humanAgent?: boolean },
   ): Promise<string | null>;
+  /** Arquivo do atendente; devolve o id da mensagem no provedor. */
+  sendMedia(
+    connection: ConnectionForProvider,
+    to: string,
+    media: OutboundMedia,
+    options?: { humanAgent?: boolean },
+  ): Promise<string | null>;
   /** Nome pela API do provedor, quando o webhook nao traz (Messenger e Instagram). */
   lookupName?(connection: ConnectionForProvider, from: string): Promise<string | null>;
   /** Telefone do remetente, quando o canal o revela (so o WhatsApp). */
@@ -53,12 +67,31 @@ const metaSignature: ProviderAdapter["authenticate"] = (headers, raw, secrets) =
   !!secrets.appSecret &&
   verifySignature(raw, headers["x-hub-signature-256"] as string | undefined, secrets.appSecret);
 
+/**
+ * Messenger e Instagram nao tem legenda em anexo: o texto do atendente sai
+ * logo depois, como mensagem propria. O id devolvido e o do arquivo.
+ */
+async function withCaption(
+  pageId: string,
+  token: string,
+  to: string,
+  media: OutboundMedia,
+  options: { humanAgent?: boolean } | undefined,
+  send: () => Promise<string | null>,
+) {
+  const id = await send();
+  if (media.caption) await metaMessagingClient.sendText(pageId, token, to, media.caption, options);
+  return id;
+}
+
 export const providers: Record<ChannelProvider, ProviderAdapter> = {
   whatsapp: {
     authenticate: metaSignature,
     parse: (payload, connection) => parseWhatsAppWebhook(payload, connection.external_id),
     sendText: (connection, to, text) =>
       whatsappClient.sendText(connection.external_id, secretsOf(connection).accessToken, to, text),
+    sendMedia: (connection, to, media) =>
+      sendWhatsAppMedia(connection.external_id, secretsOf(connection).accessToken, to, media),
     phoneFrom: (from) => `+${from}`,
   },
   messenger: {
@@ -72,6 +105,12 @@ export const providers: Record<ChannelProvider, ProviderAdapter> = {
         text,
         options,
       ),
+    sendMedia: (connection, to, media, options) => {
+      const token = secretsOf(connection).accessToken;
+      return withCaption(connection.external_id, token, to, media, options, () =>
+        sendMessengerMedia(connection.external_id, token, to, media, options?.humanAgent),
+      );
+    },
     lookupName: (connection, from) =>
       metaMessagingClient.profileName("messenger", from, secretsOf(connection).accessToken),
     phoneFrom: () => null,
@@ -88,6 +127,13 @@ export const providers: Record<ChannelProvider, ProviderAdapter> = {
         text,
         options,
       ),
+    sendMedia: (connection, to, media, options) => {
+      const pageId = connection.config.pageId ?? connection.external_id;
+      const token = secretsOf(connection).accessToken;
+      return withCaption(pageId, token, to, media, options, () =>
+        sendInstagramMedia(pageId, token, to, media, options?.humanAgent),
+      );
+    },
     lookupName: (connection, from) =>
       metaMessagingClient.profileName("instagram", from, secretsOf(connection).accessToken),
     phoneFrom: () => null,
@@ -102,6 +148,8 @@ export const providers: Record<ChannelProvider, ProviderAdapter> = {
     parse: (payload) => parseTelegramUpdate(payload),
     sendText: (connection, to, text) =>
       telegramClient.sendText(secretsOf(connection).accessToken, to, text),
+    sendMedia: (connection, to, media) =>
+      sendTelegramMedia(secretsOf(connection).accessToken, to, media),
     phoneFrom: () => null,
   },
 };

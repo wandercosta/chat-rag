@@ -12,7 +12,14 @@ import type { InboxStatus } from "../db/types.js";
  */
 export type InboxEvent =
   | { kind: "conversation_changed"; conversationId: string }
-  | { kind: "agent_message"; conversationId: string; content: string; createdAt: string }
+  | {
+      kind: "agent_message";
+      conversationId: string;
+      content: string;
+      createdAt: string;
+      /** Arquivo enviado: link publico temporario (caminho relativo a API). */
+      attachments?: { kind: string; fileName: string; path: string }[];
+    }
   | { kind: "status"; conversationId: string; status: InboxStatus }
   /** Conversa entrou na fila (pedido de atendente): som/aviso de quem atende. */
   | { kind: "queued"; conversationId: string; sectorId: string | null }
