@@ -61,6 +61,16 @@ export const dealsRepository = {
       .executeTakeFirst();
   },
 
+  titlesByIds(organizationId: string, ids: string[]) {
+    if (ids.length === 0) return Promise.resolve([]);
+    return db
+      .selectFrom("deals")
+      .select(["id", "title"])
+      .where("organization_id", "=", organizationId)
+      .where("id", "in", ids)
+      .execute();
+  },
+
   countInStage(organizationId: string, stageId: string) {
     return db
       .selectFrom("deals")

@@ -245,6 +245,12 @@ export const dealsService = {
     });
   },
 
+  /** Titulo dos negocios da organizacao (outros modulos: tarefas). Id de fora fica de fora. */
+  async titlesFor(organizationId: string, ids: string[]) {
+    const rows = await dealsRepository.titlesByIds(organizationId, [...new Set(ids)]);
+    return new Map(rows.map((r) => [r.id, r.title]));
+  },
+
   async exportAll(organizationId: string) {
     return present(organizationId, await dealsRepository.exportAll(organizationId));
   },

@@ -25,6 +25,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
 - `deals`: funil de vendas (ADR-008) — funis e etapas por organizacao, negocios em kanban com historico de etapa (ver "Funil de vendas" abaixo).
+- `tasks`: tarefas com prazo, responsavel e lembrete (ADR-008 #4), ligadas a contato e/ou negocio (ver "Tarefas" abaixo).
 - `team-chat`: chat interno da equipe do tenant — canal Geral da organizacao e conversas diretas entre duas pessoas, com nao lidas e tempo real (ver "Chat interno da equipe" abaixo).
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
@@ -38,7 +39,7 @@ Todos os modulos do ADR-006 ja existem no codigo, com as mesmas regras de fronte
 - **Login:** com 2FA ativo, `POST /auth/login` sem `code` responde 401 com `twoFactorRequired: true`; o painel pede o codigo e reenvia. O mesmo codigo nao vale duas vezes (passo usado guardado no Redis por 2 minutos). Entrar com codigo de recuperacao fica na auditoria.
 - **Limite de tentativas:** 10 erros (senha ou codigo) em 15 minutos para o mesmo e-mail bloqueiam o login com 429 ate a janela passar. Acerto zera a contagem.
 - **Master:** com `MASTER_2FA_REQUIRED=true` (recomendado em producao; padrao `false` para dev e seed), o Master sem 2FA ativo recebe 403 com `twoFactorSetupRequired` nas rotas de plataforma e no acesso de suporte.
-- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), negocios do funil, conversas com as mensagens e notas internas (a midia recebida pelos canais nao entra: so o texto das mensagens). Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
+- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), negocios do funil, tarefas, conversas com as mensagens e notas internas (a midia recebida pelos canais nao entra: so o texto das mensagens). Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
 
 ## API publica, webhooks e metricas por atendente (ADR-006, etapa 8)
 
@@ -114,6 +115,14 @@ Detalhes de comportamento e configuracao na Meta em `integrations/whatsapp.md`. 
 - **Referencias:** contato, responsavel, funil e etapa de outra organizacao dao 422, nunca 404 de outro tenant. Nome do contato e e-mail do responsavel vem das interfaces publicas de `contacts` e `identity`.
 - **Papeis:** Administrador e Atendente criam, editam e movem; Analista le; Editor de base nao ve; excluir negocio e so do Administrador. Master com sessao de suporte le, mas nao escreve (o guard das escritas exige membership).
 - **Auditoria e webhooks:** criar, editar, mover, ganhar, perder e excluir gravam `audit_events` com o id do negocio, sem nome do contato nem valor. Webhooks `negocio.criado` e `negocio.etapa_alterada`. A exportacao LGPD da organizacao inclui os negocios.
+
+## Tarefas (ADR-008 #4)
+
+- **Tarefa:** titulo, observacoes, prazo (data e hora), responsavel (Administrador ou Atendente; sem informar, quem criou) e ligacao opcional com um contato e/ou um negocio da organizacao (de fora: 422). Excluir o contato ou o negocio desliga a tarefa, nao apaga.
+- **Listas:** "minhas" (do responsavel logado) ou "da equipe", em abertas (prazo mais proximo primeiro), atrasadas ou concluidas; por contato ou negocio lista todas as deles.
+- **Concluir e reabrir:** `PATCH` com `done` grava ou limpa `done_at`/`done_by` e vai para a auditoria. Prazo novo zera o aviso (`reminded_at`), para avisar de novo.
+- **Lembrete:** fila `tasks` no worker, varredura a cada minuto. A tarefa vencida e aberta e marcada na mesma instrucao (`for update skip locked`), entao avisa uma vez mesmo com varios workers: evento `task_due` em tempo real (so o painel do responsavel recebe, pela rota `.../tasks/events`) e e-mail ao responsavel se houver SMTP, sem titulo nem contato no e-mail.
+- **Papeis:** Administrador e Atendente criam, editam e concluem; Analista le; exclui quem criou ou o Administrador. Master com sessao de suporte so le. A exportacao LGPD inclui as tarefas.
 
 ## Chat interno da equipe
 

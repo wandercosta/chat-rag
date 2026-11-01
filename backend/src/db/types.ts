@@ -601,6 +601,23 @@ export interface DealStageChangesTable {
   changed_at: ColumnType<Date, string | undefined, never>;
 }
 
+/** Tarefa com lembrete (ADR-008 #4). */
+export interface TasksTable {
+  id: Generated<string>;
+  organization_id: string;
+  title: string;
+  notes: string | null;
+  due_at: Date | null;
+  assignee_user_id: string | null;
+  contact_id: string | null;
+  deal_id: string | null;
+  created_by: string | null;
+  done_at: Date | null;
+  done_by: string | null;
+  reminded_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export type TeamThreadKind = "geral" | "direto";
 
 /** Chat interno da equipe: canal Geral da organizacao ou conversa direta. */
@@ -735,4 +752,5 @@ export interface Database {
   pipeline_stages: PipelineStagesTable;
   deals: DealsTable;
   deal_stage_changes: DealStageChangesTable;
+  tasks: TasksTable;
 }
