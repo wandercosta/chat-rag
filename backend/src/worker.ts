@@ -6,6 +6,8 @@ import { indexingService } from "./modules/rag/index.js";
 import { retentionService } from "./modules/conversations/index.js";
 import { inboxService } from "./modules/inbox/index.js";
 import { teamChatService } from "./modules/team-chat/index.js";
+import { remindDueTasks } from "./modules/tasks/index.js";
+import { TASKS_QUEUE, scheduleTaskReminders } from "./queue/tasks.queue.js";
 import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
 import { RETENTION_QUEUE, scheduleRetentionSweep } from "./queue/retention.queue.js";
@@ -173,7 +175,20 @@ webhookWorker.on("failed", (job, err) => {
   console.error(`entrega de webhook falhou (${job?.data.deliveryId}):`, err.message);
 });
 
+// Tarefas (ADR-008 #4): lembrete de prazo a cada minuto.
+const tasksWorker = new Worker(TASKS_QUEUE, () => remindDueTasks(), {
+  connection: { url: env.REDIS_URL },
+  concurrency: 1,
+});
+
+tasksWorker.on("failed", (_job, err) => {
+  console.error("varredura de tarefas falhou:", err.message);
+});
+
 await scheduleRetentionSweep();
 await scheduleNoReplyScan();
+await scheduleTaskReminders();
 
-console.log("worker de indexacao, retencao, canais, campanhas, automacoes e webhooks iniciado");
+console.log(
+  "worker de indexacao, retencao, canais, campanhas, automacoes, webhooks e tarefas iniciado",
+);

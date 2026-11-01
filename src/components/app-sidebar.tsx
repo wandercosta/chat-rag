@@ -22,6 +22,7 @@ import {
   Timer,
   MessagesSquare,
   SquareKanban,
+  ListTodo,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +54,7 @@ const tenantItems: Item[] = [
   { title: "Chat da equipe", url: "/equipe", icon: MessagesSquare, perm: "team_chat" },
   { title: "Contatos", url: "/contatos", icon: Contact, perm: "contacts" },
   { title: "Funil de vendas", url: "/funil", icon: SquareKanban, perm: "deals" },
+  { title: "Tarefas", url: "/tarefas", icon: ListTodo, perm: "tasks" },
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, perm: "campaigns" },
   { title: "Automações", url: "/automacoes", icon: Workflow, perm: "automations" },
   { title: "Desempenho da equipe", url: "/desempenho", icon: Timer, perm: "metrics" },

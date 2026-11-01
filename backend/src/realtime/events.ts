@@ -33,7 +33,9 @@ export type InboxEvent =
       threadId: string;
       authorUserId: string;
       participants: [string, string] | null;
-    };
+    }
+  /** Tarefa venceu: so o painel do responsavel avisa (ADR-008 #4). */
+  | { kind: "task_due"; taskId: string; assigneeUserId: string };
 
 type Listener = (event: InboxEvent) => void;
 

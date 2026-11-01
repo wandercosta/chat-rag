@@ -33,7 +33,7 @@ O Master pode consultar apenas o estado da configuracao (ausente, valida, invali
 - Cada pessoa pode ativar a verificacao em duas etapas por aplicativo autenticador (TOTP) em "Minha conta". O segredo fica cifrado; os codigos de recuperacao so aparecem uma vez e ficam em hash.
 - O mesmo codigo nao vale duas vezes, e 10 erros em 15 minutos para o mesmo e-mail bloqueiam o login.
 - Em producao, `MASTER_2FA_REQUIRED=true` obriga o Master a ter 2FA ativo para agir na plataforma ou em sessao de suporte.
-- A exportacao LGPD da organizacao e so do Administrador e fica na auditoria. Inclui os negocios do funil de vendas (ADR-008); excluir um contato desliga os negocios dele, sem apagar o negocio.
+- A exportacao LGPD da organizacao e so do Administrador e fica na auditoria. Inclui os negocios do funil de vendas e as tarefas (ADR-008); excluir um contato desliga os negocios e as tarefas dele, sem apagar. O e-mail de lembrete de tarefa nao leva titulo nem contato.
 
 ## API publica e webhooks (ADR-006, etapa 8)
 
