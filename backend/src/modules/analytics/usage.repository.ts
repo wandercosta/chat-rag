@@ -42,7 +42,8 @@ export const usageRepository = {
       .execute();
   },
 
-  /** Tokens por organizacao, modelo e dono da chave (custo estimado). */
+  /** Tokens por organizacao, modelo e dono da chave (custo estimado), de respostas
+   * e da classificacao de leads. */
   tokensByOrganizationAndModel(since: Date) {
     return sql<{
       organization_id: string;
@@ -57,7 +58,7 @@ export const usageRepository = {
         sum((payload->>'inputTokens')::bigint) as input_tokens,
         sum((payload->>'outputTokens')::bigint) as output_tokens
       from usage_events
-      where type = 'rag_query'
+      where type in ('rag_query', 'lead_classification')
         and created_at >= ${since}
         and payload ? 'inputTokens'
       group by 1, 2, 3
@@ -66,7 +67,8 @@ export const usageRepository = {
       .then((r) => r.rows);
   },
 
-  /** Tokens de chat pagos pela chave da plataforma (limite do ADR-007). */
+  /** Tokens de chat pagos pela chave da plataforma (limite do ADR-007): respostas e
+   * classificacao de leads (ADR-009). */
   platformTokensSince(organizationId: string, since: Date) {
     return sql<{ tokens: string | null }>`
       select sum(
@@ -75,7 +77,7 @@ export const usageRepository = {
       ) as tokens
       from usage_events
       where organization_id = ${organizationId}
-        and type = 'rag_query'
+        and type in ('rag_query', 'lead_classification')
         and created_at >= ${since}
         and payload ? 'inputTokens'
         and coalesce(payload->>'keySource', 'plataforma') = 'plataforma'

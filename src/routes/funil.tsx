@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { dealsApi } from "@/lib/deals-api";
+import { leadsApi } from "@/lib/leads-api";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/funil")({
@@ -70,6 +71,16 @@ function FunnelPage() {
     enabled: !!tenantId && !!pipeline,
   });
 
+  // Temperatura aceita dos contatos dos negocios (ADR-009), para o selo do card.
+  const contactIds = [
+    ...new Set((dealsQuery.data ?? []).flatMap((d) => (d.contactId ? [d.contactId] : []))),
+  ].slice(0, 200);
+  const temperatures = useQuery({
+    queryKey: ["lead-current", tenantId, contactIds.join(",")],
+    queryFn: () => leadsApi.current(tenantId!, contactIds),
+    enabled: !!tenantId && contactIds.length > 0 && can("contacts"),
+  });
+
   return (
     <>
       <PageHeader
@@ -120,6 +131,7 @@ function FunnelPage() {
             deals={dealsQuery.data ?? []}
             canWrite={canWrite}
             onOpen={(dealId) => setDialog({ dealId })}
+            temperatures={temperatures.data}
           />
           <DealDialog
             tenantId={tenantId}

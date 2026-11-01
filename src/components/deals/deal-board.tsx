@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ApiError } from "@/lib/api-client";
+import { temperatureClass, temperatureLabel, type LeadTemperature } from "@/lib/leads-api";
 import {
   dealsApi,
   formatCents,
@@ -52,12 +54,15 @@ export function DealBoard({
   deals,
   canWrite,
   onOpen,
+  temperatures = {},
 }: {
   tenantId: string;
   pipeline: Pipeline;
   deals: Deal[];
   canWrite: boolean;
   onOpen: (dealId: string) => void;
+  /** Classificacao aceita do contato de cada negocio (ADR-009). */
+  temperatures?: Record<string, { temperature: LeadTemperature }>;
 }) {
   const queryClient = useQueryClient();
   const queryKey = ["deals", tenantId, pipeline.id];
@@ -185,7 +190,16 @@ export function DealBoard({
                     )}
                   </div>
                   {deal.contactLabel && (
-                    <p className="truncate text-xs text-muted-foreground">{deal.contactLabel}</p>
+                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      {deal.contactId && temperatures[deal.contactId] && (
+                        <Badge
+                          className={`px-1.5 py-0 text-[10px] ${temperatureClass[temperatures[deal.contactId].temperature]}`}
+                        >
+                          {temperatureLabel[temperatures[deal.contactId].temperature]}
+                        </Badge>
+                      )}
+                      <span className="truncate">{deal.contactLabel}</span>
+                    </p>
                   )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                     {deal.valueCents != null && (

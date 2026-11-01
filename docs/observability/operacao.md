@@ -15,6 +15,8 @@ Exibir por organizacao e assistente: conversas, mensagens, avaliacoes, lacunas, 
 
 Na plataforma (Master, `/plataforma`): conversas por canal, mensagens recebidas, perguntas ao assistente, respostas sem contexto, respostas de atendentes e latencia media, no total e por organizacao. Custo estimado em dolar (total e a parte paga pela plataforma), pelos tokens de cada resposta e o preco por modelo definido pelo Master; modelos sem preco aparecem listados e ficam fora da conta. Tokens de embeddings ainda nao entram.
 
+A classificacao de leads com IA (ADR-009) grava `usage_events` do tipo `lead_classification` com modelo, tokens e dono da chave: entra no custo estimado e no limite mensal, junto das respostas.
+
 Limite mensal da IA da plataforma por tenant (ADR-007): `PLATFORM_AI_MONTHLY_TOKENS` no `.env` e o padrao (vazio = sem limite), e o Master ajusta por tenant no detalhe da organizacao. Acima do teto, a resposta vira extrativa (trecho da base com a fonte, sem chamar o modelo) e o evento `rag_query` grava `limitReached: true`; os administradores do tenant recebem um e-mail na primeira vez no mes (se houver SMTP).
 
 ## Alertas futuros

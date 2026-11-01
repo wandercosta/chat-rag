@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactDealsCard } from "@/components/deals/contact-deals-card";
 import { ContactTasksCard } from "@/components/tasks/contact-tasks-card";
+import { LeadInsightCard } from "@/components/leads/lead-insight-card";
 import { ApiError } from "@/lib/api-client";
 import {
   contactLabel,
@@ -199,6 +200,7 @@ function ContactPage() {
           </Card>
 
           <div className="space-y-4">
+            {tenantId && <LeadInsightCard tenantId={tenantId} contactId={contact.id} />}
             {can("deals") && tenantId && (
               <ContactDealsCard
                 tenantId={tenantId}

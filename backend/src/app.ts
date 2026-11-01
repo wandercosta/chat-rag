@@ -43,6 +43,7 @@ import { webhooksRoutes } from "./modules/webhooks/index.js";
 import { teamChatRoutes } from "./modules/team-chat/index.js";
 import { dealsRoutes, pipelinesRoutes } from "./modules/deals/index.js";
 import { tasksRoutes } from "./modules/tasks/index.js";
+import { leadsRoutes } from "./modules/leads/index.js";
 import { apiTokensRoutes, publicApiV1Routes } from "./modules/public-api/index.js";
 import { aiQuotaRoutes, analyticsRoutes, platformUsageRoutes } from "./modules/analytics/index.js";
 
@@ -114,6 +115,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(pipelinesRoutes);
   await app.register(dealsRoutes);
   await app.register(tasksRoutes);
+  await app.register(leadsRoutes);
   await app.register(demoRoutes);
 
   app.get("/health", async () => ({ ok: true }));
