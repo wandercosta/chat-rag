@@ -549,6 +549,58 @@ export type UsageEventType =
   | "widget_loaded"
   | "widget_rate_limited";
 
+export type StageKind = "aberta" | "ganho" | "perdido";
+export type DealStatus = "aberto" | "ganho" | "perdido";
+
+/** Funil de vendas (ADR-008). */
+export interface PipelinesTable {
+  id: Generated<string>;
+  organization_id: string;
+  name: string;
+  position: ColumnType<number, number | undefined, number>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface PipelineStagesTable {
+  id: Generated<string>;
+  organization_id: string;
+  pipeline_id: string;
+  name: string;
+  kind: StageKind;
+  position: ColumnType<number, number | undefined, number>;
+}
+
+export interface DealsTable {
+  id: Generated<string>;
+  organization_id: string;
+  pipeline_id: string;
+  stage_id: string;
+  position: ColumnType<number, number | undefined, number>;
+  title: string;
+  /** bigint: o pg devolve como string. */
+  value_cents: ColumnType<string | null, number | null | undefined, number | null>;
+  contact_id: string | null;
+  owner_user_id: string | null;
+  /** date: o repositorio le com to_char, sempre "AAAA-MM-DD" (sem fuso). */
+  expected_close_date: ColumnType<string | null, string | null | undefined, string | null>;
+  status: ColumnType<DealStatus, DealStatus | undefined, DealStatus>;
+  lost_reason: string | null;
+  closed_at: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+export interface DealStageChangesTable {
+  id: Generated<string>;
+  organization_id: string;
+  deal_id: string;
+  from_stage_id: string | null;
+  to_stage_id: string | null;
+  changed_by: string | null;
+  changed_at: ColumnType<Date, string | undefined, never>;
+}
+
 export type TeamThreadKind = "geral" | "direto";
 
 /** Chat interno da equipe: canal Geral da organizacao ou conversa direta. */
@@ -679,4 +731,8 @@ export interface Database {
   team_threads: TeamThreadsTable;
   team_messages: TeamMessagesTable;
   team_thread_reads: TeamThreadReadsTable;
+  pipelines: PipelinesTable;
+  pipeline_stages: PipelineStagesTable;
+  deals: DealsTable;
+  deal_stage_changes: DealStageChangesTable;
 }

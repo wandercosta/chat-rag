@@ -104,6 +104,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("fontes revisadas por assistente", () =>
       .select("action")
       .where("organization_id", "=", t.organizationId)
       .where("action", "like", "%revis%")
+      .orderBy("created_at")
       .execute();
     expect(audit.map((a) => a.action)).toEqual([
       "Marcou fonte como revisada",

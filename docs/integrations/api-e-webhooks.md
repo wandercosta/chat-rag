@@ -26,7 +26,7 @@ Os corpos de resposta tem formato proprio (camelCase), montado na rota: coluna n
 ## Webhooks de saida
 
 - Cadastro pelo Administrador: URL e eventos. Ate 10 por organizacao. Ligar/desligar, trocar segredo, enviar teste e ver as ultimas entregas pelo painel.
-- Eventos: `mensagem.recebida` (mensagem do visitante em qualquer canal), `conversa.resolvida` (caixa de entrada), `contato.criado` (painel, importacao, widget, canais ou API). Importar um CSV gera um evento por contato novo.
+- Eventos: `mensagem.recebida` (mensagem do visitante em qualquer canal), `conversa.resolvida` (caixa de entrada), `contato.criado` (painel, importacao, widget, canais ou API), `negocio.criado` e `negocio.etapa_alterada` (funil de vendas, ADR-008; com `dealId`, etapas e `status`). Importar um CSV gera um evento por contato novo.
 - Corpo (POST JSON):
 
 ```json

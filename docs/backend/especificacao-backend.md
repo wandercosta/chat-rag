@@ -24,6 +24,7 @@ Nenhum arquivo de codigo deve ultrapassar ~300 linhas como sinal de alerta; ao s
 - `campaigns`: campanhas (ADR-006, etapa 6) — publico por segmento com opt-in, modelo (WhatsApp) ou texto (Telegram), agendamento, ritmo e metricas.
 - `channels`: canais oficiais (ADR-006, etapas 4 e 5) — WhatsApp, Telegram, Instagram e Messenger do tenant, webhook autenticado, fila de entrada e envio, recibos e modelos (WhatsApp).
 - `contacts`: CRM de contatos (ADR-006, etapa 3) — contatos, identidades por canal, etiquetas, campos personalizados, segmentos, importacao e exportacao CSV.
+- `deals`: funil de vendas (ADR-008) — funis e etapas por organizacao, negocios em kanban com historico de etapa (ver "Funil de vendas" abaixo).
 - `team-chat`: chat interno da equipe do tenant — canal Geral da organizacao e conversas diretas entre duas pessoas, com nao lidas e tempo real (ver "Chat interno da equipe" abaixo).
 - `inbox`: caixa de entrada (ADR-006, etapa 2) — status da conversa (aberta, pendente, resolvida), atribuicao a um usuario, resposta humana, notas internas e respostas prontas.
 
@@ -37,7 +38,7 @@ Todos os modulos do ADR-006 ja existem no codigo, com as mesmas regras de fronte
 - **Login:** com 2FA ativo, `POST /auth/login` sem `code` responde 401 com `twoFactorRequired: true`; o painel pede o codigo e reenvia. O mesmo codigo nao vale duas vezes (passo usado guardado no Redis por 2 minutos). Entrar com codigo de recuperacao fica na auditoria.
 - **Limite de tentativas:** 10 erros (senha ou codigo) em 15 minutos para o mesmo e-mail bloqueiam o login com 429 ate a janela passar. Acerto zera a contagem.
 - **Master:** com `MASTER_2FA_REQUIRED=true` (recomendado em producao; padrao `false` para dev e seed), o Master sem 2FA ativo recebe 403 com `twoFactorSetupRequired` nas rotas de plataforma e no acesso de suporte.
-- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), conversas com as mensagens e notas internas (a midia recebida pelos canais nao entra: so o texto das mensagens). Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
+- **Exportacao LGPD:** `GET /organizations/:id/export` (so Administrador) devolve um JSON com a organizacao, quem acessa o painel, contatos (com canais e etiquetas), negocios do funil, conversas com as mensagens e notas internas (a midia recebida pelos canais nao entra: so o texto das mensagens). Cada parte vem do modulo dono pela interface publica; segredos nunca entram; a exportacao vai para a auditoria como evento de seguranca.
 
 ## API publica, webhooks e metricas por atendente (ADR-006, etapa 8)
 
@@ -104,6 +105,15 @@ Detalhes de comportamento e configuracao na Meta em `integrations/whatsapp.md`. 
 - **Exportacao CSV:** `;` e BOM (Excel em portugues), com celulas que comecam com `=`, `+`, `-` ou `@` prefixadas por apostrofo contra injecao de formula. So administrador; auditada como evento de seguranca.
 - **Exclusao (LGPD):** so administrador; apaga o contato, identidades, etiquetas e as conversas dele. A auditoria guarda o id, nunca nome ou e-mail.
 - **Papeis:** Administrador e Atendente criam e editam contatos; Analista so le. Importar, exportar, excluir e gerir etiquetas, campos e segmentos e so do Administrador.
+
+## Funil de vendas (ADR-008)
+
+- **Funis e etapas:** configuracao da organizacao (`pipelines`, `pipeline_stages`). O primeiro funil ("Vendas") nasce na primeira leitura, com Novo, Qualificado, Proposta, Negociacao, Ganho e Perdido; a criacao usa trava (`pg_advisory_xact_lock`) para duas leituras simultaneas nao criarem dois. Etapa tem tipo `aberta`, `ganho` ou `perdido`, e todo funil mantem ao menos uma de cada. So o Administrador cria funil, renomeia, adiciona, reordena e exclui etapa; etapa com negocio, ultima do seu tipo, funil com negocio e o ultimo funil nao saem (409).
+- **Negocio:** titulo, valor em centavos (BRL), contato, responsavel (Administrador ou Atendente da organizacao; sem informar, quem criou), previsao de fechamento (`AAAA-MM-DD`), etapa e posicao. O status (`aberto`, `ganho`, `perdido`) vem do tipo da etapa; entrar em ganho ou perdido grava `closed_at`, e perdido aceita motivo. Excluir o contato desliga o negocio (`contact_id` vira null).
+- **Kanban:** `POST .../deals/:id/move` com etapa (do mesmo funil) e posicao; o servidor renumera a coluna na mesma transacao. Toda mudanca de etapa vai para `deal_stage_changes` (de, para, quem, quando).
+- **Referencias:** contato, responsavel, funil e etapa de outra organizacao dao 422, nunca 404 de outro tenant. Nome do contato e e-mail do responsavel vem das interfaces publicas de `contacts` e `identity`.
+- **Papeis:** Administrador e Atendente criam, editam e movem; Analista le; Editor de base nao ve; excluir negocio e so do Administrador. Master com sessao de suporte le, mas nao escreve (o guard das escritas exige membership).
+- **Auditoria e webhooks:** criar, editar, mover, ganhar, perder e excluir gravam `audit_events` com o id do negocio, sem nome do contato nem valor. Webhooks `negocio.criado` e `negocio.etapa_alterada`. A exportacao LGPD da organizacao inclui os negocios.
 
 ## Chat interno da equipe
 
