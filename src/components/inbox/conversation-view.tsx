@@ -257,6 +257,9 @@ export function ConversationView({
                 : inboxApi.addNote(tenantId!, detail.id, content),
             )
           }
+          onSendFile={(file, caption) =>
+            action.mutateAsync(() => inboxApi.sendFile(tenantId!, detail.id, file, caption))
+          }
         />
       )}
     </Card>

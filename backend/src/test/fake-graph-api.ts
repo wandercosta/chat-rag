@@ -1,4 +1,5 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import multipart from "@fastify/multipart";
 
 /** Porta fixa: META_GRAPH_URL aponta para ca em vitest.config.ts. */
 export const FAKE_GRAPH_PORT = 4599;
@@ -10,9 +11,13 @@ export interface SentMessage {
   phoneNumberId: string;
   body: {
     to: string;
-    type: "text" | "template";
+    type: string;
     text?: { body: string };
     template?: { name: string; language: { code: string }; components: unknown[] };
+    image?: Record<string, unknown>;
+    document?: Record<string, unknown>;
+    audio?: Record<string, unknown>;
+    video?: Record<string, unknown>;
   };
 }
 
@@ -28,7 +33,7 @@ export interface MetaMessage {
     recipient: { id: string };
     messaging_type: string;
     tag?: string;
-    message: { text: string };
+    message: { text?: string; attachment?: { type: string; payload: Record<string, unknown> } };
   };
 }
 
@@ -37,6 +42,42 @@ export interface TelegramCall {
   token: string;
   method: string;
   body: Record<string, unknown>;
+}
+
+/** Arquivo recebido por upload multipart (WhatsApp, Messenger ou Telegram). */
+export interface FakeUpload {
+  path: string;
+  fields: Record<string, string>;
+  fileField: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+}
+
+/** Campos e o arquivo de um pedido multipart, para o teste conferir. */
+async function readMultipart(request: FastifyRequest, path: string): Promise<FakeUpload> {
+  const upload: FakeUpload = {
+    path,
+    fields: {},
+    fileField: "",
+    fileName: "",
+    mimeType: "",
+    size: 0,
+  };
+  for await (const part of request.parts()) {
+    if (part.type === "file") {
+      const data = await part.toBuffer();
+      Object.assign(upload, {
+        fileField: part.fieldname,
+        fileName: part.filename,
+        mimeType: part.mimetype,
+        size: data.length,
+      });
+    } else {
+      upload.fields[part.fieldname] = String(part.value);
+    }
+  }
+  return upload;
 }
 
 /** Arquivos que o provedor simulado serve; "grande" passa do teto dos testes. */
@@ -55,8 +96,11 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   const telegram: TelegramCall[] = [];
   /** Contas (WABA) que assinaram os webhooks do app da plataforma. */
   const subscribedApps: string[] = [];
+  /** Arquivos enviados pelos atendentes (upload multipart). */
+  const uploads: FakeUpload[] = [];
   let counter = 0;
   const app: FastifyInstance = Fastify({ logger: false });
+  await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
 
   const refuse = (auth?: string) => auth === `Bearer ${BAD_TOKEN}`;
   const base = `http://127.0.0.1:${FAKE_GRAPH_PORT}`;
@@ -141,6 +185,20 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
     },
   );
 
+  // WhatsApp: upload do arquivo que depois vai na mensagem pelo id.
+  app.post<{ Params: { id: string } }>("/v21.0/:id/media", async (request) => {
+    uploads.push(await readMultipart(request, `/${request.params.id}/media`));
+    counter += 1;
+    return { id: `${idPrefix}media.out.${counter}` };
+  });
+
+  // Messenger: upload do anexo que depois vai na mensagem pelo attachment_id.
+  app.post<{ Params: { id: string } }>("/v21.0/:id/message_attachments", async (request) => {
+    uploads.push(await readMultipart(request, `/${request.params.id}/message_attachments`));
+    counter += 1;
+    return { attachment_id: `${idPrefix}att.${counter}` };
+  });
+
   app.get("/v21.0/:waba/message_templates", async () => ({
     data: [
       {
@@ -168,6 +226,17 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
       if (token === BAD_BOT_TOKEN) {
         return reply.code(401).send({ ok: false, description: "Unauthorized" });
       }
+      if (request.isMultipart()) {
+        const upload = await readMultipart(request, method);
+        uploads.push(upload);
+        telegram.push({
+          token,
+          method,
+          body: { ...upload.fields, [upload.fileField]: upload.fileName },
+        });
+        counter += 1;
+        return { ok: true, result: { message_id: counter } };
+      }
       telegram.push({ token, method, body: request.body ?? {} });
       if (method === "getMe") return { ok: true, result: { id: 7001, username: "loja_bot" } };
       if (method === "getFile") {
@@ -182,5 +251,5 @@ export async function startFakeGraphApi(options: { idPrefix?: string } = {}) {
   );
 
   await app.listen({ port: FAKE_GRAPH_PORT, host: "127.0.0.1" });
-  return { sent, metaMessages, telegram, subscribedApps, close: () => app.close() };
+  return { sent, metaMessages, telegram, subscribedApps, uploads, close: () => app.close() };
 }

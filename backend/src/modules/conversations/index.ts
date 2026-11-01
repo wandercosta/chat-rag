@@ -1,5 +1,6 @@
 export { conversationsService } from "./conversations.service.js";
-export { attachmentsService } from "./attachments.service.js";
+export { attachmentsService, MEDIA_LINK_TTL_SECONDS } from "./attachments.service.js";
+export { mediaRoutes } from "./media.routes.js";
 export { conversationsRoutes } from "./conversations.routes.js";
 export { gapsService } from "./gaps.service.js";
 export { platformStatsService } from "./platform-stats.service.js";

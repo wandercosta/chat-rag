@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Paperclip } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,12 +19,16 @@ export function Composer({
   conversationId,
   busy,
   onSend,
+  onSendFile,
 }: {
   tenantId: string | null;
   conversationId: string;
   busy: boolean;
   onSend: (mode: "reply" | "note", content: string) => Promise<unknown>;
+  /** Arquivo para o cliente (o texto digitado vira a legenda). */
+  onSendFile?: (file: File, caption: string) => Promise<unknown>;
 }) {
+  const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [text, setText] = useState("");
   const cannedQuery = useQuery({
@@ -90,7 +95,38 @@ export function Composer({
           }
         }}
       />
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        {mode === "reply" && onSendFile ? (
+          <>
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,video/mp4,audio/mpeg,audio/ogg,audio/mp4,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                try {
+                  await onSendFile(file, text.trim());
+                  setText("");
+                } catch {
+                  // o toast de erro vem da mutation; o texto fica.
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => fileInput.current?.click()}
+            >
+              <Paperclip /> Arquivo
+            </Button>
+          </>
+        ) : (
+          <span />
+        )}
         <Button size="sm" disabled={busy || !text.trim()} onClick={() => void send()}>
           {mode === "reply" ? "Enviar ao visitante" : "Salvar nota"}
         </Button>

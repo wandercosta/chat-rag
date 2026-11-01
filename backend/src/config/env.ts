@@ -75,6 +75,12 @@ const schema = z.object({
   // Teto mensal de tokens da IA da plataforma por tenant no modo "padrao"
   // (ADR-007). Sem valor, o padrao e sem limite; o Master ajusta por tenant.
   PLATFORM_AI_MONTHLY_TOKENS: optional(z.coerce.number().int().positive()),
+  // Arquivo que o atendente envia ao cliente (widget e canais).
+  OUTBOUND_MEDIA_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(16 * 1024 * 1024),
   // Midia recebida acima deste tamanho nao e baixada (fica "falhou" no painel).
   CHANNEL_MEDIA_MAX_BYTES: z.coerce
     .number()

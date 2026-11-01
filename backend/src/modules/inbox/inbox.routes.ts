@@ -42,21 +42,21 @@ const textSchema = z.object({ content: z.string().trim().min(1).max(4000) });
 /** O painel recebe so ids; resposta do atendente e status vao para o widget. */
 const PANEL_EVENTS = new Set(["conversation_changed", "transfer", "queued", "visitor_message"]);
 
-type ConversationParams = { Params: { organizationId: string; conversationId: string } };
+export type ConversationParams = { Params: { organizationId: string; conversationId: string } };
 
 /**
  * Quem age na conversa e sempre um membro da organizacao. O Master em sessao
  * de suporte passa pelo `requireOrgRole` para ler, mas nao responde nem
  * atribui conversas de um tenant em nome dele.
  */
-function actorOf(request: FastifyRequest<ConversationParams>): InboxActor | null {
+export function actorOf(request: FastifyRequest<ConversationParams>): InboxActor | null {
   const membership = request.auth?.memberships.find(
     (m) => m.organizationId === request.params.organizationId,
   );
   return membership ? { userId: request.auth!.userId, role: membership.role } : null;
 }
 
-function handleInboxError(err: unknown, reply: FastifyReply) {
+export function handleInboxError(err: unknown, reply: FastifyReply) {
   if (err instanceof ConversationNotFoundError)
     return reply.code(404).send({ error: "conversa nao encontrada" });
   if (err instanceof ChannelNotSupportedError)

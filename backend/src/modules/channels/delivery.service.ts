@@ -1,6 +1,7 @@
 import { auditService } from "../audit/index.js";
 import { contactsService } from "../contacts/index.js";
-import { conversationsService } from "../conversations/index.js";
+import { env } from "../../config/env.js";
+import { attachmentsService, conversationsService } from "../conversations/index.js";
 import { inboxService, type InboxActor } from "../inbox/index.js";
 import { connectionsRepository, templatesRepository } from "./connections.repository.js";
 import { ChannelApiError } from "./http.js";
@@ -57,12 +58,24 @@ export async function deliverMessage(organizationId: string, messageId: string) 
     // So o erro do provedor marca falha; erro ao gravar o recibo nao.
     let providerMessageId: string | null;
     try {
-      providerMessageId = await providers[connection.provider].sendText(
-        connection,
-        to,
-        message.content,
-        { humanAgent: await needsHumanAgentTag(connection, message) },
-      );
+      const options = { humanAgent: await needsHumanAgentTag(connection, message) };
+      // Arquivo do atendente: o texto da mensagem e a legenda (ou so o nome).
+      const media =
+        message.role === "atendente" ? await attachmentsService.forDelivery(messageId) : null;
+      providerMessageId = media
+        ? await providers[connection.provider].sendMedia(
+            connection,
+            to,
+            {
+              ...media,
+              caption: message.content !== media.fileName ? message.content : null,
+              publicUrl: env.PUBLIC_API_URL
+                ? `${env.PUBLIC_API_URL.replace(/\/$/, "")}${attachmentsService.linkPath(media.id)}`
+                : null,
+            },
+            options,
+          )
+        : await providers[connection.provider].sendText(connection, to, message.content, options);
     } catch (err) {
       const error = err instanceof Error ? err.message : "falha no envio";
       await conversationsService.setDelivery(messageId, { status: "falhou", error });

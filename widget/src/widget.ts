@@ -175,6 +175,7 @@ export class ChatRagWidget {
         role: m.role,
         content: m.content,
         citations: m.citations,
+        attachments: m.attachments,
       }));
       this.renderMessages();
     }
@@ -301,7 +302,11 @@ export class ChatRagWidget {
 
   private handleInboxEvent(event: InboxEvent) {
     if (event.kind === "agent_message") {
-      this.messages.push({ role: "atendente", content: event.content });
+      this.messages.push({
+        role: "atendente",
+        content: event.content,
+        attachments: event.attachments,
+      });
     } else if (event.status === "resolvida") {
       this.messages.push({
         role: "aviso",
@@ -316,6 +321,7 @@ export class ChatRagWidget {
   private renderMessages() {
     renderMessages(this.messagesEl, this.messages, {
       avatarUrl: this.options.avatarUrl,
+      apiBaseUrl: this.options.apiBaseUrl,
       onFeedback: (index, rating) => this.handleFeedback(index, rating),
     });
   }

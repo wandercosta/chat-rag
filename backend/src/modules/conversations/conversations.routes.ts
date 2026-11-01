@@ -3,15 +3,11 @@ import { z } from "zod";
 import { requireOrgRole, requireSession } from "../identity/index.js";
 import { attachmentsService } from "./attachments.service.js";
 import { conversationsService } from "./conversations.service.js";
+import { headerFileName } from "./file-headers.js";
 
 const readRoles = ["Administrador", "Analista"] as const;
 /** Arquivo recebido: quem le a conversa no historico ou na caixa de entrada. */
 const attachmentRoles = ["Administrador", "Atendente", "Analista"] as const;
-
-/** Nome seguro no cabecalho: sem aspas, barras nem caracteres de controle. */
-function headerFileName(name: string) {
-  return name.replace(/[^\w.\- ]+/g, "_").slice(0, 120) || "arquivo";
-}
 
 const querySchema = z.object({
   assistantId: z.string().uuid().optional(),

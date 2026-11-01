@@ -34,6 +34,7 @@ O Master pode consultar apenas o estado da configuracao (ausente, valida, invali
 - O mesmo codigo nao vale duas vezes, e 10 erros em 15 minutos para o mesmo e-mail bloqueiam o login.
 - Em producao, `MASTER_2FA_REQUIRED=true` obriga o Master a ter 2FA ativo para agir na plataforma ou em sessao de suporte.
 - A exportacao LGPD da organizacao e so do Administrador e fica na auditoria. Inclui os negocios do funil de vendas e as tarefas (ADR-008); excluir um contato desliga os negocios e as tarefas dele, sem apagar. O e-mail de lembrete de tarefa nao leva titulo nem contato.
+- Arquivo enviado por atendente: guardado no storage como anexo da conversa (mesma retencao e exclusao). Para o widget e o Instagram sai por link publico assinado (HMAC, chave derivada da `APP_MASTER_KEY`) que vale 24 horas e so serve arquivo de atendente; arquivo recebido do cliente continua so pela rota autenticada do painel. Tipos numa lista fechada (sem HTML, SVG ou executavel).
 - Classificacao de leads com IA (ADR-009): desligada por padrao; ligada pelo Administrador, envia ao provedor de IA so o texto das conversas recentes do contato, sem e-mail nem telefone digitados e sem dados do CRM. E sugestao: so vale depois que uma pessoa aceita (LGPD art. 20, revisao humana), e a IA nao muda nada sozinha. A sugestao guarda um resumo da conversa, segue o prazo de retencao da organizacao, sai junto com o contato e entra na exportacao LGPD.
 
 ## API publica e webhooks (ADR-006, etapa 8)

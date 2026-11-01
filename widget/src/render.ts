@@ -1,5 +1,5 @@
 import { el } from "./dom.js";
-import type { ChatMessage, Citation } from "./types.js";
+import type { ChatMessage, Citation, MessageAttachment } from "./types.js";
 
 /** Mensagem na tela: as da conversa e os avisos do proprio widget (ex.:
  * "pedido enviado ao atendente"), que nao existem no servidor. */
@@ -8,10 +8,13 @@ export interface RenderedMessage {
   content: string;
   citations?: Citation[];
   feedback?: "positivo" | "negativo";
+  attachments?: MessageAttachment[];
 }
 
 interface RenderOptions {
   avatarUrl: string | null;
+  /** Base da API: o link do arquivo e relativo a ela. */
+  apiBaseUrl: string;
   onFeedback(index: number, rating: "positivo" | "negativo"): void;
 }
 
@@ -26,6 +29,25 @@ function renderCitations(citations: Citation[]): HTMLElement {
       ]),
     ),
   ]);
+}
+
+/** Arquivo do atendente: imagem com miniatura, o resto como link para baixar. */
+function renderAttachments(attachments: MessageAttachment[], apiBaseUrl: string): HTMLElement[] {
+  return attachments.map((a) => {
+    const href = `${apiBaseUrl.replace(/\/$/, "")}${a.path}`;
+    const link = el("a", {
+      href,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      class: "chatrag-file",
+    });
+    if (a.kind === "imagem") {
+      link.append(el("img", { src: href, alt: a.fileName, class: "chatrag-file-image" }));
+    } else {
+      link.append(`📎 ${a.fileName}`);
+    }
+    return link;
+  });
 }
 
 function renderFeedback(msg: RenderedMessage, index: number, options: RenderOptions): HTMLElement {
@@ -53,6 +75,9 @@ export function renderMessages(
     // A resposta humana vem identificada: o visitante sabe com quem fala.
     if (msg.role === "atendente") {
       container.append(el("span", { class: "chatrag-author" }, ["Atendente"]), bubble);
+      if (msg.attachments?.length) {
+        container.append(...renderAttachments(msg.attachments, options.apiBaseUrl));
+      }
       return;
     }
 

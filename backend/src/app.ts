@@ -14,7 +14,7 @@ import {
 import { auditRoutes } from "./modules/audit/index.js";
 import { assistantsRoutes, modelCatalogRoutes, handoffRoutes } from "./modules/assistants/index.js";
 import { collectionsRoutes, topicsRoutes, sourcesRoutes } from "./modules/knowledge/index.js";
-import { conversationsRoutes, gapsRoutes } from "./modules/conversations/index.js";
+import { conversationsRoutes, gapsRoutes, mediaRoutes } from "./modules/conversations/index.js";
 import { ragRoutes } from "./modules/rag/index.js";
 import {
   demoRoutes,
@@ -26,6 +26,7 @@ import {
   agentMetricsRoutes,
   cannedResponsesRoutes,
   inboxRoutes,
+  inboxFilesRoutes,
   inboxSettingsRoutes,
   sectorsRoutes,
   setReplyWindowPolicy,
@@ -87,6 +88,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   await app.register(sourcesRoutes);
   await app.register(conversationsRoutes);
   await app.register(gapsRoutes);
+  await app.register(mediaRoutes);
   await app.register(ragRoutes);
   await app.register(embedAdminRoutes);
   await app.register(embedPublicRoutes);
@@ -94,6 +96,7 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   // A janela de resposta depende da conexao do canal (tag "Agente humano").
   setReplyWindowPolicy(replyWindowHours);
   await app.register(inboxRoutes);
+  await app.register(inboxFilesRoutes);
   await app.register(sectorsRoutes);
   await app.register(inboxSettingsRoutes);
   await app.register(cannedResponsesRoutes);
