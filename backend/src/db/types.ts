@@ -547,7 +547,9 @@ export type UsageEventType =
   | "indexing_completed"
   | "indexing_failed"
   | "widget_loaded"
-  | "widget_rate_limited";
+  | "widget_rate_limited"
+  /** Classificacao de lead com IA (ADR-009): tokens contam no limite (ADR-007). */
+  | "lead_classification";
 
 export type StageKind = "aberta" | "ganho" | "perdido";
 export type DealStatus = "aberto" | "ganho" | "perdido";
@@ -616,6 +618,35 @@ export interface TasksTable {
   done_by: string | null;
   reminded_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export type LeadTemperature = "quente" | "morno" | "frio";
+export type LeadConfidence = "baixa" | "media" | "alta";
+export type LeadInsightStatus = "sugerida" | "aceita" | "descartada";
+
+/** Classificacao de leads com IA (ADR-009). */
+export interface LeadSettingsTable {
+  organization_id: string;
+  enabled: boolean;
+  updated_by: string | null;
+  updated_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+export interface LeadInsightsTable {
+  id: Generated<string>;
+  organization_id: string;
+  contact_id: string;
+  temperature: LeadTemperature;
+  confidence: LeadConfidence;
+  interest: string;
+  next_step: string;
+  summary: string;
+  model: string | null;
+  status: ColumnType<LeadInsightStatus, LeadInsightStatus | undefined, LeadInsightStatus>;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
 }
 
 export type TeamThreadKind = "geral" | "direto";
@@ -753,4 +784,6 @@ export interface Database {
   deals: DealsTable;
   deal_stage_changes: DealStageChangesTable;
   tasks: TasksTable;
+  lead_settings: LeadSettingsTable;
+  lead_insights: LeadInsightsTable;
 }

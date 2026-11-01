@@ -7,6 +7,7 @@ import { retentionService } from "./modules/conversations/index.js";
 import { inboxService } from "./modules/inbox/index.js";
 import { teamChatService } from "./modules/team-chat/index.js";
 import { remindDueTasks } from "./modules/tasks/index.js";
+import { leadsService } from "./modules/leads/index.js";
 import { TASKS_QUEUE, scheduleTaskReminders } from "./queue/tasks.queue.js";
 import { usageService } from "./modules/analytics/index.js";
 import { SOURCE_INDEXING_QUEUE, type SourceIndexingJob } from "./queue/source-indexing.queue.js";
@@ -100,8 +101,9 @@ const retentionWorker = new Worker(
     for (const row of summary) {
       await inboxService.deleteNotesFor(row.organizationId, row.anonymizedConversationIds);
     }
-    // O chat interno da equipe segue o prazo da organizacao.
+    // O chat interno da equipe e a classificacao de leads seguem o prazo da organizacao.
     const teamChat = await teamChatService.purgeExpired();
+    const leadInsights = await leadsService.purgeExpired();
     console.log(
       "retencao executada:",
       summary.map(({ organizationId, deleted, anonymized }) => ({
@@ -110,6 +112,7 @@ const retentionWorker = new Worker(
         anonymized,
       })),
       teamChat.length > 0 ? { chatInterno: teamChat } : "",
+      leadInsights.length > 0 ? { classificacaoDeLeads: leadInsights } : "",
     );
   },
   { connection: { url: env.REDIS_URL }, concurrency: 1 },
