@@ -121,7 +121,16 @@ export function DealBoard({
             onDragOver={dropAt(column.length)}
             onDrop={(e) => {
               e.preventDefault();
-              if (dragging && over) moveTo(dragging, stage, over.position);
+              if (dragging && over) {
+                // A marca fica acima do card alvo; descendo na mesma coluna, o
+                // card arrastado ainda conta nas posicoes acima dela.
+                const from = column.findIndex((d) => d.id === dragging);
+                moveTo(
+                  dragging,
+                  stage,
+                  from !== -1 && from < over.position ? over.position - 1 : over.position,
+                );
+              }
               setDragging(null);
               setOver(null);
             }}

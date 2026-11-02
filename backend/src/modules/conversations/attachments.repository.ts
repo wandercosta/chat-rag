@@ -27,6 +27,35 @@ export const attachmentsRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  /** Arquivo de atendente ja gravado no storage: nasce pronto. */
+  createReady(
+    organizationId: string,
+    messageId: string,
+    file: {
+      id: string;
+      kind: AttachmentKind;
+      fileName: string;
+      storageKey: string;
+      mimeType: string;
+      sizeBytes: number;
+    },
+  ) {
+    return db
+      .insertInto("message_attachments")
+      .values({
+        id: file.id,
+        organization_id: organizationId,
+        message_id: messageId,
+        kind: file.kind,
+        file_name: file.fileName,
+        status: "pronto",
+        storage_key: file.storageKey,
+        mime_type: file.mimeType,
+        size_bytes: file.sizeBytes,
+      })
+      .execute();
+  },
+
   async finish(
     id: string,
     values: {

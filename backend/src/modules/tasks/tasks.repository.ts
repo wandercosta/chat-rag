@@ -101,7 +101,8 @@ export const tasksRepository = {
 
   /**
    * Tarefas vencidas ainda sem aviso, marcadas na mesma instrucao: com dois
-   * workers, cada tarefa e avisada uma vez so (skip locked).
+   * workers, cada tarefa e avisada uma vez so (skip locked). Sem responsavel
+   * fica de fora, para avisar quem for definido depois.
    */
   claimDue(limit = 100) {
     return sql<{ id: string; organization_id: string; assignee_user_id: string | null }>`
@@ -109,6 +110,7 @@ export const tasksRepository = {
       where id in (
         select id from tasks
         where done_at is null and reminded_at is null and due_at <= now()
+          and assignee_user_id is not null
         order by due_at
         limit ${limit}
         for update skip locked

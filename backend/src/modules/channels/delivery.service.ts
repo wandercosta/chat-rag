@@ -55,27 +55,41 @@ export async function deliverMessage(organizationId: string, messageId: string) 
   }
 
   try {
+    // Arquivo do atendente lido antes de falar com o provedor: storage fora do
+    // ar e erro nosso, entao a fila tenta de novo (sem expor o erro interno).
+    let media: Awaited<ReturnType<typeof attachmentsService.forDelivery>> = null;
+    let data: Buffer | null = null;
+    try {
+      media = message.role === "atendente" ? await attachmentsService.forDelivery(messageId) : null;
+      data = media ? await media.read() : null;
+    } catch (err) {
+      await conversationsService.setDelivery(messageId, {
+        status: "falhou",
+        error: "nao foi possivel ler o arquivo para envio; tentando de novo",
+      });
+      throw err;
+    }
     // So o erro do provedor marca falha; erro ao gravar o recibo nao.
     let providerMessageId: string | null;
     try {
       const options = { humanAgent: await needsHumanAgentTag(connection, message) };
       // Arquivo do atendente: o texto da mensagem e a legenda (ou so o nome).
-      const media =
-        message.role === "atendente" ? await attachmentsService.forDelivery(messageId) : null;
-      providerMessageId = media
-        ? await providers[connection.provider].sendMedia(
-            connection,
-            to,
-            {
-              ...media,
-              caption: message.content !== media.fileName ? message.content : null,
-              publicUrl: env.PUBLIC_API_URL
-                ? `${env.PUBLIC_API_URL.replace(/\/$/, "")}${attachmentsService.linkPath(media.id)}`
-                : null,
-            },
-            options,
-          )
-        : await providers[connection.provider].sendText(connection, to, message.content, options);
+      providerMessageId =
+        media && data
+          ? await providers[connection.provider].sendMedia(
+              connection,
+              to,
+              {
+                ...media,
+                read: () => Promise.resolve(data as Buffer),
+                caption: message.content !== media.fileName ? message.content : null,
+                publicUrl: env.PUBLIC_API_URL
+                  ? `${env.PUBLIC_API_URL.replace(/\/$/, "")}${attachmentsService.linkPath(media.id)}`
+                  : null,
+              },
+              options,
+            )
+          : await providers[connection.provider].sendText(connection, to, message.content, options);
     } catch (err) {
       const error = err instanceof Error ? err.message : "falha no envio";
       await conversationsService.setDelivery(messageId, { status: "falhou", error });

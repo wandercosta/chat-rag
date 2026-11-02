@@ -150,11 +150,50 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("tarefas", () => {
     await unsubscribe();
     expect(events).toEqual([{ kind: "task_due", taskId: task.id, assigneeUserId: agent.userId }]);
 
+    // Salvar com o mesmo prazo (o dialogo sempre manda) nao repete o aviso.
+    await call("PATCH", `${t.base}/tasks/${task.id}`, t.admin, {
+      title: "Retornar hoje",
+      dueAt: past,
+    });
+    expect(await remindDueTasks()).toBe(0);
     // Prazo novo volta a avisar.
-    await call("PATCH", `${t.base}/tasks/${task.id}`, t.admin, { dueAt: past });
+    const earlier = new Date(Date.now() - 120_000).toISOString();
+    await call("PATCH", `${t.base}/tasks/${task.id}`, t.admin, { dueAt: earlier });
     expect(await remindDueTasks()).toBe(1);
-    // Concluida nao avisa.
+    // Outro responsavel tambem e avisado.
+    const other = await call("POST", `${t.base}/members`, t.admin, {
+      email: "outro@tarefa-d.local",
+      password: "senha-membro-123",
+      role: "Atendente",
+    });
+    await call("PATCH", `${t.base}/tasks/${task.id}`, t.admin, {
+      assigneeUserId: other.json().user_id,
+    });
+    expect(await remindDueTasks()).toBe(1);
+    // Concluida nao avisa; concluir de novo (lista desatualizada) nao e erro.
     await call("PATCH", `${t.base}/tasks/${task.id}`, agent.cookie, { dueAt: past, done: true });
     expect(await remindDueTasks()).toBe(0);
+    const again = await call("PATCH", `${t.base}/tasks/${task.id}`, agent.cookie, { done: true });
+    expect(again.statusCode).toBe(200);
+    expect((await call("PATCH", `${t.base}/tasks/${task.id}`, agent.cookie, {})).statusCode).toBe(
+      200,
+    );
+  });
+
+  it("tarefa sem responsavel avisa quem for definido depois", async () => {
+    const { t } = await setup("tarefa-e");
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const task = (
+      await call("POST", `${t.base}/tasks`, t.admin, {
+        title: "Sem dono",
+        dueAt: past,
+        assigneeUserId: null,
+      })
+    ).json();
+    expect(await remindDueTasks()).toBe(0);
+    await call("PATCH", `${t.base}/tasks/${task.id}`, t.admin, {
+      assigneeUserId: t.people.Atendente.userId,
+    });
+    expect(await remindDueTasks()).toBe(1);
   });
 });

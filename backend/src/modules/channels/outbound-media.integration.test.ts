@@ -7,10 +7,18 @@ process.env.PUBLIC_API_URL = "https://api.chatrag.test";
 
 // Storage em memoria: o teste cobre o caminho do arquivo, nao o S3.
 const files = vi.hoisted(() => new Map<string, Buffer>());
+const storage = vi.hoisted(() => ({ down: false }));
 vi.mock("../../storage/objects.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../storage/objects.js")>()),
-  putSourceFile: async (key: string, body: Buffer) => void files.set(key, body),
+  putSourceFile: async (key: string, body: Buffer) => {
+    if (storage.down) throw new Error("storage fora do ar");
+    files.set(key, body);
+  },
   getSourceFile: async (key: string) => files.get(key)!,
+  openSourceStream: async (key: string) => ({
+    body: (await import("node:stream")).Readable.from([files.get(key)!]),
+    size: files.get(key)!.length,
+  }),
   deleteObjects: async (keys: string[]) => keys.forEach((k) => files.delete(k)),
 }));
 
@@ -131,7 +139,9 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("arquivo enviado pelo atendente", () => 
         entry: [
           {
             id: account,
-            messaging: [{ sender: { id: `user-${provider}` }, message: { mid: `m-${provider}`, text: "oi" } }],
+            messaging: [
+              { sender: { id: `user-${provider}` }, message: { mid: `m-${provider}`, text: "oi" } },
+            ],
           },
         ],
       });
@@ -175,6 +185,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("arquivo enviado pelo atendente", () => 
 
   beforeEach(async () => {
     files.clear();
+    storage.down = false;
     fake.sent.length = 0;
     fake.metaMessages.length = 0;
     fake.telegram.length = 0;
@@ -344,5 +355,38 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("arquivo enviado pelo atendente", () => 
     expect(
       (await app.inject({ method: "GET", url: attachmentsService.linkPath(id) })).statusCode,
     ).toBe(404);
+  });
+
+  it("limites do canal e storage fora do ar nao deixam mensagem sem arquivo", async () => {
+    const t = await fixture.createTenant(app, masterCookie, "envio-e");
+    const whatsapp = await customerWrites("whatsapp", await connect(t, "whatsapp"));
+    const big = Buffer.concat([PNG, Buffer.alloc(6 * 1024 * 1024)]);
+    const tooBig = await sendFile(t, whatsapp, { name: "foto.png", type: "image/png", data: big });
+    expect(tooBig.statusCode).toBe(422);
+    expect(tooBig.json().error).toContain("5 MB");
+    const csv = { name: "lista.csv", type: "text/csv", data: Buffer.from("a,b;1,2") };
+    expect((await sendFile(t, whatsapp, csv)).statusCode).toBe(422);
+
+    const agentMessages = () =>
+      db
+        .selectFrom("messages")
+        .select("id")
+        .where("conversation_id", "=", whatsapp)
+        .where("role", "=", "atendente")
+        .execute();
+    storage.down = true;
+    const failed = await sendFile(t, whatsapp, {
+      name: "a.pdf",
+      type: "application/pdf",
+      data: PDF,
+    });
+    expect(failed.statusCode).toBe(500);
+    expect(await agentMessages()).toHaveLength(0);
+    storage.down = false;
+    expect(
+      (await sendFile(t, whatsapp, { name: "a.pdf", type: "application/pdf", data: PDF }))
+        .statusCode,
+    ).toBe(201);
+    expect(await agentMessages()).toHaveLength(1);
   });
 });

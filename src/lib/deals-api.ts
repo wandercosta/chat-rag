@@ -112,13 +112,24 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 export const formatCents = (cents: number | null) =>
   cents === null ? "" : brl.format(cents / 100);
 
-/** "1.500,50" ou "1500.5" para centavos; vazio vira null. */
-export function parseMoney(text: string): number | null {
-  const clean = text.replace(/[^\d,.-]/g, "").trim();
+/**
+ * Valor digitado em centavos, no jeito brasileiro: "1.500" e mil e
+ * quinhentos, "1.500,50" tem centavos; "1500.5" (ponto com 1 ou 2 casas)
+ * tambem vale. Vazio vira null; o que nao da para entender vira undefined,
+ * para o formulario recusar em vez de apagar o valor.
+ */
+export function parseMoney(text: string): number | null | undefined {
+  const clean = text.replace(/[R$\s]/g, "");
   if (!clean) return null;
-  const normalized = clean.includes(",") ? clean.replace(/\./g, "").replace(",", ".") : clean;
-  const value = Number(normalized);
-  return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
+  let normalized: string;
+  if (/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/.test(clean) || /^\d+(,\d{1,2})?$/.test(clean)) {
+    normalized = clean.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d+\.\d{1,2}$/.test(clean)) {
+    normalized = clean;
+  } else {
+    return undefined;
+  }
+  return Math.round(Number(normalized) * 100);
 }
 
 export const formatDate = (iso: string | null) =>

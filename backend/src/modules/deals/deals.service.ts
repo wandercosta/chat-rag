@@ -125,6 +125,7 @@ export const dealsService = {
 
     const status = statusOf(stage.kind);
     const { id } = await db.transaction().execute(async (trx) => {
+      await pipelinesRepository.lockPipeline(trx, pipeline.id);
       const deal = await dealsRepository.insert(trx, organizationId, {
         ...toValues(input),
         title: input.title,
@@ -161,8 +162,14 @@ export const dealsService = {
   },
 
   async update(actorUserId: string, organizationId: string, dealId: string, input: DealInput) {
-    if (!(await dealsRepository.findById(organizationId, dealId))) throw new DealsNotFoundError();
-    await assertRefs(organizationId, input);
+    const current = await dealsRepository.findById(organizationId, dealId);
+    if (!current) throw new DealsNotFoundError();
+    // O dialogo sempre manda contato e responsavel: so confere o que mudou (o
+    // responsavel antigo pode ter virado Analista e o negocio segue editavel).
+    await assertRefs(organizationId, {
+      contactId: input.contactId !== current.contact_id ? input.contactId : undefined,
+      ownerUserId: input.ownerUserId !== current.owner_user_id ? input.ownerUserId : undefined,
+    });
     await dealsRepository.update(organizationId, dealId, toValues(input));
     await auditService.record({
       actorUserId,
@@ -181,16 +188,21 @@ export const dealsService = {
     dealId: string,
     input: { stageId: string; position?: number; lostReason?: string | null },
   ) {
-    const deal = await dealsRepository.findById(organizationId, dealId);
-    if (!deal) throw new DealsNotFoundError();
+    const found = await dealsRepository.findById(organizationId, dealId);
+    if (!found) throw new DealsNotFoundError();
     const stage = await pipelinesRepository.findStage(organizationId, input.stageId);
-    if (!stage || stage.pipeline_id !== deal.pipeline_id) {
+    if (!stage || stage.pipeline_id !== found.pipeline_id) {
       throw new DealsInvalidReferenceError("etapa");
     }
     const status = statusOf(stage.kind);
-    const stageChanged = stage.id !== deal.stage_id;
 
-    await db.transaction().execute(async (trx) => {
+    // Le de novo com o funil travado: dois movimentos do mesmo negocio nao
+    // gravam historico com a etapa de origem errada.
+    const deal = await db.transaction().execute(async (trx) => {
+      await pipelinesRepository.lockPipeline(trx, stage.pipeline_id);
+      const deal = await dealsRepository.findById(organizationId, dealId, trx);
+      if (!deal) throw new DealsNotFoundError();
+      const stageChanged = stage.id !== deal.stage_id;
       const ids = await dealsRepository.idsInStage(trx, organizationId, stage.id, dealId);
       const at = Math.min(Math.max(input.position ?? ids.length, 0), ids.length);
       ids.splice(at, 0, dealId);
@@ -213,9 +225,10 @@ export const dealsService = {
           actorUserId,
         );
       }
+      return deal;
     });
 
-    if (stageChanged) {
+    if (stage.id !== deal.stage_id) {
       await auditService.record({
         actorUserId,
         organizationId,

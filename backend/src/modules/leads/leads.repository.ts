@@ -66,6 +66,17 @@ export const leadsRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  /** Sugestao nova substitui a pendente: so uma por contato espera revisao. */
+  supersedePending(organizationId: string, contactId: string, userId: string) {
+    return db
+      .updateTable("lead_insights")
+      .set({ status: "descartada", reviewed_by: userId, reviewed_at: new Date() })
+      .where("organization_id", "=", organizationId)
+      .where("contact_id", "=", contactId)
+      .where("status", "=", "sugerida")
+      .execute();
+  },
+
   findInsight(organizationId: string, id: string) {
     return db
       .selectFrom("lead_insights")
@@ -86,7 +97,7 @@ export const leadsRepository = {
       .execute();
   },
 
-  /** Ultima classificacao aceita de cada contato pedido. */
+  /** Ultima classificacao aceita (pela hora do aceite) de cada contato pedido. */
   currentFor(organizationId: string, contactIds: string[]) {
     if (contactIds.length === 0) return Promise.resolve([]);
     return db

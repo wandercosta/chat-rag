@@ -89,7 +89,8 @@ export function TaskDialog({
         dueAt: form.due ? new Date(form.due).toISOString() : null,
         assigneeUserId: form.assigneeUserId || null,
         contactId: form.contact?.id ?? null,
-        dealId: form.contact ? form.dealId || null : null,
+        // Sem contato o seletor de negocio some; na edicao, o vinculo fica como esta.
+        dealId: form.contact ? form.dealId || null : task ? undefined : null,
       };
       return task ? tasksApi.update(tenantId, task.id, input) : tasksApi.create(tenantId, input);
     },

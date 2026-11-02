@@ -16,6 +16,10 @@ const dealSchema = z.object({
   expectedCloseDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "use AAAA-MM-DD")
+    .refine((d) => {
+      const date = new Date(`${d}T00:00:00Z`);
+      return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(d);
+    }, "data invalida")
     .nullable()
     .optional(),
 });

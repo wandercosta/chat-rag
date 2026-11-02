@@ -69,7 +69,9 @@ const metaSignature: ProviderAdapter["authenticate"] = (headers, raw, secrets) =
 
 /**
  * Messenger e Instagram nao tem legenda em anexo: o texto do atendente sai
- * logo depois, como mensagem propria. O id devolvido e o do arquivo.
+ * logo depois, como mensagem propria. O id devolvido e o do arquivo. Se so a
+ * legenda falhar, o arquivo ja chegou: nao vira falha (a fila mandaria o
+ * arquivo de novo).
  */
 async function withCaption(
   pageId: string,
@@ -80,7 +82,11 @@ async function withCaption(
   send: () => Promise<string | null>,
 ) {
   const id = await send();
-  if (media.caption) await metaMessagingClient.sendText(pageId, token, to, media.caption, options);
+  if (media.caption) {
+    await metaMessagingClient.sendText(pageId, token, to, media.caption, options).catch((err) => {
+      console.error("legenda nao enviada depois do arquivo:", (err as Error).message);
+    });
+  }
   return id;
 }
 
