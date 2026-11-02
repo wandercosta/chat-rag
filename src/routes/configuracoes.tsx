@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { DataExportCard } from "@/components/data-export-card";
+import { LeadSettingsCard } from "@/components/leads/lead-settings-card";
+import { WidgetDefaultsCard } from "@/components/widget/widget-defaults-card";
 import { ActivationBanner } from "@/components/activation-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -79,7 +82,7 @@ const retentionOptions = [
 ];
 
 function SettingsPage() {
-  const { can, tenantId } = useSession();
+  const { can, tenantId, profile } = useSession();
 
   if (!can("settings")) {
     return (
@@ -99,6 +102,9 @@ function SettingsPage() {
         <AllowedModelsCard tenantId={tenantId} />
         <RetentionCard tenantId={tenantId} />
       </div>
+      {profile === "Administrador" && <LeadSettingsCard tenantId={tenantId} />}
+      <WidgetDefaultsCard tenantId={tenantId} />
+      <DataExportCard tenantId={tenantId} />
     </>
   );
 }
@@ -292,6 +298,7 @@ function AllowedModelsCard({ tenantId }: { tenantId: string | null }) {
 function RetentionCard({ tenantId }: { tenantId: string | null }) {
   const queryClient = useQueryClient();
   const [days, setDays] = useState("90");
+  const [mode, setMode] = useState<"excluir" | "anonimizar">("excluir");
 
   const orgQuery = useQuery({
     queryKey: ["organization", tenantId],
@@ -300,11 +307,14 @@ function RetentionCard({ tenantId }: { tenantId: string | null }) {
   });
 
   useEffect(() => {
-    if (orgQuery.data) setDays(String(orgQuery.data.retention_days ?? 0));
+    if (!orgQuery.data) return;
+    setDays(String(orgQuery.data.retention_days ?? 0));
+    setMode(orgQuery.data.retention_mode ?? "excluir");
   }, [orgQuery.data]);
 
   const save = useMutation({
-    mutationFn: () => organizationsApi.setRetention(tenantId!, days === "0" ? null : Number(days)),
+    mutationFn: () =>
+      organizationsApi.setRetention(tenantId!, days === "0" ? null : Number(days), mode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organization", tenantId] });
       toast.success("Retenção atualizada");
@@ -337,6 +347,22 @@ function RetentionCard({ tenantId }: { tenantId: string | null }) {
           <p className="text-xs text-muted-foreground">
             "Não reter" deixa a organização sem política própria — vale o padrão da plataforma (90
             dias).
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="s-ret-mode">Ao vencer o prazo</Label>
+          <Select value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+            <SelectTrigger id="s-ret-mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="excluir">Excluir a conversa</SelectItem>
+              <SelectItem value="anonimizar">Anonimizar (manter só para métricas)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Anonimizar apaga o texto das mensagens, anexos e notas internas e desliga a conversa do
+            visitante e do contato; contagens e tempos continuam no Desempenho.
           </p>
         </div>
         <Button disabled={save.isPending} onClick={() => save.mutate()}>

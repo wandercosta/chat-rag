@@ -21,7 +21,7 @@ Cada fonte tem titulo, topico, origem, estado de indexacao, metadados, visibilid
 
 `rascunho -> aguardando_revisao? -> fila -> processando -> pronta | erro | arquivada`
 
-A exigencia de revisao antes de publicar e configuravel por assistente. Alteracoes em fonte publicada criam nova indexacao; a versao formal do documento fica fora do MVP, mas os eventos de auditoria devem permitir rastrear a mudanca.
+A revisao existe em dois niveis. Na **colecao** (`requires_review`), fonte nova entra "aguardando revisao" e so e indexada depois de aprovada. No **assistente** (`reviewed_sources_only`, "So fontes revisadas" no detalhe do assistente), a busca do RAG so considera trechos de fontes revisadas (`sources.reviewed_at`), mesmo que a colecao nao exija revisao: util para um assistente publico usar so conteudo conferido enquanto um interno usa tudo. Uma fonte conta como revisada quando e aprovada no fluxo da colecao ou quando alguem marca "Marcar como revisada" na Base de conhecimento (`POST .../sources/:id/review`, Administrador e Editor de base, com auditoria); "Tirar revisao" desfaz. Fontes que ja existiam antes comecam sem revisao. Alteracoes em fonte publicada criam nova indexacao; a versao formal do documento fica fora do MVP, mas os eventos de auditoria devem permitir rastrear a mudanca.
 
 ## Conversa natural
 

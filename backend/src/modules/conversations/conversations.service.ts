@@ -1,4 +1,8 @@
-import type { ConversationChannel, MessageCitation } from "../../db/types.js";
+import type { ConversationChannel, DeliveryStatus, MessageCitation } from "../../db/types.js";
+import { webhooksService } from "../webhooks/index.js";
+import { agentStatsRepository } from "./agent-stats.repository.js";
+import { attachmentsService } from "./attachments.service.js";
+import { channelMessagesRepository } from "./channel-messages.repository.js";
 import { conversationsRepository, type ConversationFilters } from "./conversations.repository.js";
 
 export const conversationsService = {
@@ -14,7 +18,14 @@ export const conversationsService = {
     const conversation = await conversationsRepository.findById(organizationId, id);
     if (!conversation) return null;
     const messages = await conversationsRepository.messagesFor(id);
-    return { ...conversation, messages };
+    const attachments = await attachmentsService.listForMessages(messages.map((m) => m.id));
+    return {
+      ...conversation,
+      messages: messages.map((m) => ({
+        ...m,
+        attachments: attachments.filter((a) => a.message_id === m.id),
+      })),
+    };
   },
 
   start(
@@ -26,13 +37,19 @@ export const conversationsService = {
     return conversationsRepository.start(organizationId, assistantId, channel, visitorId);
   },
 
+  /**
+   * Retomar devolve o historico: so com `resume` (visitante de identidade
+   * assinada). Sem isso, quem soubesse o id externo de outro cliente leria a
+   * conversa dele.
+   */
   async startOrResume(
     organizationId: string,
     assistantId: string,
     channel: ConversationChannel,
     visitorId: string | null = null,
+    resume = false,
   ) {
-    if (visitorId) {
+    if (visitorId && resume) {
       const existing = await conversationsRepository.findActiveForVisitor(
         organizationId,
         assistantId,
@@ -52,12 +69,198 @@ export const conversationsService = {
     return { conversation: newConv, isResumed: false, messages: [] };
   },
 
-  addVisitorMessage(conversationId: string, content: string) {
-    return conversationsRepository.addMessage(conversationId, "visitante", content);
+  /** `providerMessageId`: id no canal (WhatsApp...), para o webhook ser idempotente. */
+  async addVisitorMessage(conversationId: string, content: string, providerMessageId?: string) {
+    const message = await conversationsRepository.addMessage(
+      conversationId,
+      "visitante",
+      content,
+      [],
+      null,
+      { providerMessageId },
+    );
+    const conversation = await conversationsRepository.findAnyById(conversationId);
+    if (conversation) {
+      await webhooksService.emit(conversation.organization_id, "mensagem.recebida", {
+        conversationId,
+        messageId: message.id,
+        channel: conversation.channel,
+        contactId: conversation.contact_id,
+        content,
+        createdAt: message.created_at,
+      });
+    }
+    return message;
   },
 
   addAssistantMessage(conversationId: string, content: string, citations: MessageCitation[] = []) {
     return conversationsRepository.addMessage(conversationId, "assistente", content, citations);
+  },
+
+  /** Resposta de um atendente humano: guarda quem respondeu (ADR-006 #3). */
+  addAgentMessage(conversationId: string, content: string, authorUserId: string | null) {
+    return conversationsRepository.addMessage(
+      conversationId,
+      "atendente",
+      content,
+      [],
+      authorUserId,
+    );
+  },
+
+  /**
+   * Resumo para a fila da caixa de entrada: visitante e ultima mensagem.
+   * Ordem: atividade mais recente primeiro.
+   */
+  async listSummaries(
+    organizationId: string,
+    options: {
+      ids?: string[];
+      channel?: ConversationChannel;
+      contactId?: string;
+      limit?: number;
+    },
+  ) {
+    if (options.ids && options.ids.length === 0) return [];
+    const conversations = await conversationsRepository.listWithVisitor(organizationId, {
+      ...options,
+      limit: options.limit ?? 100,
+    });
+    if (conversations.length === 0) return [];
+
+    const last = await conversationsRepository.lastMessages(conversations.map((c) => c.id));
+    const lastById = new Map(last.map((m) => [m.conversation_id, m]));
+
+    return conversations
+      .map((c) => {
+        const message = lastById.get(c.id);
+        return {
+          ...c,
+          last_message: message
+            ? { role: message.role, content: message.content, created_at: message.created_at }
+            : null,
+          last_activity_at: message?.created_at ?? c.started_at,
+        };
+      })
+      .sort((a, b) => +new Date(b.last_activity_at) - +new Date(a.last_activity_at));
+  },
+
+  /** Liga a conversa a um contato do CRM (ADR-006 #8). */
+  setContact(organizationId: string, conversationId: string, contactId: string) {
+    return conversationsRepository.setContact(organizationId, conversationId, contactId);
+  },
+
+  setContactForVisitor(organizationId: string, visitorId: string, contactId: string) {
+    return conversationsRepository.setContactForVisitor(organizationId, visitorId, contactId);
+  },
+
+  /** Excluir um contato apaga as conversas dele (LGPD), com os arquivos. */
+  async deleteForContact(organizationId: string, contactId: string) {
+    await attachmentsService.deleteFilesFor({ organizationId, contactId });
+    return conversationsRepository.deleteForContact(organizationId, contactId);
+  },
+
+  // --- canais (ADR-006, etapa 4) --------------------------------------------
+
+  startForChannel(
+    organizationId: string,
+    assistantId: string,
+    channel: ConversationChannel,
+    connectionId: string,
+    contactId: string,
+  ) {
+    return channelMessagesRepository.startForChannel(
+      organizationId,
+      assistantId,
+      channel,
+      connectionId,
+      contactId,
+    );
+  },
+
+  findLatestForChannel(organizationId: string, connectionId: string, contactId: string) {
+    return channelMessagesRepository.findLatestForChannel(organizationId, connectionId, contactId);
+  },
+
+  lastVisitorMessageAt(conversationId: string) {
+    return channelMessagesRepository.lastMessageAt(conversationId, "visitante");
+  },
+
+  lastMessageAt(conversationId: string) {
+    return channelMessagesRepository.lastMessageAt(conversationId);
+  },
+
+  findMessageByProviderId(organizationId: string, providerMessageId: string) {
+    return channelMessagesRepository.findMessageByProviderId(organizationId, providerMessageId);
+  },
+
+  /** Ajuste de texto antes do envio (ex.: fontes no fim da resposta no WhatsApp). */
+  setContent(messageId: string, content: string) {
+    return channelMessagesRepository.setContent(messageId, content);
+  },
+
+  findMessage(organizationId: string, messageId: string) {
+    return channelMessagesRepository.findMessage(organizationId, messageId);
+  },
+
+  setDelivery(
+    messageId: string,
+    values: { providerMessageId?: string; status: DeliveryStatus; error?: string | null },
+  ) {
+    return channelMessagesRepository.setDelivery(messageId, values);
+  },
+
+  updateDeliveryByProviderId(
+    organizationId: string,
+    providerMessageId: string,
+    status: DeliveryStatus,
+    error: string | null,
+  ) {
+    return channelMessagesRepository.updateDeliveryByProviderId(
+      organizationId,
+      providerMessageId,
+      status,
+      error,
+    );
+  },
+
+  /** Entregues, lidas e respondidas entre as mensagens dadas (campanhas). */
+  messageOutcomes(messageIds: string[]) {
+    return channelMessagesRepository.outcomes(messageIds);
+  },
+
+  deliveryOf(messageIds: string[]) {
+    return channelMessagesRepository.deliveryOf(messageIds);
+  },
+
+  /** Ultima mensagem de cada conversa (quem falou por ultimo e quando). */
+  async lastMessageOf(conversationIds: string[]) {
+    if (conversationIds.length === 0) return new Map();
+    const rows = await conversationsRepository.lastMessages(conversationIds);
+    return new Map(rows.map((r) => [r.conversation_id, { role: r.role, at: r.created_at }]));
+  },
+
+  /** Exportacao da organizacao (LGPD). */
+  /** Respostas de atendentes desde `since`, para as metricas da caixa de entrada. */
+  async agentRepliesSince(organizationId: string, since: Date) {
+    const rows = await agentStatsRepository.repliesSince(organizationId, since);
+    return rows.map((r) => ({
+      conversationId: r.conversation_id,
+      userId: r.author_user_id!,
+      firstAt: new Date(r.first_at as unknown as string | Date),
+      count: Number(r.count),
+    }));
+  },
+
+  /** Ultima resposta de atendente por conversa (SLA da caixa de entrada). */
+  async lastAgentReplyAt(organizationId: string, conversationIds: string[]) {
+    if (conversationIds.length === 0) return new Map<string, Date>();
+    const rows = await agentStatsRepository.lastAgentReplies(organizationId, conversationIds);
+    return new Map(rows.map((r) => [r.conversation_id, new Date(r.at as unknown as string)]));
+  },
+
+  exportAll(organizationId: string) {
+    return conversationsRepository.exportAll(organizationId);
   },
 
   recordFeedback(conversationId: string, rating: "positivo" | "negativo") {

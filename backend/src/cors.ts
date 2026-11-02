@@ -24,7 +24,11 @@ export function registerCors(app: FastifyInstance) {
     if (origin && (isWidget || allowedPanelOrigins.includes(origin))) {
       reply.header("Access-Control-Allow-Origin", origin);
       reply.header("Vary", "Origin");
-      if (!isWidget) reply.header("Access-Control-Allow-Credentials", "true");
+      if (!isWidget) {
+        reply.header("Access-Control-Allow-Credentials", "true");
+        // Exportacoes (CSV de contatos, JSON da LGPD) mandam o nome do arquivo aqui.
+        reply.header("Access-Control-Expose-Headers", "Content-Disposition");
+      }
     }
 
     if (request.method === "OPTIONS") {

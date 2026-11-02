@@ -1,4 +1,5 @@
 import { db } from "../../db/client.js";
+import type { AiLimitMode, RetentionMode } from "../../db/types.js";
 import type { TenantRole } from "../../db/types.js";
 
 export const organizationsRepository = {
@@ -29,19 +30,52 @@ export const organizationsRepository = {
     return db.updateTable("organizations").set({ status }).where("id", "=", id).execute();
   },
 
-  async findRetentionDays(id: string): Promise<number | null> {
+  async findRetentionPolicy(id: string) {
     const row = await db
       .selectFrom("organizations")
-      .select("retention_days")
+      .select(["retention_days", "retention_mode"])
       .where("id", "=", id)
       .executeTakeFirst();
-    return row?.retention_days ?? null;
+    return { days: row?.retention_days ?? null, mode: row?.retention_mode ?? "excluir" };
   },
 
-  setRetentionDays(id: string, days: number | null) {
+  findAiLimit(id: string) {
+    return db
+      .selectFrom("organizations")
+      .select(["ai_limit_mode", "ai_monthly_tokens"])
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
+  setAiLimit(id: string, mode: AiLimitMode, tokens: number | null) {
     return db
       .updateTable("organizations")
-      .set({ retention_days: days })
+      .set({ ai_limit_mode: mode, ai_monthly_tokens: tokens })
+      .where("id", "=", id)
+      .executeTakeFirst();
+  },
+
+  /** true so na primeira chamada do mes: o update marca e serve de trava. */
+  async claimLimitNotice(id: string, month: string) {
+    const row = await db
+      .updateTable("organizations")
+      .set({ ai_limit_notified_month: month })
+      .where("id", "=", id)
+      .where((eb) =>
+        eb.or([
+          eb("ai_limit_notified_month", "is", null),
+          eb("ai_limit_notified_month", "<>", month),
+        ]),
+      )
+      .returning("id")
+      .executeTakeFirst();
+    return !!row;
+  },
+
+  setRetentionPolicy(id: string, days: number | null, mode?: RetentionMode) {
+    return db
+      .updateTable("organizations")
+      .set({ retention_days: days, ...(mode && { retention_mode: mode }) })
       .where("id", "=", id)
       .execute();
   },

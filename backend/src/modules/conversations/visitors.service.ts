@@ -17,7 +17,15 @@ export const visitorsService = {
         input.externalUserId,
       );
       if (existing) {
-        if (input.name === undefined && input.email === undefined && input.context === undefined) {
+        // Identidade sem assinatura nunca mexe num visitante verificado: quem
+        // adivinhou o id fica anonimo (nem le nem altera o cadastro dele).
+        if (existing.identity_verified && !input.verified) return null;
+        if (
+          input.name === undefined &&
+          input.email === undefined &&
+          input.context === undefined &&
+          !input.verified
+        ) {
           return existing;
         }
         return visitorsRepository.updateProfile(existing.id, input);

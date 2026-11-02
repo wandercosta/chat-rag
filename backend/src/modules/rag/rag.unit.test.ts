@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toAnthropicMessages } from "./anthropic-adapter.js";
-import { bestExcerpt, citationsUsed, type Citation } from "./answer.service.js";
+import { bestExcerpt, citationsUsed, type Citation } from "./answer.text.js";
 import { lexicalOverlap, queryTerms, rerank } from "./retrieval.service.js";
 import { createHashEmbeddings } from "./local-embeddings.js";
 import { EMBEDDING_DIMENSIONS, padEmbedding } from "./provider.types.js";

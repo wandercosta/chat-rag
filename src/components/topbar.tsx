@@ -1,4 +1,5 @@
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Moon, Sun, LogOut, UserCog } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +19,11 @@ export function Topbar() {
       </Badge>
       <div className="ml-auto flex items-center gap-2">
         <span className="hidden text-sm text-muted-foreground sm:inline">{userEmail}</span>
+        <Button variant="ghost" size="icon" asChild aria-label="Minha conta">
+          <Link to="/conta">
+            <UserCog />
+          </Link>
+        </Button>
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Alternar tema">
           {theme === "dark" ? <Sun /> : <Moon />}
         </Button>

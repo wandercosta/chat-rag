@@ -1,9 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireOrgRole, requireSession } from "../identity/index.js";
+import { attachmentsService } from "./attachments.service.js";
 import { conversationsService } from "./conversations.service.js";
+import { headerFileName } from "./file-headers.js";
 
 const readRoles = ["Administrador", "Analista"] as const;
+/** Arquivo recebido: quem le a conversa no historico ou na caixa de entrada. */
+const attachmentRoles = ["Administrador", "Atendente", "Analista"] as const;
 
 const querySchema = z.object({
   assistantId: z.string().uuid().optional(),
@@ -36,6 +40,28 @@ export async function conversationsRoutes(app: FastifyInstance) {
       );
       if (!conversation) return reply.code(404).send({ error: "conversa nao encontrada" });
       return conversation;
+    },
+  );
+
+  // Sempre como download (nunca renderizado pela origem da API): o arquivo vem
+  // de fora e pode ser um HTML/SVG com script. O painel monta a pre-visualizacao.
+  app.get<{ Params: { organizationId: string; conversationId: string; attachmentId: string } }>(
+    "/organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId",
+    { preHandler: requireOrgRole(attachmentRoles) },
+    async (request, reply) => {
+      const { organizationId, conversationId, attachmentId } = request.params;
+      const ids = z.array(z.string().uuid()).safeParse([conversationId, attachmentId]);
+      if (!ids.success) {
+        return reply.code(404).send({ error: "arquivo nao encontrado" });
+      }
+      const file = await attachmentsService.open(organizationId, conversationId, attachmentId);
+      if (!file) return reply.code(404).send({ error: "arquivo nao encontrado" });
+      return reply
+        .header("Content-Type", file.mimeType)
+        .header("Content-Disposition", `attachment; filename="${headerFileName(file.fileName)}"`)
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Cache-Control", "private, no-store")
+        .send(file.data);
     },
   );
 

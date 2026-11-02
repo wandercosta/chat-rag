@@ -7,8 +7,16 @@ credencial OpenAI/BYOK com envelope encryption + politica de retencao),
 `knowledge` (topicos/fontes/extracao/chunking), `rag` (provedor de IA,
 recuperacao vetorial, politica de resposta), `conversations`
 (mensagens/feedback/lacunas), `embed` (chaves de widget, dominios, rate
-limit, handoff WhatsApp), `audit` (append-only) e `analytics` (usage_events +
-resumo agregado por organizacao). Ver `docs/README.md` (Estado atual) para a
+limit, handoff WhatsApp), `automations` (regras quando/se/entao sem IA,
+historico de execucoes), `campaigns` (publico com opt-in, modelo ou texto,
+agendamento, ritmo e metricas), `channels` (WhatsApp, Telegram, Instagram e Messenger:
+conexao, webhook autenticado, fila de entrada/envio, recibos e modelos), `contacts` (CRM: contatos, etiquetas, campos,
+segmentos, importacao/exportacao CSV), `inbox` (caixa de entrada: atribuicao, resposta
+humana, notas internas, respostas prontas, tempo real por SSE + Redis
+pub/sub em `src/realtime/`; metricas por atendente), `public-api` (tokens com escopo e
+rotas `/api/v1`), `webhooks` (eventos assinados com novas tentativas), `privacy`
+(exportacao LGPD), `audit` (append-only) e `analytics` (usage_events +
+resumo agregado por organizacao e consumo da plataforma para o Master). Ver `docs/README.md` (Estado atual) para a
 lista completa do que falta.
 
 Validado ponta a ponta contra Postgres/Redis/storage S3 reais (nao so

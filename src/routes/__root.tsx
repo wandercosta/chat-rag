@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { AppSidebar } from "@/components/app-sidebar";
+import { TaskReminders } from "@/components/tasks/task-reminders";
 import { Topbar } from "@/components/topbar";
 import { SupportModeBanner } from "@/components/support-mode-banner";
 import { LoginScreen } from "@/components/login-screen";
@@ -158,6 +159,7 @@ function AuthGate() {
 
   return (
     <SidebarProvider>
+      <TaskReminders />
       <div className="flex min-h-screen w-full bg-surface">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">

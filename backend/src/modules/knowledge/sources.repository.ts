@@ -58,6 +58,20 @@ export const sourcesRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  /** Marca quem revisou; `null` desfaz (a fonte volta a nao contar como revisada). */
+  setReviewed(organizationId: string, id: string, reviewedBy: string | null) {
+    return db
+      .updateTable("sources")
+      .set({
+        reviewed_at: reviewedBy ? new Date().toISOString() : null,
+        reviewed_by: reviewedBy,
+      })
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirst();
+  },
+
   setStatus(
     organizationId: string,
     id: string,

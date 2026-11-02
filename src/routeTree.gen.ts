@@ -10,18 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiWebhooksRouteImport } from './routes/api-webhooks'
+import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as AutomacoesRouteImport } from './routes/automacoes'
+import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConhecimentoRouteImport } from './routes/conhecimento'
+import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ConversasRouteImport } from './routes/conversas'
+import { Route as DesempenhoRouteImport } from './routes/desempenho'
+import { Route as EquipeRouteImport } from './routes/equipe'
+import { Route as FunilRouteImport } from './routes/funil'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as LacunasRouteImport } from './routes/lacunas'
 import { Route as PlataformaRouteImport } from './routes/plataforma'
 import { Route as PlaygroundRouteImport } from './routes/playground'
+import { Route as TarefasRouteImport } from './routes/tarefas'
 import { Route as TesteWidgetRouteImport } from './routes/teste-widget'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as AssistentesIndexRouteImport } from './routes/assistentes.index'
 import { Route as AssistentesAssistantIdRouteImport } from './routes/assistentes.$assistantId'
+import { Route as CampanhasIndexRouteImport } from './routes/campanhas.index'
+import { Route as CampanhasCampaignIdRouteImport } from './routes/campanhas.$campaignId'
+import { Route as ContatosIndexRouteImport } from './routes/contatos.index'
+import { Route as ContatosContactIdRouteImport } from './routes/contatos.$contactId'
 import { Route as TenantsIndexRouteImport } from './routes/tenants.index'
 import { Route as TenantsTenantIdRouteImport } from './routes/tenants.$tenantId'
 
@@ -30,9 +43,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksRoute = ApiWebhooksRouteImport.update({
+  id: '/api-webhooks',
+  path: '/api-webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtendimentoRoute = AtendimentoRouteImport.update({
+  id: '/atendimento',
+  path: '/atendimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomacoesRoute = AutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CanaisRoute = CanaisRouteImport.update({
+  id: '/canais',
+  path: '/canais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -45,9 +78,29 @@ const ConhecimentoRoute = ConhecimentoRouteImport.update({
   path: '/conhecimento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContaRoute = ContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConversasRoute = ConversasRouteImport.update({
   id: '/conversas',
   path: '/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesempenhoRoute = DesempenhoRouteImport.update({
+  id: '/desempenho',
+  path: '/desempenho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipeRoute = EquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FunilRoute = FunilRouteImport.update({
+  id: '/funil',
+  path: '/funil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegracoesRoute = IntegracoesRouteImport.update({
@@ -70,6 +123,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
   path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TarefasRoute = TarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TesteWidgetRoute = TesteWidgetRouteImport.update({
   id: '/teste-widget',
   path: '/teste-widget',
@@ -90,6 +148,26 @@ const AssistentesAssistantIdRoute = AssistentesAssistantIdRouteImport.update({
   path: '/assistentes/$assistantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampanhasIndexRoute = CampanhasIndexRouteImport.update({
+  id: '/campanhas/',
+  path: '/campanhas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampanhasCampaignIdRoute = CampanhasCampaignIdRouteImport.update({
+  id: '/campanhas/$campaignId',
+  path: '/campanhas/$campaignId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatosIndexRoute = ContatosIndexRouteImport.update({
+  id: '/contatos/',
+  path: '/contatos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatosContactIdRoute = ContatosContactIdRouteImport.update({
+  id: '/contatos/$contactId',
+  path: '/contatos/$contactId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantsIndexRoute = TenantsIndexRouteImport.update({
   id: '/tenants/',
   path: '/tenants/',
@@ -103,125 +181,216 @@ const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
+  '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
+  '/funil': typeof FunilRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/tarefas': typeof TarefasRoute
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/campanhas/': typeof CampanhasIndexRoute
+  '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
+  '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
+  '/funil': typeof FunilRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/tarefas': typeof TarefasRoute
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes': typeof AssistentesIndexRoute
+  '/campanhas': typeof CampanhasIndexRoute
+  '/contatos': typeof ContatosIndexRoute
   '/tenants': typeof TenantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api-webhooks': typeof ApiWebhooksRoute
+  '/atendimento': typeof AtendimentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/conhecimento': typeof ConhecimentoRoute
+  '/conta': typeof ContaRoute
   '/conversas': typeof ConversasRoute
+  '/desempenho': typeof DesempenhoRoute
+  '/equipe': typeof EquipeRoute
+  '/funil': typeof FunilRoute
   '/integracoes': typeof IntegracoesRoute
   '/lacunas': typeof LacunasRoute
   '/plataforma': typeof PlataformaRoute
   '/playground': typeof PlaygroundRoute
+  '/tarefas': typeof TarefasRoute
   '/teste-widget': typeof TesteWidgetRoute
   '/usuarios': typeof UsuariosRoute
   '/assistentes/$assistantId': typeof AssistentesAssistantIdRoute
+  '/campanhas/$campaignId': typeof CampanhasCampaignIdRoute
+  '/contatos/$contactId': typeof ContatosContactIdRoute
   '/tenants/$tenantId': typeof TenantsTenantIdRoute
   '/assistentes/': typeof AssistentesIndexRoute
+  '/campanhas/': typeof CampanhasIndexRoute
+  '/contatos/': typeof ContatosIndexRoute
   '/tenants/': typeof TenantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api-webhooks'
+    | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
+    | '/desempenho'
+    | '/equipe'
+    | '/funil'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/tarefas'
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/campanhas/'
+    | '/contatos/'
     | '/tenants/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api-webhooks'
+    | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
+    | '/desempenho'
+    | '/equipe'
+    | '/funil'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/tarefas'
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes'
+    | '/campanhas'
+    | '/contatos'
     | '/tenants'
   id:
     | '__root__'
     | '/'
+    | '/api-webhooks'
+    | '/atendimento'
     | '/auditoria'
+    | '/automacoes'
+    | '/canais'
     | '/configuracoes'
     | '/conhecimento'
+    | '/conta'
     | '/conversas'
+    | '/desempenho'
+    | '/equipe'
+    | '/funil'
     | '/integracoes'
     | '/lacunas'
     | '/plataforma'
     | '/playground'
+    | '/tarefas'
     | '/teste-widget'
     | '/usuarios'
     | '/assistentes/$assistantId'
+    | '/campanhas/$campaignId'
+    | '/contatos/$contactId'
     | '/tenants/$tenantId'
     | '/assistentes/'
+    | '/campanhas/'
+    | '/contatos/'
     | '/tenants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiWebhooksRoute: typeof ApiWebhooksRoute
+  AtendimentoRoute: typeof AtendimentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
+  AutomacoesRoute: typeof AutomacoesRoute
+  CanaisRoute: typeof CanaisRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ConhecimentoRoute: typeof ConhecimentoRoute
+  ContaRoute: typeof ContaRoute
   ConversasRoute: typeof ConversasRoute
+  DesempenhoRoute: typeof DesempenhoRoute
+  EquipeRoute: typeof EquipeRoute
+  FunilRoute: typeof FunilRoute
   IntegracoesRoute: typeof IntegracoesRoute
   LacunasRoute: typeof LacunasRoute
   PlataformaRoute: typeof PlataformaRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  TarefasRoute: typeof TarefasRoute
   TesteWidgetRoute: typeof TesteWidgetRoute
   UsuariosRoute: typeof UsuariosRoute
   AssistentesAssistantIdRoute: typeof AssistentesAssistantIdRoute
+  CampanhasCampaignIdRoute: typeof CampanhasCampaignIdRoute
+  ContatosContactIdRoute: typeof ContatosContactIdRoute
   TenantsTenantIdRoute: typeof TenantsTenantIdRoute
   AssistentesIndexRoute: typeof AssistentesIndexRoute
+  CampanhasIndexRoute: typeof CampanhasIndexRoute
+  ContatosIndexRoute: typeof ContatosIndexRoute
   TenantsIndexRoute: typeof TenantsIndexRoute
 }
 
@@ -234,11 +403,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api-webhooks': {
+      id: '/api-webhooks'
+      path: '/api-webhooks'
+      fullPath: '/api-webhooks'
+      preLoaderRoute: typeof ApiWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/atendimento': {
+      id: '/atendimento'
+      path: '/atendimento'
+      fullPath: '/atendimento'
+      preLoaderRoute: typeof AtendimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auditoria': {
       id: '/auditoria'
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automacoes': {
+      id: '/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AutomacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/canais': {
+      id: '/canais'
+      path: '/canais'
+      fullPath: '/canais'
+      preLoaderRoute: typeof CanaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -255,11 +452,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConhecimentoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conta': {
+      id: '/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof ContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/conversas': {
       id: '/conversas'
       path: '/conversas'
       fullPath: '/conversas'
       preLoaderRoute: typeof ConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desempenho': {
+      id: '/desempenho'
+      path: '/desempenho'
+      fullPath: '/desempenho'
+      preLoaderRoute: typeof DesempenhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipe': {
+      id: '/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof EquipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funil': {
+      id: '/funil'
+      path: '/funil'
+      fullPath: '/funil'
+      preLoaderRoute: typeof FunilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/integracoes': {
@@ -290,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tarefas': {
+      id: '/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof TarefasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/teste-widget': {
       id: '/teste-widget'
       path: '/teste-widget'
@@ -318,6 +550,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistentesAssistantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campanhas/': {
+      id: '/campanhas/'
+      path: '/campanhas'
+      fullPath: '/campanhas/'
+      preLoaderRoute: typeof CampanhasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campanhas/$campaignId': {
+      id: '/campanhas/$campaignId'
+      path: '/campanhas/$campaignId'
+      fullPath: '/campanhas/$campaignId'
+      preLoaderRoute: typeof CampanhasCampaignIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contatos/': {
+      id: '/contatos/'
+      path: '/contatos'
+      fullPath: '/contatos/'
+      preLoaderRoute: typeof ContatosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contatos/$contactId': {
+      id: '/contatos/$contactId'
+      path: '/contatos/$contactId'
+      fullPath: '/contatos/$contactId'
+      preLoaderRoute: typeof ContatosContactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tenants/': {
       id: '/tenants/'
       path: '/tenants'
@@ -337,19 +597,32 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiWebhooksRoute: ApiWebhooksRoute,
+  AtendimentoRoute: AtendimentoRoute,
   AuditoriaRoute: AuditoriaRoute,
+  AutomacoesRoute: AutomacoesRoute,
+  CanaisRoute: CanaisRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ConhecimentoRoute: ConhecimentoRoute,
+  ContaRoute: ContaRoute,
   ConversasRoute: ConversasRoute,
+  DesempenhoRoute: DesempenhoRoute,
+  EquipeRoute: EquipeRoute,
+  FunilRoute: FunilRoute,
   IntegracoesRoute: IntegracoesRoute,
   LacunasRoute: LacunasRoute,
   PlataformaRoute: PlataformaRoute,
   PlaygroundRoute: PlaygroundRoute,
+  TarefasRoute: TarefasRoute,
   TesteWidgetRoute: TesteWidgetRoute,
   UsuariosRoute: UsuariosRoute,
   AssistentesAssistantIdRoute: AssistentesAssistantIdRoute,
+  CampanhasCampaignIdRoute: CampanhasCampaignIdRoute,
+  ContatosContactIdRoute: ContatosContactIdRoute,
   TenantsTenantIdRoute: TenantsTenantIdRoute,
   AssistentesIndexRoute: AssistentesIndexRoute,
+  CampanhasIndexRoute: CampanhasIndexRoute,
+  ContatosIndexRoute: ContatosIndexRoute,
   TenantsIndexRoute: TenantsIndexRoute,
 }
 export const routeTree = rootRouteImport

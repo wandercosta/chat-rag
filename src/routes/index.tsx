@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/session";
+import { AiQuotaCard } from "@/components/ai-quota-card";
 import { assistantsApi, conversationsApi, gapsApi, sourcesApi, topicsApi } from "@/lib/api-client";
 
 export const Route = createFileRoute("/")({
@@ -100,6 +101,7 @@ function TenantOverview() {
         description={`Sessão como ${profile ?? "—"}. Os cartões abaixo resumem o consumo da organização.`}
       />
       <ActivationBanner />
+      <AiQuotaCard />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((m) => (

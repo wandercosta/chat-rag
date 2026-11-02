@@ -131,6 +131,24 @@ export async function sourcesRoutes(app: FastifyInstance) {
   );
 
   app.post<{ Params: { organizationId: string; sourceId: string } }>(
+    "/organizations/:organizationId/sources/:sourceId/review",
+    { preHandler: requireOrgRole(roles) },
+    async (request, reply) => {
+      const { reviewed } = z.object({ reviewed: z.boolean() }).parse(request.body);
+      try {
+        return await sourcesService.setReviewed(
+          request.auth!.userId,
+          request.params.organizationId,
+          request.params.sourceId,
+          reviewed,
+        );
+      } catch (err) {
+        return handleServiceError(err, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { organizationId: string; sourceId: string } }>(
     "/organizations/:organizationId/sources/:sourceId/reindex",
     { preHandler: requireOrgRole(roles) },
     async (request, reply) => {

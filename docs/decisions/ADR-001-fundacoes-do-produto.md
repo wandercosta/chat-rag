@@ -1,6 +1,6 @@
 # ADR-001: Fundacoes do ChatRAG
 
-**Status:** Aceita em planejamento
+**Status:** Aceita em planejamento. O item 12 foi substituido em parte pelo ADR-006 (acoes de comunicacao por canais do tenant passam a ser permitidas).
 
 ## Decisoes
 

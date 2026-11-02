@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ChatMessage, ChatProvider } from "./provider.types.js";
+import type { ChatMessage, ChatProvider, ChatResult } from "./provider.types.js";
 
 /** Modelos que aceitam o fallback de recusa do lado do servidor
  * (`fallbacks: "default"`). Nos demais a requisicao vai sem ele. */
@@ -36,41 +36,67 @@ export function toAnthropicMessages(messages: ChatMessage[]): {
 }
 
 /**
+ * Texto da resposta; recusa (stop_reason "refusal") vira vazio, que conta como
+ * lacuna. O consumo vem com o modelo que de fato respondeu (com fallback de
+ * recusa, pode ser outro).
+ */
+function resultOf(response: Anthropic.Message | Anthropic.Beta.BetaMessage): ChatResult {
+  const usage = {
+    model: response.model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+  if (response.stop_reason === "refusal") return { text: "", usage };
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  return { text, usage };
+}
+
+/**
  * Chat via Claude. O modelo vem do .env (ANTHROPIC_MODEL), nao do assistente:
  * o catalogo de modelos do painel lista modelos da OpenAI.
  */
 export function createAnthropicChat(apiKey: string, model: string): ChatProvider {
   const client = new Anthropic({ apiKey });
 
+  const params = (messages: ChatMessage[]) => {
+    const { system, messages: turns } = toAnthropicMessages(messages);
+    return { model, max_tokens: 4096, system, messages: turns };
+  };
+  // Resposta curta de atendimento: esforco baixo basta e reduz latencia. O
+  // fallback de recusa do lado do servidor roda dentro da mesma chamada.
+  const withFallback = (messages: ChatMessage[]) =>
+    ({
+      ...params(messages),
+      output_config: { effort: "low" },
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+    }) as Anthropic.Beta.MessageCreateParamsNonStreaming;
+
   return {
     kind: "llm",
     async chat(messages) {
-      const { system, messages: turns } = toAnthropicMessages(messages);
-
       const response = SERVER_FALLBACK_MODELS.has(model)
-        ? await client.beta.messages.create({
-            model,
-            max_tokens: 4096,
-            system,
-            messages: turns,
-            // Resposta curta de atendimento: esforco baixo basta e reduz latencia.
-            output_config: { effort: "low" },
-            betas: ["server-side-fallback-2026-07-01"],
-            fallbacks: "default",
-          } as Anthropic.Beta.MessageCreateParamsNonStreaming)
-        : await client.messages.create({
-            model,
-            max_tokens: 4096,
-            system,
-            messages: turns,
-          });
-
-      if (response.stop_reason === "refusal") return "";
-
-      return response.content
-        .map((block) => (block.type === "text" ? block.text : ""))
-        .join("")
-        .trim();
+        ? await client.beta.messages.create(withFallback(messages))
+        : await client.messages.create(params(messages));
+      return resultOf(response);
+    },
+    /**
+     * Mesmo pedido em streaming. Com fallback, o texto do modelo que recusou
+     * pode ter saido antes da troca: a resposta final (finalMessage) e a que
+     * vale, e quem recebe os pedacos troca pelo texto final no fim.
+     */
+    async stream(messages, _model, onDelta) {
+      if (SERVER_FALLBACK_MODELS.has(model)) {
+        const stream = client.beta.messages.stream(withFallback(messages));
+        stream.on("text", (delta) => onDelta(delta));
+        return resultOf(await stream.finalMessage());
+      }
+      const stream = client.messages.stream(params(messages));
+      stream.on("text", (delta) => onDelta(delta));
+      return resultOf(await stream.finalMessage());
     },
   };
 }

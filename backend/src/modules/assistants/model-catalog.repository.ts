@@ -22,6 +22,44 @@ export const modelCatalogRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  /**
+   * Preco por modelo (US$ por 1M tokens). Modelo que nao esta no catalogo
+   * (ex.: o Claude do .env) entra desligado: ganha preco sem aparecer para
+   * os tenants escolherem.
+   */
+  async setPrice(id: string, input: number | null, output: number | null) {
+    return db
+      .insertInto("ai_model_catalog")
+      .values({
+        id,
+        label: id,
+        note: null,
+        enabled: false,
+        input_price_per_mtok: input,
+        output_price_per_mtok: output,
+      })
+      .onConflict((oc) =>
+        oc.column("id").doUpdateSet({ input_price_per_mtok: input, output_price_per_mtok: output }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  async prices() {
+    const rows = await db
+      .selectFrom("ai_model_catalog")
+      .select(["id", "input_price_per_mtok", "output_price_per_mtok"])
+      .execute();
+    return new Map(
+      rows
+        .filter((r) => r.input_price_per_mtok !== null && r.output_price_per_mtok !== null)
+        .map((r) => [
+          r.id,
+          { input: Number(r.input_price_per_mtok), output: Number(r.output_price_per_mtok) },
+        ]),
+    );
+  },
+
   setEnabled(id: string, enabled: boolean) {
     return db.updateTable("ai_model_catalog").set({ enabled }).where("id", "=", id).execute();
   },

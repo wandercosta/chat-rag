@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decryptSecret, encryptSecret, maskSecret } from "./ai-credentials.envelope.js";
+import { decryptSecret, encryptSecret, maskSecret } from "./envelope.js";
 
 describe("ai-credentials envelope", () => {
   it("round-trips a secret through encrypt/decrypt", () => {
@@ -23,5 +23,13 @@ describe("ai-credentials envelope", () => {
     const masked = maskSecret("sk-test-1234567890abcdef");
     expect(masked.endsWith("cdef")).toBe(true);
     expect(masked).not.toContain("1234567890");
+  });
+});
+
+describe("envelope serializado", () => {
+  it("volta ao mesmo segredo depois de virar JSON", async () => {
+    const { deserializeEnvelope, serializeEnvelope } = await import("./envelope.js");
+    const stored = JSON.parse(JSON.stringify(serializeEnvelope(encryptSecret("token-de-teste"))));
+    expect(decryptSecret(deserializeEnvelope(stored))).toBe("token-de-teste");
   });
 });

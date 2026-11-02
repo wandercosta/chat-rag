@@ -15,6 +15,8 @@ export interface AssistantUpdateInput {
   instructions?: string | null;
   retentionDays?: number | null;
   widgetSettings?: WidgetSettings;
+  humanInboxEnabled?: boolean;
+  reviewedSourcesOnly?: boolean;
 }
 
 export const assistantsRepository = {
@@ -62,6 +64,12 @@ export const assistantsRepository = {
         ...(input.retentionDays !== undefined && { retention_days: input.retentionDays }),
         ...(input.widgetSettings !== undefined && {
           widget_settings: JSON.stringify(input.widgetSettings),
+        }),
+        ...(input.reviewedSourcesOnly !== undefined && {
+          reviewed_sources_only: input.reviewedSourcesOnly,
+        }),
+        ...(input.humanInboxEnabled !== undefined && {
+          human_inbox_enabled: input.humanInboxEnabled,
         }),
         updated_at: new Date().toISOString(),
       })

@@ -1,9 +1,14 @@
 import { auditService } from "../audit/index.js";
+import { encryptSecret, maskSecret, serializeEnvelope } from "../../crypto/envelope.js";
+import { generateIdentitySecret } from "./identity-token.js";
 import { domainsRepository } from "./domains.repository.js";
 import { generateEmbedKey, hashEmbedKey, maskEmbedKey } from "./keys.crypto.js";
 import { keysRepository } from "./keys.repository.js";
 
 export class NoDomainsError extends Error {}
+export class KeyNotFoundError extends Error {}
+/** Exigir assinatura sem segredo cadastrado deixaria o widget sem identidade alguma. */
+export class NoIdentitySecretError extends Error {}
 
 export const keysService = {
   list(organizationId: string) {
@@ -66,6 +71,62 @@ export const keysService = {
     );
     await Promise.all(domains.map((domain) => domainsRepository.add(row.id, domain)));
     return { id: row.id, created: true };
+  },
+
+  /**
+   * Gera (ou troca) o segredo de identidade da chave. O texto so existe nesta
+   * resposta: fica cifrado (envelope) porque precisa voltar a texto para
+   * conferir a assinatura, e o painel so ve o final.
+   */
+  async rotateIdentitySecret(actorUserId: string, organizationId: string, id: string) {
+    const secret = generateIdentitySecret();
+    const updated = await keysRepository.setIdentitySecret(organizationId, id, {
+      envelope: JSON.stringify(serializeEnvelope(encryptSecret(secret))),
+      hint: maskSecret(secret),
+    });
+    if (!updated) throw new KeyNotFoundError();
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: "Gerou segredo de identidade do widget",
+      type: "seguranca",
+      target: id,
+    });
+    return { secret, hint: maskSecret(secret) };
+  },
+
+  async removeIdentitySecret(actorUserId: string, organizationId: string, id: string) {
+    if (!(await keysRepository.setIdentitySecret(organizationId, id, null))) {
+      throw new KeyNotFoundError();
+    }
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: "Removeu segredo de identidade do widget",
+      type: "seguranca",
+      target: id,
+    });
+  },
+
+  async setRequireSignedIdentity(
+    actorUserId: string,
+    organizationId: string,
+    id: string,
+    on: boolean,
+  ) {
+    const key = await keysRepository.findById(organizationId, id);
+    if (!key) throw new KeyNotFoundError();
+    if (on && !key.identity_secret) throw new NoIdentitySecretError();
+    await keysRepository.setRequireSignedIdentity(organizationId, id, on);
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: on
+        ? "Passou a exigir identidade assinada no widget"
+        : "Deixou de exigir identidade assinada no widget",
+      type: "seguranca",
+      target: id,
+    });
   },
 
   async revoke(actorUserId: string, organizationId: string, id: string) {

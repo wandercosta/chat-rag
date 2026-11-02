@@ -13,13 +13,15 @@ type Environment = "teste" | "producao";
 function platformChat(): ChatProvider | null {
   switch (env.AI_PROVIDER) {
     case "openai":
-      return env.OPENAI_API_KEY ? createOpenAiChat(env.OPENAI_API_KEY, env.OPENAI_CHAT_MODEL) : null;
+      return env.OPENAI_API_KEY
+        ? createOpenAiChat(env.OPENAI_API_KEY, env.OPENAI_CHAT_MODEL)
+        : null;
     case "anthropic":
       return env.ANTHROPIC_API_KEY
         ? createAnthropicChat(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL)
         : null;
     case "local":
-      return { kind: "extractive", chat: async () => "" };
+      return { kind: "extractive", chat: async () => ({ text: "" }) };
   }
 }
 
@@ -40,12 +42,12 @@ export async function resolveChatProvider(
 ): Promise<ChatProvider> {
   if (isOpenAiModel(modelId)) {
     const tenantKey = await aiCredentialsService.resolveActiveKey(organizationId, environment);
-    if (tenantKey) return createOpenAiChat(tenantKey);
+    if (tenantKey) return { ...createOpenAiChat(tenantKey), keySource: "tenant" };
   }
 
   const platform = platformChat();
   if (!platform) throw new NoActiveCredentialError();
-  return platform;
+  return { ...platform, keySource: "plataforma" };
 }
 
 let localEmbeddings: EmbeddingProvider | null = null;

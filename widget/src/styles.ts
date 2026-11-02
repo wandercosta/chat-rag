@@ -163,6 +163,11 @@ export function buildStyles(options: WidgetOptions): string {
     .chatrag-msg { max-width: 82%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.4; white-space: pre-wrap; }
     .chatrag-msg.visitante { background: var(--chatrag-bubble-visitor); color: var(--chatrag-bubble-visitor-fg); border-bottom-right-radius: 4px; }
     .chatrag-msg.assistente { background: var(--chatrag-bubble-assistant); color: var(--chatrag-bubble-assistant-fg); border-bottom-left-radius: 4px; }
+    .chatrag-msg.atendente { align-self: flex-start; background: var(--chatrag-bubble-assistant); color: var(--chatrag-bubble-assistant-fg); border-bottom-left-radius: 4px; border-left: 3px solid var(--chatrag-accent); }
+    .chatrag-author { align-self: flex-start; font-size: 11px; color: var(--chatrag-muted); margin-bottom: -4px; }
+    .chatrag-file { align-self: flex-start; max-width: 82%; font-size: 13px; color: var(--chatrag-accent); text-decoration: underline; word-break: break-all; }
+    .chatrag-file-image { display: block; max-width: 220px; max-height: 220px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .chatrag-notice { align-self: center; font-size: 12px; color: var(--chatrag-muted); text-align: center; padding: 2px 8px; }
     .chatrag-msg.pending { opacity: .6; }
 
     .chatrag-feedback { display: flex; gap: 6px; margin-top: 2px; }

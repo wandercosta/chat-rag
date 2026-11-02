@@ -119,12 +119,37 @@ export const sourcesService = {
     return source;
   },
 
+  /**
+   * Revisao fora do fluxo da colecao: marca (ou desmarca) uma fonte como
+   * revisada, para os assistentes que so respondem com fontes revisadas.
+   */
+  async setReviewed(actorUserId: string, organizationId: string, id: string, reviewed: boolean) {
+    const source = await sourcesRepository.findById(organizationId, id);
+    if (!source || source.status === "aguardando_revisao" || source.status === "arquivada") {
+      throw new InvalidTransitionError();
+    }
+    const updated = await sourcesRepository.setReviewed(
+      organizationId,
+      id,
+      reviewed ? actorUserId : null,
+    );
+    await auditService.record({
+      actorUserId,
+      organizationId,
+      action: reviewed ? "Marcou fonte como revisada" : "Tirou a revisao da fonte",
+      type: "conteudo",
+      target: source.title,
+    });
+    return updated;
+  },
+
   /** Aprovacao manual apos revisao (docs/workflows/rag-e-conhecimento.md). */
   async approve(actorUserId: string, organizationId: string, id: string) {
     const source = await sourcesRepository.findById(organizationId, id);
     if (!source || source.status !== "aguardando_revisao") throw new InvalidTransitionError();
 
     const nextStatus = await nextStatusAfterReviewGate(organizationId);
+    await sourcesRepository.setReviewed(organizationId, id, actorUserId);
     const updated = await sourcesRepository.setStatus(organizationId, id, nextStatus);
 
     await auditService.record({

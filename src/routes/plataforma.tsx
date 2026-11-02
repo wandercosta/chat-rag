@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, PauseCircle, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ModelPricesCard } from "@/components/platform/model-prices-card";
+import { PlatformUsageSection } from "@/components/platform/platform-usage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +62,7 @@ function PlatformOverview() {
     <>
       <PageHeader
         title="Visão geral da plataforma"
-        description="Organizações provisionadas e seus estados."
+        description="Organizações provisionadas, seus estados e o consumo de todos os tenants."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -126,19 +128,8 @@ function PlatformOverview() {
         )}
       </Card>
 
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Consumo agregado
-          </CardTitle>
-          <CardDescription>
-            Métricas de uso cruzando todos os tenants (mensagens por período, assistentes, custo
-            estimado) ainda não existem no backend — `usage_events` hoje é agregado por organização,
-            não pela plataforma inteira. O consumo de cada organização está em Auditoria e uso,
-            dentro do tenant.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PlatformUsageSection tenants={tenants} />
+      <ModelPricesCard />
     </>
   );
 }

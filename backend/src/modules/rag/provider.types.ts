@@ -10,10 +10,24 @@ export interface ChatMessage {
   content: string;
 }
 
+/** Texto da resposta e o que ela consumiu, para o custo estimado. */
+export interface ChatResult {
+  text: string;
+  usage?: { model: string; inputTokens: number; outputTokens: number };
+}
+
 export interface ChatProvider {
   /** "extractive" nao chama LLM: a resposta e montada a partir dos trechos. */
   kind: "llm" | "extractive";
-  chat(messages: ChatMessage[], model: string): Promise<string>;
+  /** De quem e a chave: o custo da chave do tenant (BYOK) nao e da plataforma. */
+  keySource?: "tenant" | "plataforma";
+  chat(messages: ChatMessage[], model: string): Promise<ChatResult>;
+  /** Mesma resposta, mas avisando cada pedaco de texto assim que chega. */
+  stream?(
+    messages: ChatMessage[],
+    model: string,
+    onDelta: (text: string) => void,
+  ): Promise<ChatResult>;
 }
 
 export interface EmbeddingProvider {

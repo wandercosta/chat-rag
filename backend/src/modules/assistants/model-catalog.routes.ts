@@ -10,6 +10,10 @@ const upsertSchema = z.object({
 });
 
 const enabledSchema = z.object({ enabled: z.boolean() });
+const priceSchema = z.object({
+  inputPerMTok: z.number().min(0).max(10_000).nullable(),
+  outputPerMTok: z.number().min(0).max(10_000).nullable(),
+});
 const allowedModelsSchema = z.object({ modelIds: z.array(z.string()) });
 
 export async function modelCatalogRoutes(app: FastifyInstance) {
@@ -32,6 +36,17 @@ export async function modelCatalogRoutes(app: FastifyInstance) {
       const body = enabledSchema.parse(request.body);
       await modelCatalogRepository.setEnabled(request.params.modelId, body.enabled);
       return { ok: true };
+    },
+  );
+
+  // Preco por modelo para o custo estimado do consumo (so o Master).
+  app.put<{ Params: { modelId: string } }>(
+    "/master/model-catalog/:modelId/price",
+    { preHandler: requireMaster },
+    async (request) => {
+      const body = priceSchema.parse(request.body);
+      const modelId = z.string().min(1).max(100).parse(request.params.modelId);
+      return modelCatalogRepository.setPrice(modelId, body.inputPerMTok, body.outputPerMTok);
     },
   );
 

@@ -8,7 +8,7 @@ import {
 } from "./members.service.js";
 import { requireOrgRole, requireSession } from "./plugin.js";
 
-const roleSchema = z.enum(["Administrador", "Editor de base", "Analista"]);
+const roleSchema = z.enum(["Administrador", "Editor de base", "Analista", "Atendente"]);
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -32,6 +32,13 @@ function handleError(err: unknown, reply: import("fastify").FastifyReply) {
 
 export async function membersRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
+
+  // Papeis do tenant (tabela roles): nome e o que cada um faz, para o painel.
+  app.get<{ Params: { organizationId: string } }>(
+    "/organizations/:organizationId/roles",
+    { preHandler: requireOrgRole(["Administrador"]) },
+    async () => membersService.roles(),
+  );
 
   app.get<{ Params: { organizationId: string } }>(
     "/organizations/:organizationId/members",
