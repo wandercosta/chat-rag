@@ -71,8 +71,8 @@ export const dealsRepository = {
       .execute();
   },
 
-  countInStage(organizationId: string, stageId: string) {
-    return db
+  countInStage(organizationId: string, stageId: string, trx: Db = db) {
+    return trx
       .selectFrom("deals")
       .select(sql<string>`count(*)`.as("count"))
       .where("organization_id", "=", organizationId)
@@ -81,8 +81,8 @@ export const dealsRepository = {
       .then((r) => Number(r?.count ?? 0));
   },
 
-  countInPipeline(organizationId: string, pipelineId: string) {
-    return db
+  countInPipeline(organizationId: string, pipelineId: string, trx: Db = db) {
+    return trx
       .selectFrom("deals")
       .select(sql<string>`count(*)`.as("count"))
       .where("organization_id", "=", organizationId)

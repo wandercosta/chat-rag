@@ -32,7 +32,21 @@ const KIND_BY_MIME: Record<string, AttachmentKind> = {
 /** O Instagram so recebe midia por URL e nao aceita documento. */
 const INSTAGRAM_KINDS = new Set<AttachmentKind>(["imagem", "video", "audio"]);
 
-export function outboundKind(mimeType: string, channel: ConversationChannel) {
+const MB = 1024 * 1024;
+/**
+ * Teto de cada canal por tipo, abaixo do limite geral da plataforma: o que
+ * passar daqui o provedor recusaria depois, com a mensagem ja "enviando".
+ */
+const CHANNEL_MAX_BYTES: Partial<
+  Record<ConversationChannel, Partial<Record<AttachmentKind, number>>>
+> = {
+  whatsapp: { imagem: 5 * MB, video: 16 * MB, audio: 16 * MB, documento: 100 * MB },
+  instagram: { imagem: 8 * MB, video: 25 * MB, audio: 25 * MB },
+  messenger: { imagem: 25 * MB, video: 25 * MB, audio: 25 * MB, documento: 25 * MB },
+  telegram: { imagem: 10 * MB, video: 50 * MB, audio: 50 * MB, documento: 50 * MB },
+};
+
+export function outboundKind(mimeType: string, channel: ConversationChannel, sizeBytes = 0) {
   const kind = KIND_BY_MIME[mimeType];
   if (!kind) {
     throw new UnsupportedFileError(
@@ -41,6 +55,15 @@ export function outboundKind(mimeType: string, channel: ConversationChannel) {
   }
   if (channel === "instagram" && !INSTAGRAM_KINDS.has(kind)) {
     throw new UnsupportedFileError("o Instagram so recebe imagem, video ou audio");
+  }
+  if (channel === "whatsapp" && mimeType === "text/csv") {
+    throw new UnsupportedFileError("o WhatsApp nao aceita CSV; envie como Excel ou PDF");
+  }
+  const max = CHANNEL_MAX_BYTES[channel]?.[kind];
+  if (max && sizeBytes > max) {
+    throw new UnsupportedFileError(
+      `arquivo grande demais para este canal (ate ${Math.floor(max / MB)} MB para ${kind})`,
+    );
   }
   if (channel === "instagram" && !env.PUBLIC_API_URL) {
     throw new UnsupportedFileError(
@@ -69,22 +92,18 @@ export async function sendFile(
   file: { data: Buffer; mimeType: string; fileName: string; caption: string | null },
 ) {
   const conversation = await requireReplyable(organizationId, conversationId);
-  const kind = outboundKind(file.mimeType, conversation.channel);
+  const kind = outboundKind(file.mimeType, conversation.channel, file.data.length);
   await assertWindowOpen(conversation);
   await claimForReply(actor, organizationId, conversationId);
 
   const fileName = safeFileName(file.fileName);
-  const message = await conversationsService.addAgentMessage(
+  const { message, attachment } = await attachmentsService.addAgentFile(
+    organizationId,
     conversationId,
     file.caption || fileName,
     actor.userId,
+    { kind, fileName, mimeType: file.mimeType, data: file.data },
   );
-  const attachment = await attachmentsService.storeOutbound(organizationId, message.id, {
-    kind,
-    fileName,
-    mimeType: file.mimeType,
-    data: file.data,
-  });
 
   if (conversation.channel !== "widget") {
     await conversationsService.setDelivery(message.id, { status: "enviando" });

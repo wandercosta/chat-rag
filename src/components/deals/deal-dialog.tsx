@@ -85,7 +85,8 @@ export function DealDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (dealId && detail.data) setForm(fromDeal(detail.data, pipeline));
+    // Enquanto o negocio novo carrega, nada do anterior fica no formulario.
+    if (dealId) setForm(fromDeal(detail.data, pipeline));
     if (!dealId) setForm({ ...fromDeal(undefined, pipeline), contact: initialContact ?? null });
   }, [open, dealId, detail.data, pipeline, initialContact]);
 
@@ -100,7 +101,7 @@ export function DealDialog({
     mutationFn: () => {
       const input = {
         title: form.title.trim(),
-        valueCents: parseMoney(form.value),
+        valueCents: parseMoney(form.value) ?? null,
         contactId: form.contact?.id ?? null,
         ownerUserId: form.ownerUserId || null,
         expectedCloseDate: form.expectedCloseDate || null,
@@ -128,7 +129,9 @@ export function DealDialog({
 
   const stageName = (id: string | null) => pipeline.stages.find((s) => s.id === id)?.name ?? "—";
   const deal = detail.data;
-  const disabled = !canWrite;
+  const loading = !!dealId && !detail.data;
+  const disabled = !canWrite || loading;
+  const invalidValue = parseMoney(form.value) === undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,6 +148,10 @@ export function DealDialog({
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
+            if (invalidValue) {
+              toast.error("Valor inválido. Use, por exemplo, 1.500,00");
+              return;
+            }
             if (form.title.trim() && !disabled) save.mutate();
           }}
         >
@@ -271,7 +278,7 @@ export function DealDialog({
               <span />
             )}
             {canWrite && (
-              <Button type="submit" disabled={!form.title.trim() || save.isPending}>
+              <Button type="submit" disabled={!form.title.trim() || loading || save.isPending}>
                 {dealId ? "Salvar" : "Criar negócio"}
               </Button>
             )}

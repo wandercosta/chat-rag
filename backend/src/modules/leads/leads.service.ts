@@ -1,4 +1,5 @@
 import { env } from "../../config/env.js";
+import { assistantsService } from "../assistants/index.js";
 import { aiQuotaService, usageService } from "../analytics/index.js";
 import { auditService } from "../audit/index.js";
 import { contactsService } from "../contacts/index.js";
@@ -134,6 +135,7 @@ export const leadsService = {
     const classification = parseClassification(result.text);
     if (!classification) throw new LeadModelError();
 
+    await leadsRepository.supersedePending(organizationId, contactId, actorUserId);
     const insight = await leadsRepository.insertInsight(
       organizationId,
       contactId,
@@ -151,14 +153,20 @@ export const leadsService = {
     return (await present(organizationId, [insight]))[0];
   },
 
-  /** Classificacao atual (ultima aceita), sugestao pendente e historico do contato. */
+  /**
+   * Classificacao atual (a ultima aceita, pela hora do aceite, a mesma regra
+   * do selo no funil), sugestao pendente e historico do contato.
+   */
   async forContact(organizationId: string, contactId: string) {
     const rows = await present(
       organizationId,
       await leadsRepository.listForContact(organizationId, contactId),
     );
+    const accepted = rows
+      .filter((r) => r.status === "aceita")
+      .sort((a, b) => +new Date(b.reviewedAt ?? 0) - +new Date(a.reviewedAt ?? 0));
     return {
-      current: rows.find((r) => r.status === "aceita") ?? null,
+      current: accepted[0] ?? null,
       pending: rows.find((r) => r.status === "sugerida") ?? null,
       history: rows,
     };
@@ -177,9 +185,8 @@ export const leadsService = {
       type: "conteudo",
       target: insightId,
     });
-    return (await this.forContact(organizationId, insight.contact_id)).history.find(
-      (r) => r.id === insightId,
-    );
+    const reviewed = await leadsRepository.findInsight(organizationId, insightId);
+    return (await present(organizationId, [reviewed!]))[0];
   },
 
   /** Temperatura aceita de varios contatos (kanban do funil, lista de contatos). */
@@ -190,12 +197,24 @@ export const leadsService = {
     );
   },
 
-  /** Worker de retencao: o resumo da conversa segue o prazo da organizacao. */
+  /**
+   * Worker de retencao: o resumo vem das conversas, entao sai junto com a
+   * mais curta delas (o menor prazo entre a organizacao e seus assistentes).
+   */
   async purgeExpired() {
+    const shortest = new Map<string, number>();
+    for (const a of await assistantsService.listAllWithEffectiveRetention()) {
+      shortest.set(
+        a.organizationId,
+        Math.min(shortest.get(a.organizationId) ?? Infinity, a.retentionDays),
+      );
+    }
     const summary: { organizationId: string; deleted: number }[] = [];
     for (const organizationId of await leadsRepository.organizationsWithInsights()) {
       const { days } = await organizationsService.getRetentionPolicy(organizationId);
-      const cutoff = new Date(Date.now() - (days ?? PLATFORM_DEFAULT_RETENTION_DAYS) * DAY_MS);
+      const orgDays = days ?? PLATFORM_DEFAULT_RETENTION_DAYS;
+      const effective = Math.min(orgDays, shortest.get(organizationId) ?? orgDays);
+      const cutoff = new Date(Date.now() - effective * DAY_MS);
       const deleted = await leadsRepository.deleteOlderThan(organizationId, cutoff);
       if (deleted > 0) summary.push({ organizationId, deleted });
     }

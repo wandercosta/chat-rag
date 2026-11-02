@@ -1,10 +1,13 @@
+import crypto from "node:crypto";
 import type { AttachmentKind } from "../../db/types.js";
 import {
   deleteObjects,
   getSourceFile,
   mediaObjectKey,
+  openSourceStream,
   putSourceFile,
 } from "../../storage/objects.js";
+import { conversationsRepository } from "./conversations.repository.js";
 import { attachmentsRepository } from "./attachments.repository.js";
 import { signedMediaPath, verifyMediaLink } from "./media-link.js";
 
@@ -37,20 +40,39 @@ export const attachmentsService = {
     });
   },
 
-  /** Arquivo enviado por atendente: grava no storage e ja fica pronto. */
-  async storeOutbound(
+  /**
+   * Mensagem do atendente com arquivo. O arquivo vai para o storage antes:
+   * se o storage falhar, nao fica mensagem "enviada" sem arquivo.
+   */
+  async addAgentFile(
     organizationId: string,
-    messageId: string,
+    conversationId: string,
+    content: string,
+    authorUserId: string,
     file: { kind: AttachmentKind; fileName: string; mimeType: string; data: Buffer },
   ) {
-    const { id } = await attachmentsRepository.create(
-      organizationId,
-      messageId,
-      file.kind,
-      file.fileName,
+    const id = crypto.randomUUID();
+    const storageKey = mediaObjectKey(organizationId, id);
+    await putSourceFile(storageKey, file.data, file.mimeType);
+    const message = await conversationsRepository.addMessage(
+      conversationId,
+      "atendente",
+      content,
+      [],
+      authorUserId,
     );
-    await this.saveFile(organizationId, id, file.data, file.mimeType);
-    return { id, kind: file.kind, fileName: file.fileName, mimeType: file.mimeType };
+    await attachmentsRepository.createReady(organizationId, message.id, {
+      id,
+      kind: file.kind,
+      fileName: file.fileName,
+      storageKey,
+      mimeType: file.mimeType,
+      sizeBytes: file.data.length,
+    });
+    return {
+      message,
+      attachment: { id, kind: file.kind, fileName: file.fileName, mimeType: file.mimeType },
+    };
   },
 
   /** Caminho (relativo a API) do link publico temporario do arquivo enviado. */
@@ -64,7 +86,7 @@ export const attachmentsService = {
     const attachment = await attachmentsRepository.findOutbound(attachmentId);
     if (!attachment?.storage_key || attachment.status !== "pronto") return null;
     return {
-      data: await getSourceFile(attachment.storage_key),
+      ...(await openSourceStream(attachment.storage_key)),
       mimeType: attachment.mime_type ?? "application/octet-stream",
       fileName: attachment.file_name ?? `${attachment.kind}-${attachment.id}`,
     };

@@ -21,6 +21,12 @@ export async function getSourceFile(key: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+/** Objeto em stream (link publico): nao segura o arquivo inteiro na memoria. */
+export async function openSourceStream(key: string) {
+  const result = await s3.send(new GetObjectCommand({ Bucket: SOURCES_BUCKET, Key: key }));
+  return { body: result.Body as NodeJS.ReadableStream, size: result.ContentLength ?? null };
+}
+
 export function sourceObjectKey(
   organizationId: string,
   sourceId: string,

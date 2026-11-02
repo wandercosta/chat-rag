@@ -166,6 +166,31 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("funil de vendas", () => {
       ).statusCode,
     ).toBe(404);
 
+    // Data impossivel e erro de validacao, nao 500.
+    expect((await bad({ expectedCloseDate: "2026-02-30" })).statusCode).toBe(400);
+
+    // Responsavel que virou Analista nao trava a edicao do negocio.
+    const owned = (
+      await call("POST", `${b.t.base}/deals`, b.t.admin, {
+        title: "Do atendente",
+        pipelineId: b.pipeline.id,
+        ownerUserId: b.t.people.Atendente.userId,
+      })
+    ).json();
+    await db
+      .updateTable("memberships")
+      .set({ role: "Analista" })
+      .where("user_id", "=", b.t.people.Atendente.userId)
+      .execute();
+    expect(
+      (
+        await call("PATCH", `${b.t.base}/deals/${owned.id}`, b.t.admin, {
+          title: "Renomeado",
+          ownerUserId: b.t.people.Atendente.userId,
+        })
+      ).statusCode,
+    ).toBe(200);
+
     await call("POST", `/master/tenants/${a.t.organizationId}/support-sessions`, masterCookie, {
       justification: "Conferir o funil de vendas do tenant",
     });
@@ -178,6 +203,51 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("funil de vendas", () => {
         })
       ).statusCode,
     ).toBe(403);
+  });
+
+  it("ler o funil nao cria nada para o Master nem para o Analista", async () => {
+    const t = await createTenant(app, masterCookie, "funil-e");
+    const count = () =>
+      db
+        .selectFrom("pipelines")
+        .select("id")
+        .where("organization_id", "=", t.organizationId)
+        .execute()
+        .then((r) => r.length);
+    expect((await call("GET", `${t.base}/pipelines`, t.people.Analista.cookie)).json()).toEqual([]);
+    await call("POST", `/master/tenants/${t.organizationId}/support-sessions`, masterCookie, {
+      justification: "Conferir o funil de vendas do tenant",
+    });
+    expect((await call("GET", `${t.base}/pipelines`, masterCookie)).json()).toEqual([]);
+    expect(await count()).toBe(0);
+    await call("GET", `${t.base}/pipelines`, t.people.Atendente.cookie);
+    expect(await count()).toBe(1);
+  });
+
+  it("movimentos simultaneos na mesma coluna nao duplicam posicao", async () => {
+    const { t, pipeline, stage } = await setup("funil-f");
+    const ids: string[] = [];
+    for (const title of ["A", "B", "C", "D"]) {
+      const created = await call("POST", `${t.base}/deals`, t.admin, {
+        title,
+        pipelineId: pipeline.id,
+      });
+      ids.push(created.json().id);
+    }
+    await Promise.all(
+      ids.map((id, i) =>
+        call("POST", `${t.base}/deals/${id}/move`, t.admin, {
+          stageId: stage("Proposta").id,
+          position: i % 2,
+        }),
+      ),
+    );
+    const rows = await db
+      .selectFrom("deals")
+      .select("position")
+      .where("stage_id", "=", stage("Proposta").id)
+      .execute();
+    expect(rows.map((r) => r.position).sort()).toEqual([0, 1, 2, 3]);
   });
 
   it("funis e etapas: so o Administrador configura e as regras seguram", async () => {

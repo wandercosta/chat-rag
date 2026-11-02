@@ -51,6 +51,15 @@ export const pipelinesRepository = {
       .executeTakeFirst();
   },
 
+  /**
+   * Serializa quem mexe nas colunas de um funil (criar, mover, excluir etapa
+   * ou funil) ate o fim da transacao: posicoes sem duplicata, sem deadlock
+   * entre duas reordenacoes e sem excluir etapa que acabou de receber negocio.
+   */
+  async lockPipeline(trx: Db, pipelineId: string) {
+    await sql`select pg_advisory_xact_lock(hashtext(${`pipeline:${pipelineId}`}))`.execute(trx);
+  },
+
   /** Primeiro funil da organizacao, criado uma vez mesmo com leituras simultaneas. */
   ensureDefault(organizationId: string) {
     return db.transaction().execute(async (trx) => {
@@ -105,8 +114,8 @@ export const pipelinesRepository = {
       .executeTakeFirst();
   },
 
-  deletePipeline(organizationId: string, id: string) {
-    return db
+  deletePipeline(organizationId: string, id: string, trx: Db = db) {
+    return trx
       .deleteFrom("pipelines")
       .where("organization_id", "=", organizationId)
       .where("id", "=", id)
@@ -150,8 +159,8 @@ export const pipelinesRepository = {
     });
   },
 
-  deleteStage(organizationId: string, id: string) {
-    return db
+  deleteStage(organizationId: string, id: string, trx: Db = db) {
+    return trx
       .deleteFrom("pipeline_stages")
       .where("organization_id", "=", organizationId)
       .where("id", "=", id)

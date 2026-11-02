@@ -161,6 +161,17 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)("classificacao de leads com IA", () => {
     // Analista ve, nao classifica.
     expect((await call("GET", url, t.people.Analista.cookie)).statusCode).toBe(200);
     expect((await call("POST", url, t.people.Analista.cookie)).statusCode).toBe(403);
+
+    // Classificar de novo substitui a sugestao pendente: so uma espera revisao.
+    const first = (await call("POST", url, agent)).json();
+    const second = (await call("POST", url, agent)).json();
+    const state = (await call("GET", url, agent)).json();
+    expect(state.pending.id).toBe(second.id);
+    expect(state.history.find((h: { id: string }) => h.id === first.id).status).toBe("descartada");
+    expect(
+      (await call("POST", `${t.base}/lead-insights/${first.id}/review`, agent, { accepted: true }))
+        .statusCode,
+    ).toBe(409);
   });
 
   it("descarta resposta fora do esquema e respeita o limite mensal", async () => {

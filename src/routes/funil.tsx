@@ -122,6 +122,12 @@ function FunnelPage() {
         </Card>
       )}
       {pipelinesQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {tenantId && pipelinesQuery.isSuccess && pipelines.length === 0 && (
+        <Card className="p-6 text-sm text-muted-foreground">
+          Esta organização ainda não usa o funil. Ele é criado quando um administrador ou atendente
+          abre esta tela.
+        </Card>
+      )}
 
       {tenantId && pipeline && (
         <>

@@ -15,8 +15,12 @@ async function stagesOfPipeline(organizationId: string, pipelineId: string) {
  * funil mantem ao menos uma etapa de cada tipo (aberta, ganho, perdido).
  */
 export const pipelinesService = {
-  async list(organizationId: string) {
-    await pipelinesRepository.ensureDefault(organizationId);
+  /**
+   * O funil padrao so nasce para quem pode usar o funil: leitura do Master
+   * em suporte ou do Analista nao cria nada no tenant (ADR-008 #5).
+   */
+  async list(organizationId: string, options: { createDefault: boolean }) {
+    if (options.createDefault) await pipelinesRepository.ensureDefault(organizationId);
     const [pipelines, stages] = await Promise.all([
       pipelinesRepository.list(organizationId),
       pipelinesRepository.stagesOf(organizationId),
@@ -57,10 +61,13 @@ export const pipelinesService = {
     if ((await pipelinesRepository.list(organizationId)).length <= 1) {
       throw new DealsConflictError("a organizacao precisa de ao menos um funil");
     }
-    if ((await dealsRepository.countInPipeline(organizationId, pipelineId)) > 0) {
-      throw new DealsConflictError("mova ou exclua os negocios deste funil antes");
-    }
-    await pipelinesRepository.deletePipeline(organizationId, pipelineId);
+    await db.transaction().execute(async (trx) => {
+      await pipelinesRepository.lockPipeline(trx, pipelineId);
+      if ((await dealsRepository.countInPipeline(organizationId, pipelineId, trx)) > 0) {
+        throw new DealsConflictError("mova ou exclua os negocios deste funil antes");
+      }
+      await pipelinesRepository.deletePipeline(organizationId, pipelineId, trx);
+    });
     await auditService.record({
       actorUserId,
       organizationId,
@@ -98,15 +105,22 @@ export const pipelinesService = {
   async removeStage(organizationId: string, stageId: string) {
     const stage = await pipelinesRepository.findStage(organizationId, stageId);
     if (!stage) throw new DealsNotFoundError();
-    if ((await dealsRepository.countInStage(organizationId, stageId)) > 0) {
-      throw new DealsConflictError("mova os negocios desta etapa antes de excluir");
-    }
-    const sameKind = (await stagesOfPipeline(organizationId, stage.pipeline_id)).filter(
-      (s) => s.kind === stage.kind,
-    );
-    if (sameKind.length <= 1) {
-      throw new DealsConflictError(`o funil precisa de ao menos uma etapa do tipo ${stage.kind}`);
-    }
-    await pipelinesRepository.deleteStage(organizationId, stageId);
+    await db.transaction().execute(async (trx) => {
+      await pipelinesRepository.lockPipeline(trx, stage.pipeline_id);
+      if ((await dealsRepository.countInStage(organizationId, stageId, trx)) > 0) {
+        throw new DealsConflictError("mova os negocios desta etapa antes de excluir");
+      }
+      const sameKind = await trx
+        .selectFrom("pipeline_stages")
+        .select("id")
+        .where("organization_id", "=", organizationId)
+        .where("pipeline_id", "=", stage.pipeline_id)
+        .where("kind", "=", stage.kind)
+        .execute();
+      if (sameKind.length <= 1) {
+        throw new DealsConflictError(`o funil precisa de ao menos uma etapa do tipo ${stage.kind}`);
+      }
+      await pipelinesRepository.deleteStage(organizationId, stageId, trx);
+    });
   },
 };

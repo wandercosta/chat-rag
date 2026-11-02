@@ -10,17 +10,22 @@ export interface TranscriptMessage {
   content: string;
 }
 
-const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
-const PHONE = /\+?\d[\d\s().-]{7,}\d/g;
+// Letras acentuadas no e-mail e travessoes/barra no telefone tambem.
+const EMAIL = /[\p{L}\p{N}.+_%-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
+const PHONE = /\+?\d[\d\s()./\u2010-\u2015-]{7,}\d/g;
 
 /**
  * So o texto das mensagens, mais recentes, sem e-mail nem telefone que a
- * pessoa tenha digitado (minimizacao, ADR-009 #3).
+ * pessoa tenha digitado (minimizacao, ADR-009 #3). Sem `<` e `>`: o cliente
+ * nao consegue fechar o bloco <conversa> e escrever fora dele.
  */
 export function buildTranscript(messages: TranscriptMessage[]) {
   const lines = messages.slice(-MAX_MESSAGES).map((m) => {
     const who = m.role === "visitante" ? "Cliente" : "Atendimento";
-    const text = m.content.replace(EMAIL, "[e-mail]").replace(PHONE, "[telefone]");
+    const text = m.content
+      .replace(EMAIL, "[e-mail]")
+      .replace(PHONE, "[telefone]")
+      .replace(/[<>]/g, " ");
     return `${who}: ${text.replace(/\s+/g, " ").trim()}`;
   });
   let transcript = lines.join("\n");

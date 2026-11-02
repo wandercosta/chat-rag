@@ -110,7 +110,10 @@ export const tasksService = {
     return this.get(organizationId, id);
   },
 
-  /** `done` conclui ou reabre; prazo novo volta a avisar. */
+  /**
+   * `done` conclui ou reabre. Prazo diferente ou outro responsavel volta a
+   * avisar; salvar o mesmo prazo (o dialogo sempre manda) nao repete o aviso.
+   */
   async update(
     actorUserId: string,
     organizationId: string,
@@ -120,12 +123,20 @@ export const tasksService = {
     const current = await tasksRepository.findById(organizationId, taskId);
     if (!current) throw new TaskNotFoundError();
     await assertRefs(organizationId, input);
-    await tasksRepository.update(organizationId, taskId, {
+    const dueChanged =
+      input.dueAt !== undefined && input.dueAt?.getTime() !== current.due_at?.getTime();
+    const assigneeChanged =
+      input.assigneeUserId !== undefined && input.assigneeUserId !== current.assignee_user_id;
+    const values = {
       ...toValues(input),
-      ...(input.dueAt !== undefined && { reminded_at: null }),
+      ...((dueChanged || assigneeChanged) && { reminded_at: null }),
       ...(input.done === true && !current.done_at && { done_at: new Date(), done_by: actorUserId }),
-      ...(input.done === false && { done_at: null, done_by: null }),
-    });
+      ...(input.done === false && current.done_at && { done_at: null, done_by: null }),
+    };
+    // Nada a mudar (ex.: concluir o que outra pessoa ja concluiu): nao e erro.
+    if (Object.keys(values).length > 0) {
+      await tasksRepository.update(organizationId, taskId, values);
+    }
     if (input.done !== undefined && input.done !== !!current.done_at) {
       await auditService.record({
         actorUserId,

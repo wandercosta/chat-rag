@@ -18,9 +18,13 @@ export async function pipelinesRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireSession);
   const base = "/organizations/:organizationId/pipelines";
 
-  app.get<OrgParams>(base, canRead, async (request) =>
-    pipelinesService.list(request.params.organizationId),
-  );
+  app.get<OrgParams>(base, canRead, async (request) => {
+    const { organizationId } = request.params;
+    const membership = request.auth?.memberships.find((m) => m.organizationId === organizationId);
+    return pipelinesService.list(organizationId, {
+      createDefault: membership?.role === "Administrador" || membership?.role === "Atendente",
+    });
+  });
 
   app.post<OrgParams>(base, canAdmin, async (request, reply) => {
     const { name } = nameSchema.parse(request.body);
